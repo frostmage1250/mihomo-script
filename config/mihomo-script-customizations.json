@@ -5,12 +5,6 @@
     "branch": "main",
     "path": "Script/mihomoScript.js"
   },
-  "script_runtime": {
-    "repository": "appshubcc/Bettbox",
-    "branch": "main",
-    "quickjs_path": "plugins/flutter_qjs/cxx/quickjs",
-    "version_file": "plugins/flutter_qjs/cxx/quickjs/VERSION"
-  },
   "output": "mihomoScript.js",
   "report": "reports/mihomo-script-upstream.json",
   "retained_services": {
