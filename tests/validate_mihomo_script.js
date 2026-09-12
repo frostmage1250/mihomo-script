@@ -91,7 +91,7 @@ for (const rule of output.rules) {
 assert(!output.rules.some((rule) => /qwen|qbittorrent|cn_additional|googlefcm/i.test(rule)), "unapproved handwritten or removed rules remain");
 assert(output.rules.indexOf("RULE-SET,apple_cn,Direct") < output.rules.indexOf("RULE-SET,apple,Proxy"), "Apple CN layering order is wrong");
 assert(output.rules.indexOf("RULE-SET,microsoft_cn,Direct") < output.rules.indexOf("RULE-SET,microsoft,Proxy"), "Microsoft CN layering order is wrong");
-assert(output.rules.at(-1) === "MATCH,Final", "Final rule must remain last");
+assert(output.rules[output.rules.length - 1] === "MATCH,Final", "Final rule must remain last");
 
 for (const forbidden of ["customizeProxies", "buildCustomizeProxies", "代理IPV4优先", "代理IPV6优先", "过滤高倍率节点"]) {
   assert(!source.includes(forbidden), `dead feature remains in generated source: ${forbidden}`);
