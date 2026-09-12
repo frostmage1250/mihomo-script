@@ -1033,7 +1033,8 @@ function buildRuleProviders() {
 
 function retargetServiceRule(rule, target) {
   const parts = rule.split(',');
-  const noResolve = parts.at(-1) === 'no-resolve';
+  // Bettbox 当前内置的 QuickJS 未提供 Array.prototype.at。
+  const noResolve = parts[parts.length - 1] === 'no-resolve';
   const policyIndex = noResolve ? parts.length - 2 : parts.length - 1;
   if (policyIndex < 2 || parts[0] !== 'RULE-SET') {
     throw new Error('无法安全转换上游服务规则：' + rule);
@@ -1148,3 +1149,4 @@ function main(config) {
     rules: buildRules(),
   };
 }
+
