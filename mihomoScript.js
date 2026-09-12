@@ -1148,4 +1148,3 @@ function main(config) {
     rules: buildRules(),
   };
 }
-
