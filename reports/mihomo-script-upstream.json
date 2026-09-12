@@ -1,0 +1,132 @@
+{
+  "output_sha256": "0ce5ea7e27c6466136063c1e2695476b2c6dbb1107516c6a6f35ed1d973a61ff",
+  "retained_base_rule_providers": [
+    "private",
+    "private_ip",
+    "games_cn",
+    "apple_cn",
+    "microsoft_cn",
+    "geolocation-cn",
+    "cn_ip",
+    "geolocation-!cn",
+    "fakeip_filter",
+    "cn"
+  ],
+  "retained_services": {
+    "AI": {
+      "providers": [
+        "ai"
+      ],
+      "rules": [
+        "RULE-SET,ai,AI"
+      ]
+    },
+    "Apple": {
+      "providers": [
+        "apple"
+      ],
+      "rules": [
+        "RULE-SET,apple,Apple"
+      ]
+    },
+    "EHentai": {
+      "providers": [
+        "ehentai"
+      ],
+      "rules": [
+        "RULE-SET,ehentai,EHentai"
+      ]
+    },
+    "Google": {
+      "providers": [
+        "google",
+        "google_ip"
+      ],
+      "rules": [
+        "RULE-SET,google,Google",
+        "RULE-SET,google_ip,Google,no-resolve"
+      ]
+    },
+    "Instagram": {
+      "providers": [
+        "instagram"
+      ],
+      "rules": [
+        "RULE-SET,instagram,Instagram"
+      ]
+    },
+    "Microsoft": {
+      "providers": [
+        "github",
+        "microsoft"
+      ],
+      "rules": [
+        "RULE-SET,github,默认代理",
+        "RULE-SET,microsoft,Microsoft"
+      ]
+    },
+    "PikPak": {
+      "providers": [
+        "pikpak"
+      ],
+      "rules": [
+        "RULE-SET,pikpak,PikPak"
+      ]
+    },
+    "Steam": {
+      "providers": [
+        "steam",
+        "steam_ip"
+      ],
+      "rules": [
+        "RULE-SET,steam,Steam",
+        "RULE-SET,steam_ip,Steam,no-resolve"
+      ]
+    },
+    "Telegram": {
+      "providers": [
+        "telegram",
+        "telegram_ip"
+      ],
+      "rules": [
+        "RULE-SET,telegram,Telegram",
+        "RULE-SET,telegram_ip,Telegram,no-resolve"
+      ]
+    },
+    "TikTok": {
+      "providers": [
+        "tiktok",
+        "tiktok_ip"
+      ],
+      "rules": [
+        "RULE-SET,tiktok,TikTok",
+        "RULE-SET,tiktok_ip,TikTok,no-resolve"
+      ]
+    },
+    "Twitter": {
+      "providers": [
+        "twitter",
+        "twitter_ip"
+      ],
+      "rules": [
+        "RULE-SET,twitter,Twitter",
+        "RULE-SET,twitter_ip,Twitter,no-resolve"
+      ]
+    },
+    "YouTube": {
+      "providers": [
+        "youtube"
+      ],
+      "rules": [
+        "RULE-SET,youtube,YouTube"
+      ]
+    }
+  },
+  "schema_version": 1,
+  "upstream": {
+    "commit": "0d82dc32020c3b517de8ffaf259ef8d5400e9426",
+    "path": "Script/mihomoScript.js",
+    "repository": "AIsouler/MyClash"
+  }
+}
+
