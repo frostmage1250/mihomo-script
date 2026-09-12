@@ -19,6 +19,9 @@ https://raw.githubusercontent.com/frostmage1250/mihomo-script/main/mihomoScript.
 - `mihomoScript.js` is the standalone generated subscription artifact.
 - `reports/mihomo-script-upstream.json` records the exact upstream commit and output
   digest.
+- Bettbox script compatibility follows the QuickJS sources and `VERSION` file under
+  `appshubcc/Bettbox/plugins/flutter_qjs/cxx/quickjs`, rather than the Node.js
+  compatibility level.
 
 Selected upstream provider URLs and rule ordering may update automatically. A service
 rename, provider-set change, behavior/format change, relevant upstream function
@@ -48,9 +51,10 @@ latest stable Mihomo binary and verifies its published SHA-256 digest, then runs
 
 1. Python builder tests.
 2. JavaScript syntax and synthetic airport-profile tests.
-3. Rule/provider and policy-group invariant checks.
-4. A complete Mihomo core configuration check.
-5. Deterministic regeneration and whitespace validation.
+3. Execution with the current QuickJS source bundled by the Bettbox repository.
+4. Rule/provider and policy-group invariant checks.
+5. A complete Mihomo core configuration check.
+6. Deterministic regeneration and whitespace validation.
 
 Any failure leaves the last working subscription in place. Configure GitHub Actions
 notifications for failed workflows to receive email only when manual review is needed.
