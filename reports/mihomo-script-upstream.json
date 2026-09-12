@@ -1,5 +1,5 @@
 {
-  "output_sha256": "0ce5ea7e27c6466136063c1e2695476b2c6dbb1107516c6a6f35ed1d973a61ff",
+  "output_sha256": "2f76a721f25d31f3ef442c188584f2da5427f6a3d19f3d99a1249e2275984d9a",
   "retained_base_rule_providers": [
     "private",
     "private_ip",
@@ -129,3 +129,4 @@
     "repository": "AIsouler/MyClash"
   }
 }
+
