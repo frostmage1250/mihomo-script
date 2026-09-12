@@ -1,0 +1,101 @@
+name: Update Mihomo script
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/update-mihomo-script.yml"
+      - "config/**"
+      - "src/**"
+      - "tests/**"
+      - "mihomoScript.js"
+  schedule:
+    # 18:37 UTC = 02:37 Asia/Taipei (the following day).
+    - cron: "37 18 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-mihomo-script
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install latest stable Mihomo
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_json="$(gh api repos/MetaCubeX/mihomo/releases/latest)"
+          mihomo_version="$(jq --raw-output '.tag_name' <<< "${release_json}")"
+          asset="mihomo-linux-amd64-compatible-${mihomo_version}.gz"
+          asset_json="$(jq --compact-output --arg name "${asset}" '.assets[] | select(.name == $name)' <<< "${release_json}")"
+          download_url="$(jq --raw-output '.browser_download_url' <<< "${asset_json}")"
+          digest="$(jq --raw-output '.digest' <<< "${asset_json}")"
+          if [[ -z "${asset_json}" || "${digest}" != sha256:* ]]; then
+            echo "Latest stable Mihomo is missing ${asset} or its SHA-256 digest." >&2
+            exit 1
+          fi
+          archive="${RUNNER_TEMP}/${asset}"
+          curl --fail --location --silent --show-error "${download_url}" --output "${archive}"
+          echo "${digest#sha256:}  ${archive}" | sha256sum --check
+          gzip --decompress --stdout "${archive}" > "${RUNNER_TEMP}/mihomo"
+          chmod +x "${RUNNER_TEMP}/mihomo"
+          echo "${RUNNER_TEMP}" >> "${GITHUB_PATH}"
+          "${RUNNER_TEMP}/mihomo" -v
+
+      - name: Generate from pinned latest upstream commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python src/build_mihomo_script.py
+
+      - name: Run builder unit tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Validate generated JavaScript and behavior
+        run: |
+          node --check mihomoScript.js
+          node tests/validate_mihomo_script.js "${RUNNER_TEMP}/mihomo-script-fixture.json"
+
+      - name: Validate generated Mihomo configuration
+        run: mihomo -t -f "${RUNNER_TEMP}/mihomo-script-fixture.json"
+
+      - name: Verify deterministic regeneration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python src/build_mihomo_script.py --check
+          git diff --check
+
+      - name: Commit safe generated changes
+        shell: bash
+        run: |
+          git add -- mihomoScript.js reports/mihomo-script-upstream.json
+          if git diff --cached --quiet; then
+            echo "No generated script changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: update generated Mihomo script"
+          git push
+
+      - name: Remove downloaded Mihomo files
+        if: always()
+        shell: bash
+        run: rm -f "${RUNNER_TEMP}"/mihomo "${RUNNER_TEMP}"/mihomo-*.gz "${RUNNER_TEMP}"/mihomo-script-fixture.json
+
