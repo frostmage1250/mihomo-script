@@ -1,5 +1,5 @@
 {
-  "output_sha256": "2f76a721f25d31f3ef442c188584f2da5427f6a3d19f3d99a1249e2275984d9a",
+  "output_sha256": "0d2ca852b361cbcf78b892b3e34802bd3dcf47f7a84bfcd9bc0cfbc1d278e06c",
   "retained_base_rule_providers": [
     "private",
     "private_ip",
@@ -23,10 +23,12 @@
     },
     "Apple": {
       "providers": [
-        "apple"
+        "apple",
+        "apple_ip"
       ],
       "rules": [
-        "RULE-SET,apple,Apple"
+        "RULE-SET,apple,Apple",
+        "RULE-SET,apple_ip,Apple,no-resolve"
       ]
     },
     "EHentai": {
@@ -58,11 +60,13 @@
     "Microsoft": {
       "providers": [
         "github",
-        "microsoft"
+        "microsoft",
+        "microsoft_ip"
       ],
       "rules": [
         "RULE-SET,github,默认代理",
-        "RULE-SET,microsoft,Microsoft"
+        "RULE-SET,microsoft,Microsoft",
+        "RULE-SET,microsoft_ip,Microsoft,no-resolve"
       ]
     },
     "PikPak": {
@@ -124,7 +128,7 @@
   },
   "schema_version": 1,
   "upstream": {
-    "commit": "0d82dc32020c3b517de8ffaf259ef8d5400e9426",
+    "commit": "001faf24280c4c0617ec155b4be19b428afdb2a7",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
   }

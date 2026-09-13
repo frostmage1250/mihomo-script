@@ -3,7 +3,7 @@
  * 作者：AIsouler
  * 源仓库：https://github.com/AIsouler/MyClash
  * 上游脚本：https://raw.githubusercontent.com/AIsouler/MyClash/main/Script/mihomoScript.js
- * 上游提交：0d82dc32020c3b517de8ffaf259ef8d5400e9426
+ * 上游提交：001faf24280c4c0617ec155b4be19b428afdb2a7
  * 基于上游 mihomoScript.js 定制：两个机场配置分开使用同一脚本。
  * 友情推荐，非常好用、省电且内存占用低的代理软件：https://github.com/appshubcc/Bettbox
  */
@@ -271,11 +271,21 @@ const retainedServiceDefinitions = {
         "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/microsoft.mrs",
         "path": "./ruleset/microsoft.mrs",
         "path-in-bundle": "geo/geosite/microsoft.mrs"
+      },
+      "microsoft_ip": {
+        "type": "http",
+        "format": "mrs",
+        "interval": 86400,
+        "behavior": "ipcidr",
+        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/microsoft.mrs",
+        "path": "./ruleset/microsoft_ip.mrs",
+        "path-in-bundle": "geo/geoip/microsoft.mrs"
       }
     },
     "rules": [
       "RULE-SET,github,默认代理",
-      "RULE-SET,microsoft,Microsoft"
+      "RULE-SET,microsoft,Microsoft",
+      "RULE-SET,microsoft_ip,Microsoft,no-resolve"
     ]
   },
   "Apple": {
@@ -288,10 +298,20 @@ const retainedServiceDefinitions = {
         "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/apple.mrs",
         "path": "./ruleset/apple.mrs",
         "path-in-bundle": "geo/geosite/apple.mrs"
+      },
+      "apple_ip": {
+        "type": "http",
+        "format": "mrs",
+        "interval": 86400,
+        "behavior": "ipcidr",
+        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/apple.mrs",
+        "path": "./ruleset/apple_ip.mrs",
+        "path-in-bundle": "geo/geoip/apple.mrs"
       }
     },
     "rules": [
-      "RULE-SET,apple,Apple"
+      "RULE-SET,apple,Apple",
+      "RULE-SET,apple_ip,Apple,no-resolve"
     ]
   },
   "Telegram": {
