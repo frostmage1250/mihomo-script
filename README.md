@@ -20,10 +20,12 @@ https://raw.githubusercontent.com/frostmage1250/mihomo-script/main/mihomoScript.
 - `reports/mihomo-script-upstream.json` records the exact upstream commit and output
   digest.
 
-Selected upstream provider URLs and rule ordering may update automatically. A service
-rename, provider-set change, behavior/format change, relevant upstream function
-change, missing rule reference, or collision with the reserved Bett additions stops
-the build before publication and requires review.
+For every retained service, internally consistent provider additions/removals, rule
+additions/removals, and provider URL/path updates are accepted automatically. The
+generated script is still rejected before publication when a retained service
+disappears or is renamed, a provider becomes invalid, rules and providers no longer
+reference each other exactly, a reserved Bett provider name collides, or a reviewed
+node-filtering, DNS, or region-classification contract changes.
 
 ## Local customizations
 
@@ -54,4 +56,5 @@ latest stable Mihomo binary and verifies its published SHA-256 digest, then runs
 
 Any failure leaves the last working subscription in place. Configure GitHub Actions
 notifications for failed workflows to receive email only when manual review is needed.
+
 

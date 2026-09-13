@@ -1112,6 +1112,10 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
  * 主入口：沿用上游机场配置处理边界，直接生成最终输出。
  */
 function main(config) {
+  if (config['proxy-providers'] && Object.keys(config['proxy-providers']).length > 0) {
+    throw new Error('配置文件中包含 proxy-providers，请使用机场提供的配置文件进行覆写');
+  }
+
   const filteredProxies = filterProxies(config);
   const regionProxyMap = buildRegionProxyMap(filteredProxies);
   const { dns, hosts, proxies: mappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);

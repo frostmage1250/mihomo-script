@@ -8,7 +8,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from build_mihomo_script import BuildError, replace_marked, render_script  # noqa: E402
+from build_mihomo_script import (  # noqa: E402
+    BuildError,
+    replace_marked,
+    render_script,
+    select_upstream_definitions,
+)
 
 
 class BuilderTests(unittest.TestCase):
@@ -42,7 +47,46 @@ old
         self.assertEqual(first, second)
         self.assertIn(f"上游提交：{sha}", first)
 
+    def test_retained_service_provider_additions_are_accepted(self) -> None:
+        provider = {
+            "type": "http",
+            "format": "mrs",
+            "interval": 86400,
+            "behavior": "domain",
+            "url": "https://example.com/service.mrs",
+            "path": "./ruleset/service.mrs",
+        }
+        ip_provider = {
+            **provider,
+            "behavior": "ipcidr",
+            "url": "https://example.com/service-ip.mrs",
+            "path": "./ruleset/service-ip.mrs",
+        }
+        extracted = {
+            "baseRuleProviders": {},
+            "services": [
+                {
+                    "name": "Service",
+                    "providers": {"service": provider, "service_ip": ip_provider},
+                    "rules": [
+                        "RULE-SET,service,Service",
+                        "RULE-SET,service_ip,Service,no-resolve",
+                    ],
+                }
+            ],
+        }
+        manifest = {
+            "retained_services": ["Service"],
+            "retained_base_rule_providers": [],
+            "reserved_extra_provider_names": [],
+        }
+
+        _base, services = select_upstream_definitions(extracted, manifest)
+
+        self.assertEqual(list(services["Service"]["providers"]), ["service", "service_ip"])
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

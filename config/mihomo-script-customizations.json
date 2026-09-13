@@ -7,20 +7,20 @@
   },
   "output": "mihomoScript.js",
   "report": "reports/mihomo-script-upstream.json",
-  "retained_services": {
-    "YouTube": ["youtube"],
-    "Google": ["google", "google_ip"],
-    "AI": ["ai"],
-    "Microsoft": ["github", "microsoft"],
-    "Apple": ["apple"],
-    "Telegram": ["telegram", "telegram_ip"],
-    "Steam": ["steam", "steam_ip"],
-    "TikTok": ["tiktok", "tiktok_ip"],
-    "Twitter": ["twitter", "twitter_ip"],
-    "Instagram": ["instagram"],
-    "PikPak": ["pikpak"],
-    "EHentai": ["ehentai"]
-  },
+  "retained_services": [
+    "YouTube",
+    "Google",
+    "AI",
+    "Microsoft",
+    "Apple",
+    "Telegram",
+    "Steam",
+    "TikTok",
+    "Twitter",
+    "Instagram",
+    "PikPak",
+    "EHentai"
+  ],
   "retained_base_rule_providers": [
     "private",
     "private_ip",
@@ -43,7 +43,6 @@
     "function:filterAndNormalizeProxies": "bc62623cb3f0ff3dc43792d033faaf7835be272a6edb414e074900f1a7bf468e",
     "function:hostSpecificity": "7ca264c22367369b234d840f6afafae0cd713475f86cb83041025b947a7b4a92",
     "function:isIpAddress": "bec8cd596821b4c3f493b053647912e6e7268e304874d49961f2288ec0c6b892",
-    "function:main": "2e8e7d9ec672e57731ec08cfff585a8e3e00081c545d082473d61d22172f589f",
     "function:matchDomainPattern": "44323b9b2292e5c165588551e6a4ae22113c944ee87289f28af813c4616c606b",
     "function:simplifyDomainPolicy": "bb34d231f06d2532ab3b9a8aeb6789a837b7c2460804ad19ed29ea63d9f5b935",
     "function:stripDnsSuffix": "583838cddc65f10fa2abee7989d04039ce9fb233f547f1f0996a89f026cd406e",
@@ -55,4 +54,5 @@
     "region:香港": "978b5c50009613a25bae7e79abe0cb9779457037ca4a832b479d3780b4ceeabf"
   }
 }
+
 

@@ -149,15 +149,12 @@ def validate_contracts(extracted: Mapping[str, Any], manifest: Mapping[str, Any]
     expected = manifest["upstream_contract_hashes"]
     missing = sorted(set(expected) - set(actual))
     changed = sorted(name for name in expected if actual.get(name) != expected[name])
-    unexpected = sorted(set(actual) - set(expected))
-    if missing or changed or unexpected:
+    if missing or changed:
         details = []
         if missing:
             details.append("missing: " + ", ".join(missing))
         if changed:
             details.append("changed: " + ", ".join(changed))
-        if unexpected:
-            details.append("unexpected: " + ", ".join(unexpected))
         raise BuildError("Reviewed upstream contract changed; manual review required (" + "; ".join(details) + ")")
 
 
@@ -188,15 +185,11 @@ def select_upstream_definitions(
     for service in extracted["services"]:
         all_upstream_provider_names.update(service.get("providers", {}))
 
-    for name, expected_providers in manifest["retained_services"].items():
+    for name in manifest["retained_services"]:
         if name not in services_by_name:
             raise BuildError(f"Required upstream service disappeared or was renamed: {name}")
         service = services_by_name[name]
         providers = service.get("providers", {})
-        if set(providers) != set(expected_providers):
-            raise BuildError(
-                f"Provider set changed for {name}: expected {sorted(expected_providers)}, got {sorted(providers)}"
-            )
         for provider_name, provider in providers.items():
             _validate_provider(provider_name, provider)
         rules = service.get("rules", [])
@@ -339,4 +332,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
