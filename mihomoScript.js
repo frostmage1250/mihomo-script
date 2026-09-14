@@ -3,7 +3,7 @@
  * 作者：AIsouler
  * 源仓库：https://github.com/AIsouler/MyClash
  * 上游脚本：https://raw.githubusercontent.com/AIsouler/MyClash/main/Script/mihomoScript.js
- * 上游提交：001faf24280c4c0617ec155b4be19b428afdb2a7
+ * 上游提交：40f932d27fbcbd4dad9f86284513c8e2e9b65eb4
  * 基于上游 mihomoScript.js 定制：两个机场配置分开使用同一脚本。
  * 友情推荐，非常好用、省电且内存占用低的代理软件：https://github.com/appshubcc/Bettbox
  */
@@ -568,7 +568,6 @@ function buildRegionProxyMap(filteredProxies) {
 }
 
 // ---dns和hosts相关处理---
-
 // 常见的公共 DNS，用于过滤订阅中的公共 DNS
 const commonDnsList = [
   // IPv4（国内）
@@ -643,11 +642,13 @@ const commonDnsList = [
   // 关键词（国外）
   'dns.google',
   'dns.cloudflare',
+  'dns.apple',
   'cloudflare-dns',
   'quad9',
   'opendns',
   'nextdns',
   'adguard',
+  'one.one.one.one',
 ];
 
 // 预编译公共 DNS 正则
@@ -657,8 +658,13 @@ const commonDnsRegex = new RegExp(
 );
 
 // 国内外 DNS 定义
-const chinaDohDNS = ['https://223.5.5.5/dns-query#DIRECT', 'https://1.12.12.12/dns-query#DIRECT'];
+const chinaDNS = ['system', '223.5.5.5#DIRECT', '119.29.29.29#DIRECT'];
 const foreignDNS = ['https://cloudflare-dns.com/dns-query#Proxy', 'https://dns.google/dns-query#Proxy'];
+const chinaDohDNS = [
+  'https://223.5.5.5/dns-query#DIRECT',
+  'https://1.12.12.12/dns-query#DIRECT',
+  'https://114.114.114.114/dns-query#DIRECT',
+];
 
 /**
  * hosts 匹配优先级：精确 > +. > . > *（同级按出现顺序）
@@ -833,8 +839,7 @@ function simplifyDomainPolicy(policy) {
 }
 
 /**
- * 构建 DNS 与 hosts：保留私有 DNS、节点域名 policy/fake-ip-filter，并按机场 hosts 改写节点 server。
- * 最终 hosts 仅保留上游的 DoH 服务域名映射。
+ * 构建 DNS 与 hosts：保留私有 DNS、节点域名 policy/fake-ip-filter，并按 hosts 改写节点 server
  * hosts改写条件（满足任意一个条件即可）：
  * 1. proxy-server-nameserver 有且仅有一个 DNS 并且该 DNS 包含非空的 listen 值
  * 2. proxy-server-nameserver 有且仅有一个 DNS 并且该 DNS 包含 127.0.0.1 并且 listen 包含 0.0.0.0
@@ -941,11 +946,19 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
   const hosts = {
     'cloudflare-dns.com': ['1.1.1.1', '1.0.0.1'],
     'dns.google': ['8.8.8.8', '8.8.4.4'],
+
+    // 解决谷歌商店无法下载的问题
+    'services.googleapis.cn': 'services.googleapis.com',
+
+    // 屏蔽哔哩哔哩PCDN，解决访问视频/直播卡顿问题
+    '+.mcdn.bilivideo.com': ['0.0.0.0'],
+    '+.mcdn.bilivideo.cn': ['0.0.0.0'],
+    '+.edge.mountaintoys.cn': ['0.0.0.0'],
+    '+.h2.smtcdns.net': ['0.0.0.0'],
   };
 
   return { dns, hosts, proxies: mappedProxies };
 }
-
 // --- 单订阅输出层 ---
 
 const additionalServiceDefinitions = {
