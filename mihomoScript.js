@@ -1085,6 +1085,9 @@ function buildRules() {
     ...serviceRules('Apple'),
     'RULE-SET,microsoft_cn,Direct',
     ...serviceRules('Microsoft'),
+    // Qwen 明确直连，必须位于宽泛 AI 规则之前。
+    'DOMAIN-SUFFIX,qwenlm.ai,Direct',
+    'DOMAIN-SUFFIX,qwen.ai,Direct',
     ...serviceRules('Telegram'),
     ...serviceRules('YouTube'),
     ...serviceRules('Threads'),
