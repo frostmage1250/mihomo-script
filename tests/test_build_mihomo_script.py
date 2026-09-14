@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from build_mihomo_script import (  # noqa: E402
     BuildError,
     replace_marked,
+    render_dns_section,
     render_script,
     select_upstream_definitions,
 )
@@ -40,12 +41,50 @@ old
 // BEGIN GENERATED: RETAINED_SERVICES
 old
 // END GENERATED: RETAINED_SERVICES
+// ---dns和hosts相关处理---
+old dns
+// --- 单订阅输出层 ---
+"""
+        upstream = """// ---dns和hosts相关处理---
+const foreignDNS = ['https://dns.example/dns-query#默认代理'];
+const dns = {
+  'nameserver-policy': {
+    'rule-set:cn': chinaDNS,
+  },
+  'direct-nameserver': chinaDNS,
+};
+// --- 主入口 ---
 """
         sha = "1" * 40
-        first = render_script(template, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}})
-        second = render_script(first, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}})
+        first = render_script(template, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}})
+        second = render_script(first, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}})
         self.assertEqual(first, second)
         self.assertIn(f"上游提交：{sha}", first)
+
+    def test_dns_section_tracks_upstream_but_keeps_system_dns_invariants(self) -> None:
+        upstream = """// ---dns和hosts相关处理---
+const commonDnsList = ['dns.apple'];
+const foreignDNS = ['https://dns.example/dns-query#默认代理'];
+const dns = {
+  'fake-ip-filter': [
+    'rule-set:private',
+    ...(ruleOptionsEnable['FCM'] ? ['rule-set:googlefcm'] : []),
+  ],
+  'nameserver-policy': {
+    'rule-set:cn': chinaDNS,
+  },
+  'direct-nameserver': chinaDNS,
+};
+const hosts = {'services.googleapis.cn': 'services.googleapis.com'};
+// --- 主入口 ---
+"""
+        rendered = render_dns_section(upstream)
+        self.assertIn("'dns.apple'", rendered)
+        self.assertIn("services.googleapis.cn", rendered)
+        self.assertIn("#Proxy", rendered)
+        self.assertIn("'rule-set:cn': ['system']", rendered)
+        self.assertIn("'direct-nameserver': ['system']", rendered)
+        self.assertNotIn("googlefcm", rendered)
 
     def test_retained_service_provider_additions_are_accepted(self) -> None:
         provider = {

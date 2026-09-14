@@ -24,6 +24,9 @@ BEGIN_BASE = "// BEGIN GENERATED: BASE_RULE_PROVIDERS"
 END_BASE = "// END GENERATED: BASE_RULE_PROVIDERS"
 BEGIN_SERVICES = "// BEGIN GENERATED: RETAINED_SERVICES"
 END_SERVICES = "// END GENERATED: RETAINED_SERVICES"
+BEGIN_DNS = "// ---dns和hosts相关处理---"
+END_DNS = "// --- 单订阅输出层 ---"
+UPSTREAM_END_DNS = "// --- 主入口 ---"
 
 
 class BuildError(RuntimeError):
@@ -234,8 +237,37 @@ def replace_marked(text: str, begin: str, end: str, body: str) -> str:
     return text[:start] + "\n" + body.rstrip() + "\n" + text[finish:]
 
 
+def render_dns_section(upstream: str) -> str:
+    if upstream.count(BEGIN_DNS) != 1 or upstream.count(UPSTREAM_END_DNS) != 1:
+        raise BuildError("Upstream DNS/hosts section markers are missing or duplicated")
+    start = upstream.index(BEGIN_DNS) + len(BEGIN_DNS)
+    finish = upstream.index(UPSTREAM_END_DNS, start)
+    body = upstream[start:finish].strip()
+
+    # The local single-subscription group is named Proxy.
+    body = body.replace("#默认代理", "#Proxy")
+
+    # FCM is intentionally absent from this streamlined output.
+    body = body.replace("      ...(ruleOptionsEnable['FCM'] ? ['rule-set:googlefcm'] : []),\n", "")
+
+    # Always resolve mainland-domain rules and direct connections with system DNS.
+    body, cn_count = re.subn(
+        r"(?m)^(\s*)'rule-set:cn':\s*[^\n]+,$",
+        r"\1'rule-set:cn': ['system'],",
+        body,
+    )
+    body, direct_count = re.subn(
+        r"(?m)^(\s*)'direct-nameserver':\s*[^\n]+,$",
+        r"\1'direct-nameserver': ['system'],",
+        body,
+    )
+    if cn_count != 1 or direct_count != 1:
+        raise BuildError("Unable to enforce system DNS for mainland or direct-domain resolution")
+    return body
+
+
 def render_script(
-    current: str, sha: str, base: Mapping[str, Any], services: Mapping[str, Any]
+    current: str, upstream: str, sha: str, base: Mapping[str, Any], services: Mapping[str, Any]
 ) -> str:
     updated, count = re.subn(
         r"(?m)^ \* 上游提交：[0-9a-f]{40}$",
@@ -244,6 +276,7 @@ def render_script(
     )
     if count != 1:
         raise BuildError("Generated script must contain exactly one upstream commit header")
+    updated = replace_marked(updated, BEGIN_DNS, END_DNS, render_dns_section(upstream))
     updated = replace_marked(
         updated,
         BEGIN_BASE,
@@ -264,7 +297,7 @@ def build(manifest: Mapping[str, Any], current_script: str, upstream: str, sha: 
     extracted = _extract_with_node(upstream)
     validate_contracts(extracted, manifest)
     base, services = select_upstream_definitions(extracted, manifest)
-    script = render_script(current_script, sha, base, services)
+    script = render_script(current_script, upstream, sha, base, services)
     report = {
         "schema_version": 1,
         "upstream": {

@@ -15,7 +15,8 @@ https://raw.githubusercontent.com/frostmage1250/mihomo-script/main/mihomoScript.
 - `config/mihomo-script-customizations.json` is the reviewed structured patch.
 - `src/build_mihomo_script.py` resolves the newest upstream commit, downloads that
   immutable revision, extracts selected rule providers and service rules, validates
-  the reviewed upstream contract, and regenerates `mihomoScript.js`.
+  the reviewed upstream contract, synchronizes the upstream DNS/hosts section, and
+  regenerates `mihomoScript.js`.
 - `mihomoScript.js` is the standalone generated subscription artifact.
 - `reports/mihomo-script-upstream.json` records the exact upstream commit and output
   digest.
@@ -56,5 +57,11 @@ latest stable Mihomo binary and verifies its published SHA-256 digest, then runs
 
 Any failure leaves the last working subscription in place. Configure GitHub Actions
 notifications for failed workflows to receive email only when manual review is needed.
+
+Upstream DNS/hosts changes are accepted automatically, including new DNS routing,
+public-DNS matching, and hosts entries. The generated output always overrides mainland
+domain resolution (`rule-set:cn`) and direct resolution (`direct-nameserver`) to use
+only `system`; the local proxy group name and intentionally removed FCM rule remain
+preserved.
 
 
