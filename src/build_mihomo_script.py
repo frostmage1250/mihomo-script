@@ -264,12 +264,12 @@ def render_dns_section(upstream: str) -> str:
     )
     for host in forbidden_hosts:
         body = re.sub(
-            rf"""(?m)^[ \\t]*(['"]){re.escape(host)}\\1:\\s*[^\\n]+,\\r?\\n?""",
+            rf"""(?m)^[ \t]*(['"]){re.escape(host)}\1:\s*[^\n]+,\r?\n?""",
             "",
             body,
         )
     body = re.sub(
-        r"(?m)^[ \\t]*// (?:解决谷歌商店无法下载的问题|屏蔽哔哩哔哩PCDN，解决访问视频/直播卡顿问题)\\r?\\n?",
+        r"(?m)^[ \t]*// (?:解决谷歌商店无法下载的问题|屏蔽哔哩哔哩PCDN，解决访问视频/直播卡顿问题)\r?\n?",
         "",
         body,
     )
