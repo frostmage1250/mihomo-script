@@ -254,6 +254,26 @@ def render_dns_section(upstream: str) -> str:
         body,
     )
 
+    # These upstream hosts are permanently excluded from the generated output.
+    forbidden_hosts = (
+        "services.googleapis.cn",
+        "+.mcdn.bilivideo.com",
+        "+.mcdn.bilivideo.cn",
+        "+.edge.mountaintoys.cn",
+        "+.h2.smtcdns.net",
+    )
+    for host in forbidden_hosts:
+        body = re.sub(
+            rf"""(?m)^[ \\t]*(['"]){re.escape(host)}\\1:\\s*[^\\n]+,\\r?\\n?""",
+            "",
+            body,
+        )
+    body = re.sub(
+        r"(?m)^[ \\t]*// (?:解决谷歌商店无法下载的问题|屏蔽哔哩哔哩PCDN，解决访问视频/直播卡顿问题)\\r?\\n?",
+        "",
+        body,
+    )
+
     # Always resolve mainland-domain rules and direct connections with system DNS.
     body, cn_count = re.subn(
         r"(?m)^(\s*)'rule-set:cn':\s*[^\n]+,$",

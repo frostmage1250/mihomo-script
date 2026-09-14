@@ -62,6 +62,7 @@ Upstream DNS/hosts changes are accepted automatically, including new DNS routing
 public-DNS matching, and hosts entries. The generated output always overrides mainland
 domain resolution (`rule-set:cn`) and direct resolution (`direct-nameserver`) to use
 only `system`; the local proxy group name and intentionally removed FCM rule remain
-preserved.
+preserved. The `services.googleapis.cn` rewrite and Bilibili PCDN blocking hosts are
+permanently excluded even if upstream adds them again.
 
 

@@ -71,6 +71,13 @@ assert(JSON.stringify(output.dns["default-nameserver"]) === JSON.stringify(outpu
 assert(JSON.stringify(output.dns["nameserver-policy"]["rule-set:cn"]) === JSON.stringify(["system"]), "CN domains must use system DNS");
 assert(JSON.stringify(output.dns["direct-nameserver"]) === JSON.stringify(["system"]), "direct traffic must use system DNS");
 assert(!output.dns["fake-ip-filter"].includes("rule-set:googlefcm"), "FCM fake-IP rule must not remain");
+for (const host of [
+  "services.googleapis.cn",
+  "+.mcdn.bilivideo.com",
+  "+.mcdn.bilivideo.cn",
+  "+.edge.mountaintoys.cn",
+  "+.h2.smtcdns.net",
+]) assert(!(host in output.hosts), `permanently excluded host must not remain: ${host}`);
 
 for (const required of [
   "private", "private_ip", "games_cn", "apple_cn", "microsoft_cn", "geolocation-cn",

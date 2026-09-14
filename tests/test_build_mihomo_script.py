@@ -75,12 +75,16 @@ const dns = {
   },
   'direct-nameserver': chinaDNS,
 };
-const hosts = {'services.googleapis.cn': 'services.googleapis.com'};
+const hosts = {
+  'services.googleapis.cn': 'services.googleapis.com',
+  '+.mcdn.bilivideo.com': ['0.0.0.0'],
+};
 // --- 主入口 ---
 """
         rendered = render_dns_section(upstream)
         self.assertIn("'dns.apple'", rendered)
-        self.assertIn("services.googleapis.cn", rendered)
+        self.assertNotIn("services.googleapis.cn", rendered)
+        self.assertNotIn("mcdn.bilivideo.com", rendered)
         self.assertIn("#Proxy", rendered)
         self.assertIn("'rule-set:cn': ['system']", rendered)
         self.assertIn("'direct-nameserver': ['system']", rendered)
