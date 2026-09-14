@@ -248,7 +248,11 @@ def render_dns_section(upstream: str) -> str:
     body = body.replace("#默认代理", "#Proxy")
 
     # FCM is intentionally absent from this streamlined output.
-    body = body.replace("      ...(ruleOptionsEnable['FCM'] ? ['rule-set:googlefcm'] : []),\n", "")
+    body = re.sub(
+        r"(?m)^[ \t]*\.\.\.\(ruleOptionsEnable\['FCM'\] \? \['rule-set:googlefcm'\] : \[\]\),\r?\n?",
+        "",
+        body,
+    )
 
     # Always resolve mainland-domain rules and direct connections with system DNS.
     body, cn_count = re.subn(
