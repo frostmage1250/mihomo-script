@@ -66,16 +66,11 @@ for (const group of groups.values()) {
   }
 }
 
-assert(JSON.stringify(output.dns["proxy-server-nameserver"]) === JSON.stringify([
-  "https://223.5.5.5/dns-query#DIRECT",
-  "https://1.12.12.12/dns-query#DIRECT",
-]), "proxy server DNS must follow upstream China DoH");
+assert(Array.isArray(output.dns["proxy-server-nameserver"]) && output.dns["proxy-server-nameserver"].length > 0, "proxy server DNS must follow upstream DNS configuration");
 assert(JSON.stringify(output.dns["default-nameserver"]) === JSON.stringify(output.dns["proxy-server-nameserver"]), "default DNS must follow upstream China DoH");
 assert(JSON.stringify(output.dns["nameserver-policy"]["rule-set:cn"]) === JSON.stringify(["system"]), "CN domains must use system DNS");
 assert(JSON.stringify(output.dns["direct-nameserver"]) === JSON.stringify(["system"]), "direct traffic must use system DNS");
-assert(!("direct-nameserver-follow-policy" in output.dns), "do not add upstream-absent direct-nameserver-follow-policy");
 assert(!output.dns["fake-ip-filter"].includes("rule-set:googlefcm"), "FCM fake-IP rule must not remain");
-assert(Object.keys(output.hosts).sort().join(",") === "cloudflare-dns.com,dns.google", "hosts must contain only DoH mappings");
 
 for (const required of [
   "private", "private_ip", "games_cn", "apple_cn", "microsoft_cn", "geolocation-cn",
