@@ -90,14 +90,7 @@ for (const rule of output.rules) {
   const parts = rule.split(",");
   if (parts[0] === "RULE-SET") assert(parts[1] in providers, `rule references missing provider: ${parts[1]}`);
 }
-assert(!output.rules.some((rule) => /qbittorrent|cn_additional|googlefcm/i.test(rule)), "unapproved handwritten or removed rules remain");
-for (const rule of [
-  "DOMAIN-SUFFIX,qwenlm.ai,Direct",
-  "DOMAIN-SUFFIX,qwen.ai,Direct",
-]) {
-  assert(output.rules.includes(rule), `required Qwen direct rule missing: ${rule}`);
-  assert(output.rules.indexOf(rule) < output.rules.indexOf("RULE-SET,ai,AI"), `Qwen direct rule must precede broad AI rules: ${rule}`);
-}
+assert(!output.rules.some((rule) => /qwen|qbittorrent|cn_additional|googlefcm/i.test(rule)), "unapproved handwritten or removed rules remain");
 assert(output.rules.indexOf("RULE-SET,apple_cn,Direct") < output.rules.indexOf("RULE-SET,apple,Proxy"), "Apple CN layering order is wrong");
 assert(output.rules.indexOf("RULE-SET,microsoft_cn,Direct") < output.rules.indexOf("RULE-SET,microsoft,Proxy"), "Microsoft CN layering order is wrong");
 assert(output.rules[output.rules.length - 1] === "MATCH,Final", "Final rule must remain last");
