@@ -1,5 +1,5 @@
 {
-  "output_sha256": "b9aa3e1581eb796725e9bb33a846e82783514317cc91841ffbdb9116a69ff5a6",
+  "output_sha256": "ff4138e2e716b344b9d285cdbd11d93c3e0b17ae54eddff263884237f2049ff3",
   "retained_base_rule_providers": [
     "private",
     "private_ip",
