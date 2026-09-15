@@ -15,8 +15,8 @@ https://raw.githubusercontent.com/frostmage1250/mihomo-script/main/mihomoScript.
 - `config/mihomo-script-customizations.json` is the reviewed structured patch.
 - `src/build_mihomo_script.py` resolves the newest upstream commit, downloads that
   immutable revision, extracts selected rule providers and service rules, validates
-  the reviewed upstream contract, synchronizes the upstream DNS/hosts section, and
-  regenerates `mihomoScript.js`.
+  the reviewed upstream contract, synchronizes the upstream DNS/hosts section and
+  TUN stack, and regenerates `mihomoScript.js`.
 - `mihomoScript.js` is the standalone generated subscription artifact.
 - `reports/mihomo-script-upstream.json` records the exact upstream commit and output
   digest.

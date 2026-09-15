@@ -44,6 +44,11 @@ old
 // ---dns和hosts相关处理---
 old dns
 // --- 单订阅输出层 ---
+const config = {
+  tun: {
+    stack: 'system',
+  },
+};
 """
         upstream = """// ---dns和hosts相关处理---
 const foreignDNS = ['https://dns.example/dns-query#默认代理'];
@@ -54,12 +59,16 @@ const dns = {
   'direct-nameserver': chinaDNS,
 };
 // --- 主入口 ---
+newConfig['tun'] = {
+  stack: 'mips',
+};
 """
         sha = "1" * 40
         first = render_script(template, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}})
         second = render_script(first, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}})
         self.assertEqual(first, second)
         self.assertIn(f"上游提交：{sha}", first)
+        self.assertIn("stack: 'mips'", first)
 
     def test_dns_section_tracks_upstream_but_keeps_system_dns_invariants(self) -> None:
         upstream = """// ---dns和hosts相关处理---

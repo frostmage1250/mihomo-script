@@ -290,6 +290,31 @@ def render_dns_section(upstream: str) -> str:
     return body
 
 
+def sync_tun_stack(current: str, upstream: str) -> str:
+    upstream_tun = re.search(
+        r"(?ms)newConfig\['tun'\]\s*=\s*\{(?P<body>.*?)^\s*\};",
+        upstream,
+    )
+    if not upstream_tun:
+        raise BuildError("Unable to locate upstream TUN configuration")
+    stack_match = re.search(
+        r"""(?m)^\s*stack:\s*(['"])(?P<value>[^'"]+)\1,\s*$""",
+        upstream_tun.group("body"),
+    )
+    if not stack_match:
+        raise BuildError("Unable to locate upstream TUN stack")
+    stack = stack_match.group("value")
+
+    updated, count = re.subn(
+        r"""(?m)^(?P<indent>\s*)stack:\s*(['"])[^'"]+\2,\s*$""",
+        lambda match: f"{match.group('indent')}stack: '{stack}',",
+        current,
+    )
+    if count != 1:
+        raise BuildError("Generated script must contain exactly one TUN stack")
+    return updated
+
+
 def render_script(
     current: str, upstream: str, sha: str, base: Mapping[str, Any], services: Mapping[str, Any]
 ) -> str:
@@ -301,6 +326,7 @@ def render_script(
     if count != 1:
         raise BuildError("Generated script must contain exactly one upstream commit header")
     updated = replace_marked(updated, BEGIN_DNS, END_DNS, render_dns_section(upstream))
+    updated = sync_tun_stack(updated, upstream)
     updated = replace_marked(
         updated,
         BEGIN_BASE,
