@@ -1,5 +1,5 @@
 {
-  "output_sha256": "ff4138e2e716b344b9d285cdbd11d93c3e0b17ae54eddff263884237f2049ff3",
+  "output_sha256": "ca7ccdf2c2c5269ed18da1542b66402d83c30e4c0f967492073868809c19dedb",
   "retained_base_rule_providers": [
     "private",
     "private_ip",
@@ -49,12 +49,14 @@
         "RULE-SET,google_ip,Google,no-resolve"
       ]
     },
-    "Instagram": {
+    "Meta": {
       "providers": [
-        "instagram"
+        "meta",
+        "facebook_ip"
       ],
       "rules": [
-        "RULE-SET,instagram,Instagram"
+        "RULE-SET,meta,Meta",
+        "RULE-SET,facebook_ip,Meta,no-resolve"
       ]
     },
     "Microsoft": {
@@ -128,8 +130,32 @@
   },
   "schema_version": 1,
   "upstream": {
-    "commit": "9c01b6e6b2a5a86f9fb87968ce672ec02c331d9d",
+    "commit": "54a1a7b150340dbde4c2d61e893d053b3a971aaf",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
-  }
+  },
+  "upstream_service_order": [
+    "手动选择",
+    "自动选择",
+    "负载均衡",
+    "FCM",
+    "YouTube",
+    "Google",
+    "AI",
+    "Microsoft",
+    "Apple",
+    "Telegram",
+    "Steam",
+    "TikTok",
+    "Twitter",
+    "Meta",
+    "Line",
+    "Netflix",
+    "Emby",
+    "PikPak",
+    "Spotify",
+    "Crypto",
+    "EHentai",
+    "AdBlock"
+  ]
 }

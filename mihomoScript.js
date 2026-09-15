@@ -3,7 +3,7 @@
  * 作者：AIsouler
  * 源仓库：https://github.com/AIsouler/MyClash
  * 上游脚本：https://raw.githubusercontent.com/AIsouler/MyClash/main/Script/mihomoScript.js
- * 上游提交：9c01b6e6b2a5a86f9fb87968ce672ec02c331d9d
+ * 上游提交：54a1a7b150340dbde4c2d61e893d053b3a971aaf
  * 基于上游 mihomoScript.js 定制：两个机场配置分开使用同一脚本。
  * 友情推荐，非常好用、省电且内存占用低的代理软件：https://github.com/appshubcc/Bettbox
  */
@@ -418,20 +418,30 @@ const retainedServiceDefinitions = {
       "RULE-SET,twitter_ip,Twitter,no-resolve"
     ]
   },
-  "Instagram": {
+  "Meta": {
     "providers": {
-      "instagram": {
+      "meta": {
         "type": "http",
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/instagram.mrs",
-        "path": "./ruleset/instagram.mrs",
-        "path-in-bundle": "geo/geosite/instagram.mrs"
+        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/meta.mrs",
+        "path": "./ruleset/meta.mrs",
+        "path-in-bundle": "geo/geosite/meta.mrs"
+      },
+      "facebook_ip": {
+        "type": "http",
+        "format": "mrs",
+        "interval": 86400,
+        "behavior": "ipcidr",
+        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/facebook.mrs",
+        "path": "./ruleset/facebook_ip.mrs",
+        "path-in-bundle": "geo/geoip/facebook.mrs"
       }
     },
     "rules": [
-      "RULE-SET,instagram,Instagram"
+      "RULE-SET,meta,Meta",
+      "RULE-SET,facebook_ip,Meta,no-resolve"
     ]
   },
   "PikPak": {
@@ -1017,7 +1027,7 @@ const servicePolicyTargets = {
   Steam: 'Proxy',
   TikTok: '媒体',
   Twitter: '媒体',
-  Instagram: '媒体',
+  "Meta": '媒体',
   PikPak: 'PikPak',
   EHentai: 'EHentai',
   Threads: '媒体',
@@ -1086,7 +1096,7 @@ function buildRules() {
     ...serviceRules('Telegram'),
     ...serviceRules('YouTube'),
     ...serviceRules('Threads'),
-    ...serviceRules('Instagram'),
+    ...serviceRules("Meta"),
     ...serviceRules('Facebook'),
     ...serviceRules('Twitter'),
     ...serviceRules('Twitch'),
