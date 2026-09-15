@@ -10,8 +10,8 @@ on:
       - "tests/**"
       - "mihomoScript.js"
   schedule:
-    # 18:37 UTC = 02:37 Asia/Taipei (the following day).
-    - cron: "37 18 * * *"
+    # 23:00 UTC = 07:00 Asia/Shanghai (the following day).
+    - cron: "0 23 * * *"
 
 permissions:
   contents: write
