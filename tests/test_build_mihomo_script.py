@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from build_mihomo_script import (  # noqa: E402
     BuildError,
+    detect_service_renames,
     replace_marked,
     render_dns_section,
     render_script,
@@ -133,10 +134,19 @@ const hosts = {
             "reserved_extra_provider_names": [],
         }
 
-        _base, services = select_upstream_definitions(extracted, manifest)
+        _base, services, _renames, _order = select_upstream_definitions(extracted, manifest)
 
         self.assertEqual(list(services["Service"]["providers"]), ["service", "service_ip"])
 
+
+    def test_service_rename_is_detected_without_treating_new_additions_as_renames(self) -> None:
+        self.assertEqual(
+            detect_service_renames(
+                ["Twitter", "Instagram", "PikPak"],
+                ["Twitter", "Meta", "Line", "PikPak"],
+            ),
+            {"Instagram": "Meta"},
+        )
 
 if __name__ == "__main__":
     unittest.main()

@@ -21,6 +21,9 @@
     "PikPak",
     "EHentai"
   ],
+  "retained_service_aliases": {
+    "Instagram": ["Meta"]
+  },
   "retained_base_rule_providers": [
     "private",
     "private_ip",
@@ -33,7 +36,7 @@
     "fakeip_filter",
     "cn"
   ],
-  "reserved_extra_provider_names": ["threads", "facebook", "facebook_ip", "twitch"],
+  "reserved_extra_provider_names": ["threads", "facebook", "twitch"],
   "upstream_contract_hashes": {
     "directProxies": "274c2d92801cbf5c5e794cb295f386350375aa5cd172da91e2ba049f73946ab7",
     "excludeFilter": "ee919b678e5194c915b4a08a039a902b65a90be085cd8ee99ac5d3892422b188",
