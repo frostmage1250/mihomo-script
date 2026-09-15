@@ -65,8 +65,8 @@ newConfig['tun'] = {
 };
 """
         sha = "1" * 40
-        first = render_script(template, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}})
-        second = render_script(first, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}})
+        first = render_script(template, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}}, {})
+        second = render_script(first, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}}, {})
         self.assertEqual(first, second)
         self.assertIn(f"上游提交：{sha}", first)
         self.assertIn("stack: 'mips'", first)
