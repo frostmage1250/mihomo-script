@@ -1,5 +1,5 @@
 {
-  "output_sha256": "119d4393358f7a7ccce897818f5e4c4498a81bd6f7b9c09167f663fe3b11c3ae",
+  "output_sha256": "a8f9aeb82dde782cc5897ed1dd02ff587ce881a6f7c34bc929b59c40251c05a2",
   "retained_base_rule_providers": [
     "private",
     "private_ip",
@@ -130,7 +130,7 @@
   },
   "schema_version": 1,
   "upstream": {
-    "commit": "9b9f2cc5b3a87d2e9d05d04f55beea7a2b924c92",
+    "commit": "f8637fe40632ececab4b6c2c1dfb1ea2305b7142",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
   },
