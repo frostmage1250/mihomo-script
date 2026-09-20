@@ -5,6 +5,11 @@
     "branch": "main",
     "path": "Script/mihomoScript.js"
   },
+  "real_ip_domains_upstream": {
+    "repository": "Repcz/Tool",
+    "branch": "X",
+    "path": "Egern/Egern.yaml"
+  },
   "output": "mihomoScript.js",
   "report": "reports/mihomo-script-upstream.json",
   "retained_services": [
@@ -36,7 +41,7 @@
     "fakeip_filter",
     "cn"
   ],
-  "reserved_extra_provider_names": ["threads", "facebook", "twitch"],
+  "reserved_extra_provider_names": ["threads", "facebook", "twitch", "repcz_real_ip_domains"],
   "upstream_contract_hashes": {
     "directProxies": "274c2d92801cbf5c5e794cb295f386350375aa5cd172da91e2ba049f73946ab7",
     "excludeFilter": "ee919b678e5194c915b4a08a039a902b65a90be085cd8ee99ac5d3892422b188",
@@ -49,5 +54,3 @@
     "region:香港": "978b5c50009613a25bae7e79abe0cb9779457037ca4a832b479d3780b4ceeabf"
   }
 }
-
-

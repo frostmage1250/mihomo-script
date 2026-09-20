@@ -58,8 +58,8 @@ def fetch_text(url: str) -> str:
         raise BuildError(f"Failed to download {url}: {exc}") from exc
 
 
-def resolve_upstream(manifest: Mapping[str, Any]) -> tuple[str, str, str]:
-    upstream = manifest["upstream"]
+def resolve_upstream(manifest: Mapping[str, Any], key: str = "upstream") -> tuple[str, str, str]:
+    upstream = manifest[key]
     owner, repo = upstream["repository"].split("/", 1)
     path = upstream["path"]
     branch = upstream.get("branch", "main")
@@ -73,6 +73,59 @@ def resolve_upstream(manifest: Mapping[str, Any]) -> tuple[str, str, str]:
     sha = commits[0]["sha"]
     raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{sha}/{path}"
     return sha, raw_url, fetch_text(raw_url)
+
+
+def extract_real_ip_domains(source: str) -> list[str]:
+    """Read only Repcz's top-level real_ip_domains sequence; fail on format drift."""
+    lines = source.splitlines()
+    headers = [i for i, line in enumerate(lines) if re.fullmatch(r"real_ip_domains:\s*(?:#.*)?", line)]
+    if len(headers) != 1:
+        raise BuildError("Expected exactly one top-level real_ip_domains list in Repcz Egern YAML")
+
+    domains: list[str] = []
+    seen: set[str] = set()
+    for line in lines[headers[0] + 1:]:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_-]*:", line):
+            break
+        match = re.fullmatch(r"\s*-\s+(.+?)\s*", line)
+        if not match:
+            raise BuildError(f"Unsupported real_ip_domains item: {line}")
+        value = re.split(r"\s+#", match.group(1), maxsplit=1)[0].strip()
+        if value.startswith("'") and value.endswith("'"):
+            domain = value[1:-1].replace("''", "'")
+        elif value.startswith('"') and value.endswith('"'):
+            try:
+                domain = json.loads(value)
+            except json.JSONDecodeError as exc:
+                raise BuildError(f"Invalid quoted real_ip_domains item: {value}") from exc
+        else:
+            domain = value
+        domain = domain.lower()
+        labels = domain.split(".")
+        if len(labels) < 2 or any(not re.fullmatch(r"[a-z0-9*-]+", label) for label in labels):
+            raise BuildError(f"Invalid real_ip_domains pattern: {domain}")
+        if domain not in seen:
+            domains.append(domain)
+            seen.add(domain)
+        if len(domains) > 1000:
+            raise BuildError("Repcz real_ip_domains list is unexpectedly large")
+    if not domains:
+        raise BuildError("Repcz real_ip_domains list is empty")
+    return domains
+
+
+def real_ip_domain_rule(domain: str) -> str:
+    """Use regex for Egern globs, including wildcards within a DNS label."""
+    if "*" not in domain:
+        return f"DOMAIN,{domain}"
+    labels = [
+        r"[^.]+" if label == "*" else label.replace("*", r"[^.]*")
+        for label in domain.split(".")
+    ]
+    return "DOMAIN-REGEX,^" + r"\.".join(labels) + "$"
 
 
 def _extract_with_node(source: str) -> dict[str, Any]:
@@ -291,7 +344,7 @@ def replace_marked(text: str, begin: str, end: str, body: str) -> str:
     return text[:start] + "\n" + body.rstrip() + "\n" + text[finish:]
 
 
-def render_dns_section(upstream: str) -> str:
+def render_dns_section(upstream: str, real_ip_domains: list[str]) -> str:
     if upstream.count(BEGIN_DNS) != 1 or upstream.count(UPSTREAM_END_DNS) != 1:
         raise BuildError("Upstream DNS/hosts section markers are missing or duplicated")
     start = upstream.index(BEGIN_DNS) + len(BEGIN_DNS)
@@ -328,6 +381,16 @@ def render_dns_section(upstream: str) -> str:
         body,
     )
 
+    # Keep the existing blacklist mode. Repcz patterns live in a classical
+    # inline provider because plain fake-ip-filter rejects partial-label globs.
+    body, filter_count = re.subn(
+        r"(?m)^([ \t]*)'fake-ip-filter':[ \t]*\[\r?\n",
+        lambda match: match.group(0) + match.group(1) + "  'rule-set:repcz_real_ip_domains',\n",
+        body,
+    )
+    if filter_count != 1:
+        raise BuildError("Unable to add Repcz real-IP provider to fake-ip-filter")
+
     # Always resolve mainland-domain rules and direct connections with system DNS.
     body, cn_count = re.subn(
         r"(?m)^(\s*)'rule-set:cn':\s*[^\n]+,$",
@@ -341,7 +404,12 @@ def render_dns_section(upstream: str) -> str:
     )
     if cn_count != 1 or direct_count != 1:
         raise BuildError("Unable to enforce system DNS for mainland or direct-domain resolution")
-    return body
+    provider = {
+        "type": "inline",
+        "behavior": "classical",
+        "payload": [real_ip_domain_rule(domain) for domain in real_ip_domains],
+    }
+    return render_const("repczRealIpDomainProvider", provider) + "\n\n" + body
 
 
 def sync_tun_stack(current: str, upstream: str) -> str:
@@ -376,6 +444,7 @@ def render_script(
     base: Mapping[str, Any],
     services: Mapping[str, Any],
     service_renames: Mapping[str, str],
+    real_ip_domains: list[str],
 ) -> str:
     updated, count = re.subn(
         r"(?m)^ \* 上游提交：[0-9a-f]{40}$",
@@ -393,7 +462,7 @@ def render_script(
         )
         call_pattern = rf"serviceRules\((['\"]){re.escape(old_name)}\1\)"
         updated = re.sub(call_pattern, f"serviceRules({json.dumps(new_name, ensure_ascii=False)})", updated)
-    updated = replace_marked(updated, BEGIN_DNS, END_DNS, render_dns_section(upstream))
+    updated = replace_marked(updated, BEGIN_DNS, END_DNS, render_dns_section(upstream, real_ip_domains))
     updated = sync_tun_stack(updated, upstream)
     updated = replace_marked(
         updated,
@@ -416,6 +485,8 @@ def build(
     current_script: str,
     upstream: str,
     sha: str,
+    real_ip_domains: list[str],
+    real_ip_domains_sha: str,
     previous_service_order: list[str] | None = None,
 ) -> tuple[str, str]:
     extracted = _extract_with_node(upstream)
@@ -423,7 +494,7 @@ def build(
     base, services, service_renames, service_order = select_upstream_definitions(
         extracted, manifest, previous_service_order
     )
-    script = render_script(current_script, upstream, sha, base, services, service_renames)
+    script = render_script(current_script, upstream, sha, base, services, service_renames, real_ip_domains)
     report = {
         "schema_version": 1,
         "upstream": {
@@ -432,6 +503,12 @@ def build(
             "commit": sha,
         },
         "output_sha256": hashlib.sha256(script.encode("utf-8")).hexdigest(),
+        "real_ip_domains_upstream": {
+            "repository": manifest["real_ip_domains_upstream"]["repository"],
+            "path": manifest["real_ip_domains_upstream"]["path"],
+            "commit": real_ip_domains_sha,
+            "domains": real_ip_domains,
+        },
         "retained_base_rule_providers": list(base),
         "upstream_service_order": service_order,
         "retained_services": {
@@ -472,6 +549,8 @@ def main() -> int:
         if args.print_contracts:
             print(json.dumps(contract_hashes(extracted["contracts"]), ensure_ascii=False, indent=2, sort_keys=True))
             return 0
+        real_ip_domains_sha, _url, real_ip_source = resolve_upstream(manifest, "real_ip_domains_upstream")
+        real_ip_domains = extract_real_ip_domains(real_ip_source)
         output_path = ROOT / manifest["output"]
         report_path = ROOT / manifest["report"]
         previous_service_order: list[str] = []
@@ -479,7 +558,9 @@ def main() -> int:
             previous_report = json.loads(report_path.read_text(encoding="utf-8"))
             previous_service_order = previous_report.get("upstream_service_order", [])
         current = output_path.read_text(encoding="utf-8")
-        script, report = build(manifest, current, upstream, sha, previous_service_order)
+        script, report = build(
+            manifest, current, upstream, sha, real_ip_domains, real_ip_domains_sha, previous_service_order
+        )
         changed = [
             str(path.relative_to(ROOT))
             for path, content in ((output_path, script), (report_path, report))
@@ -496,5 +577,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

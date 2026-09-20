@@ -11,6 +11,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from build_mihomo_script import (  # noqa: E402
     BuildError,
     detect_service_renames,
+    extract_real_ip_domains,
+    real_ip_domain_rule,
     replace_marked,
     render_dns_section,
     render_script,
@@ -54,6 +56,9 @@ const config = {
         upstream = """// ---dns和hosts相关处理---
 const foreignDNS = ['https://dns.example/dns-query#默认代理'];
 const dns = {
+  'fake-ip-filter': [
+    'rule-set:private',
+  ],
   'nameserver-policy': {
     'rule-set:cn': chinaDNS,
   },
@@ -65,8 +70,8 @@ newConfig['tun'] = {
 };
 """
         sha = "1" * 40
-        first = render_script(template, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}}, {})
-        second = render_script(first, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}}, {})
+        first = render_script(template, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}}, {}, ["example.com"])
+        second = render_script(first, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}}, {}, ["example.com"])
         self.assertEqual(first, second)
         self.assertIn(f"上游提交：{sha}", first)
         self.assertIn("stack: 'mips'", first)
@@ -91,7 +96,7 @@ const hosts = {
 };
 // --- 主入口 ---
 """
-        rendered = render_dns_section(upstream)
+        rendered = render_dns_section(upstream, ["example.com", "*-update.xoyocdn.com"])
         self.assertIn("'dns.apple'", rendered)
         self.assertNotIn("services.googleapis.cn", rendered)
         self.assertNotIn("mcdn.bilivideo.com", rendered)
@@ -99,6 +104,38 @@ const hosts = {
         self.assertIn("'rule-set:cn': ['system']", rendered)
         self.assertIn("'direct-nameserver': ['system']", rendered)
         self.assertNotIn("googlefcm", rendered)
+        self.assertIn("rule-set:repcz_real_ip_domains", rendered)
+        self.assertIn(r"DOMAIN-REGEX,^[^.]*-update\.xoyocdn\.com$", rendered)
+
+    def test_extract_repcz_real_ip_domains_and_convert_partial_wildcards(self) -> None:
+        source = """dns:
+  bootstrap:
+  - system
+real_ip_domains:
+- lancache.steamcontent.com
+- '*.xboxlive.com'
+- '*-update.xoyocdn.com'
+- '*-appboot.netflix.com'
+policy_groups:
+- external:
+    name: Manual
+"""
+        domains = extract_real_ip_domains(source)
+        self.assertEqual(domains, [
+            "lancache.steamcontent.com",
+            "*.xboxlive.com",
+            "*-update.xoyocdn.com",
+            "*-appboot.netflix.com",
+        ])
+        self.assertEqual(real_ip_domain_rule(domains[0]), "DOMAIN,lancache.steamcontent.com")
+        self.assertEqual(
+            real_ip_domain_rule(domains[2]),
+            r"DOMAIN-REGEX,^[^.]*-update\.xoyocdn\.com$",
+        )
+        with self.assertRaises(BuildError):
+            extract_real_ip_domains("dns:\n  bootstrap:\n  - system\n")
+        with self.assertRaises(BuildError):
+            extract_real_ip_domains("real_ip_domains:\n- '*-update.xoyocdn.com/evil'\n")
 
     def test_retained_service_provider_additions_are_accepted(self) -> None:
         provider = {
@@ -150,5 +187,3 @@ const hosts = {
 
 if __name__ == "__main__":
     unittest.main()
-
-

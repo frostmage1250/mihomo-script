@@ -71,6 +71,22 @@ assert(Array.isArray(output.dns["default-nameserver"]) && output.dns["default-na
 assert(JSON.stringify(output.dns["nameserver-policy"]["rule-set:cn"]) === JSON.stringify(["system"]), "CN domains must use system DNS");
 assert(JSON.stringify(output.dns["direct-nameserver"]) === JSON.stringify(["system"]), "direct traffic must use system DNS");
 assert(!output.dns["fake-ip-filter"].includes("rule-set:googlefcm"), "FCM fake-IP rule must not remain");
+
+const repczProvider = providers.repcz_real_ip_domains;
+assert(output.dns["fake-ip-filter"].includes("rule-set:repcz_real_ip_domains"), "Repcz real-IP provider must be in fake-IP filter");
+assert(repczProvider?.type === "inline" && repczProvider.behavior === "classical", "Repcz provider must be inline classical");
+const buildReport = JSON.parse(fs.readFileSync(path.join(root, "reports", "mihomo-script-upstream.json"), "utf8"));
+const repczDomains = buildReport.real_ip_domains_upstream?.domains;
+assert(Array.isArray(repczDomains) && repczDomains.length > 0, "Repcz source domains missing from build report");
+assert(repczProvider.payload.length === repczDomains.length, "Repcz provider count differs from source");
+for (const domain of repczDomains) {
+  const labels = domain.split(".");
+  const expectedRule = domain.includes("*")
+    ? "DOMAIN-REGEX,^" + labels.map((label) => label === "*" ? "[^.]+" : label.replaceAll("*", "[^.]*")).join("\\.") + "$"
+    : "DOMAIN," + domain;
+  assert(repczProvider.payload.includes(expectedRule), "Repcz real-IP domain missing: " + domain);
+}
+
 for (const host of [
   "services.googleapis.cn",
   "+.mcdn.bilivideo.com",
@@ -101,4 +117,3 @@ for (const forbidden of ["customizeProxies", "buildCustomizeProxies", "代理IPV
 
 if (process.argv[2]) fs.writeFileSync(process.argv[2], JSON.stringify(output, null, 2) + "\n", "utf8");
 console.log(`Validated ${output.proxies.length} proxies, ${groups.size} groups, ${Object.keys(providers).length} providers, and ${output.rules.length} rules.`);
-
