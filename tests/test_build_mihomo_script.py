@@ -105,7 +105,7 @@ const hosts = {
         self.assertIn("'direct-nameserver': ['system']", rendered)
         self.assertNotIn("googlefcm", rendered)
         self.assertIn("rule-set:repcz_real_ip_domains", rendered)
-        self.assertIn(r"DOMAIN-REGEX,^[^.]*-update\.xoyocdn\.com$", rendered)
+        self.assertIn(r"DOMAIN-REGEX,^[^.]*-update\\.xoyocdn\\.com$", rendered)
 
     def test_extract_repcz_real_ip_domains_and_convert_partial_wildcards(self) -> None:
         source = """dns:
