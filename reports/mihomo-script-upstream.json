@@ -1,6 +1,21 @@
 {
-  "output_sha256": "93af07052aa0117e964f7adb9de8186b584ad2024e10b81bc538f8351a6205f9",
+  "output_sha256": "773b3bb7a680d03c7550540bf0e4a1d935c85820da65641ecbc395aada95ef65",
   "real_ip_domains_upstream": {
+    "applied_domains": [
+      "lancache.steamcontent.com",
+      "*.msftconnecttest.com",
+      "*.msftncsi.com",
+      "*.srv.nintendo.net",
+      "*.stun.playstation.net",
+      "xbox.*.microsoft.com",
+      "*.xboxlive.com",
+      "*.logon.battlenet.com.cn",
+      "*.logon.battle.net",
+      "stun.l.google.com",
+      "easy-login.10099.com.cn",
+      "*.prod.cloud.netflix.com",
+      "appboot.netflix.com"
+    ],
     "commit": "14096d214d0f870ee11f8172b2f8be94e93d0663",
     "domains": [
       "lancache.steamcontent.com",
@@ -17,6 +32,10 @@
       "*-update.xoyocdn.com",
       "*.prod.cloud.netflix.com",
       "appboot.netflix.com",
+      "*-appboot.netflix.com"
+    ],
+    "excluded_domains": [
+      "*-update.xoyocdn.com",
       "*-appboot.netflix.com"
     ],
     "path": "Egern/Egern.yaml",
