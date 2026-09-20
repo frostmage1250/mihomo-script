@@ -2,7 +2,8 @@
 
 This repository publishes a self-contained Mihomo/Bettbox override generated from
 [`AIsouler/MyClash`](https://github.com/AIsouler/MyClash/blob/main/Script/mihomoScript.js).
-Its real-IP DNS exceptions follow [`Repcz/Tool` Egern YAML](https://github.com/Repcz/Tool/blob/X/Egern/Egern.yaml).
+Its real-IP DNS exceptions follow [`Repcz/Tool` Egern YAML](https://github.com/Repcz/Tool/blob/X/Egern/Egern.yaml),
+with two explicitly excluded patterns.
 The generated script does not fetch upstream code at runtime.
 
 ## Subscription
@@ -21,7 +22,7 @@ https://raw.githubusercontent.com/frostmage1250/mihomo-script/main/mihomoScript.
   `mihomoScript.js`.
 - `mihomoScript.js` is the standalone generated subscription artifact.
 - `reports/mihomo-script-upstream.json` records both upstream commits, the extracted
-  Repcz domains, and the output digest.
+  Repcz domains, applied domains, excluded domains, and the output digest.
 
 For every retained service, internally consistent provider additions/removals, rule
 additions/removals, and provider URL/path updates are accepted automatically. The
@@ -41,10 +42,10 @@ node-filtering, DNS, or region-classification contract changes.
   NTP, LAN exposure, and custom `GLOBAL` functionality.
 - Use system DNS for `rule-set:cn` and Direct re-resolution; use upstream China DoH
   only for proxy-server and bootstrap resolution.
-- Add Repcz `real_ip_domains` to the Fake IP exclusions through an inline classical
-  rule provider. Full domains use `DOMAIN`; wildcard domains use anchored
-  `DOMAIN-REGEX` rules so patterns such as `*-update.xoyocdn.com` retain their
-  single-label meaning.
+- Add Mihomo-compatible Repcz `real_ip_domains` directly to the native Fake IP
+  filter. Omit `*-update.xoyocdn.com` and `*-appboot.netflix.com`; their
+  partial-label wildcard syntax would require regex. If Repcz adds another
+  unsupported pattern, the build stops for review instead of broadening it.
 - Preserve upstream domain/IP pairs for selected services and the Apple/Microsoft CN
   layering. Add Threads, Facebook/domain+IP, and Twitch from Bett rules.
 - Override only the `geolocation-cn` provider URL with the reviewed converter output.

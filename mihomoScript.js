@@ -578,27 +578,21 @@ function buildRegionProxyMap(filteredProxies) {
 }
 
 // ---dns和hosts相关处理---
-const repczRealIpDomainProvider = {
-  "type": "inline",
-  "behavior": "classical",
-  "payload": [
-    "DOMAIN,lancache.steamcontent.com",
-    "DOMAIN-REGEX,^[^.]+\\.msftconnecttest\\.com$",
-    "DOMAIN-REGEX,^[^.]+\\.msftncsi\\.com$",
-    "DOMAIN-REGEX,^[^.]+\\.srv\\.nintendo\\.net$",
-    "DOMAIN-REGEX,^[^.]+\\.stun\\.playstation\\.net$",
-    "DOMAIN-REGEX,^xbox\\.[^.]+\\.microsoft\\.com$",
-    "DOMAIN-REGEX,^[^.]+\\.xboxlive\\.com$",
-    "DOMAIN-REGEX,^[^.]+\\.logon\\.battlenet\\.com\\.cn$",
-    "DOMAIN-REGEX,^[^.]+\\.logon\\.battle\\.net$",
-    "DOMAIN,stun.l.google.com",
-    "DOMAIN,easy-login.10099.com.cn",
-    "DOMAIN-REGEX,^[^.]*-update\\.xoyocdn\\.com$",
-    "DOMAIN-REGEX,^[^.]+\\.prod\\.cloud\\.netflix\\.com$",
-    "DOMAIN,appboot.netflix.com",
-    "DOMAIN-REGEX,^[^.]*-appboot\\.netflix\\.com$"
-  ]
-};
+const repczRealIpDomains = [
+  "lancache.steamcontent.com",
+  "*.msftconnecttest.com",
+  "*.msftncsi.com",
+  "*.srv.nintendo.net",
+  "*.stun.playstation.net",
+  "xbox.*.microsoft.com",
+  "*.xboxlive.com",
+  "*.logon.battlenet.com.cn",
+  "*.logon.battle.net",
+  "stun.l.google.com",
+  "easy-login.10099.com.cn",
+  "*.prod.cloud.netflix.com",
+  "appboot.netflix.com"
+];
 
 // 常见的公共 DNS，用于过滤订阅中的公共 DNS
 const commonDnsList = [
@@ -957,7 +951,7 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
     'fake-ip-range': '198.18.0.1/15',
     'fake-ip-range6': '2001:2::1/48',
     'fake-ip-filter': [
-      'rule-set:repcz_real_ip_domains',
+      ...repczRealIpDomains,
       'rule-set:private',
       'rule-set:fakeip_filter',
       'rule-set:geolocation-cn',
@@ -1082,11 +1076,6 @@ function buildRuleProviders() {
       providers[name] = provider;
     }
   }
-
-  if (providers.repcz_real_ip_domains) {
-    throw new Error('Repcz real-IP rule provider name collides with an upstream provider');
-  }
-  providers.repcz_real_ip_domains = repczRealIpDomainProvider;
 
   providers['geolocation-cn'] = {
     ...providers['geolocation-cn'],

@@ -12,7 +12,7 @@ from build_mihomo_script import (  # noqa: E402
     BuildError,
     detect_service_renames,
     extract_real_ip_domains,
-    real_ip_domain_rule,
+    select_real_ip_domains,
     replace_marked,
     render_dns_section,
     render_script,
@@ -96,7 +96,7 @@ const hosts = {
 };
 // --- 主入口 ---
 """
-        rendered = render_dns_section(upstream, ["example.com", "*-update.xoyocdn.com"])
+        rendered = render_dns_section(upstream, ["example.com", "*.xboxlive.com"])
         self.assertIn("'dns.apple'", rendered)
         self.assertNotIn("services.googleapis.cn", rendered)
         self.assertNotIn("mcdn.bilivideo.com", rendered)
@@ -104,10 +104,11 @@ const hosts = {
         self.assertIn("'rule-set:cn': ['system']", rendered)
         self.assertIn("'direct-nameserver': ['system']", rendered)
         self.assertNotIn("googlefcm", rendered)
-        self.assertIn("rule-set:repcz_real_ip_domains", rendered)
-        self.assertIn(r"DOMAIN-REGEX,^[^.]*-update\\.xoyocdn\\.com$", rendered)
+        self.assertIn("...repczRealIpDomains", rendered)
+        self.assertIn('"*.xboxlive.com"', rendered)
+        self.assertNotIn("DOMAIN-REGEX", rendered)
 
-    def test_extract_repcz_real_ip_domains_and_convert_partial_wildcards(self) -> None:
+    def test_extract_and_select_repcz_real_ip_domains(self) -> None:
         source = """dns:
   bootstrap:
   - system
@@ -127,11 +128,11 @@ policy_groups:
             "*-update.xoyocdn.com",
             "*-appboot.netflix.com",
         ])
-        self.assertEqual(real_ip_domain_rule(domains[0]), "DOMAIN,lancache.steamcontent.com")
-        self.assertEqual(
-            real_ip_domain_rule(domains[2]),
-            r"DOMAIN-REGEX,^[^.]*-update\.xoyocdn\.com$",
-        )
+        applied, excluded = select_real_ip_domains(domains)
+        self.assertEqual(applied, ["lancache.steamcontent.com", "*.xboxlive.com"])
+        self.assertEqual(excluded, ["*-update.xoyocdn.com", "*-appboot.netflix.com"])
+        with self.assertRaises(BuildError):
+            select_real_ip_domains(["*-new.example.com"])
         with self.assertRaises(BuildError):
             extract_real_ip_domains("dns:\n  bootstrap:\n  - system\n")
         with self.assertRaises(BuildError):

@@ -28,6 +28,7 @@ END_SERVICES = "// END GENERATED: RETAINED_SERVICES"
 BEGIN_DNS = "// ---dns和hosts相关处理---"
 END_DNS = "// --- 单订阅输出层 ---"
 UPSTREAM_END_DNS = "// --- 主入口 ---"
+EXCLUDED_REAL_IP_DOMAINS = frozenset({"*-update.xoyocdn.com", "*-appboot.netflix.com"})
 
 
 class BuildError(RuntimeError):
@@ -117,15 +118,19 @@ def extract_real_ip_domains(source: str) -> list[str]:
     return domains
 
 
-def real_ip_domain_rule(domain: str) -> str:
-    """Use regex for Egern globs, including wildcards within a DNS label."""
-    if "*" not in domain:
-        return f"DOMAIN,{domain}"
-    labels = [
-        r"[^.]+" if label == "*" else label.replace("*", r"[^.]*")
-        for label in domain.split(".")
+def select_real_ip_domains(source_domains: list[str]) -> tuple[list[str], list[str]]:
+    """Keep Mihomo-compatible patterns and omit the two optional exceptions."""
+    domains = [domain for domain in source_domains if domain not in EXCLUDED_REAL_IP_DOMAINS]
+    excluded = [domain for domain in source_domains if domain in EXCLUDED_REAL_IP_DOMAINS]
+    unsupported = [
+        domain for domain in domains
+        if any("*" in label and label != "*" for label in domain.split("."))
     ]
-    return "DOMAIN-REGEX,^" + r"\.".join(labels) + "$"
+    if unsupported:
+        raise BuildError("Unsupported real_ip_domains wildcard placement: " + ", ".join(unsupported))
+    if not domains:
+        raise BuildError("No Mihomo-compatible real_ip_domains remain after exclusions")
+    return domains, excluded
 
 
 def _extract_with_node(source: str) -> dict[str, Any]:
@@ -381,15 +386,14 @@ def render_dns_section(upstream: str, real_ip_domains: list[str]) -> str:
         body,
     )
 
-    # Keep the existing blacklist mode. Repcz patterns live in a classical
-    # inline provider because plain fake-ip-filter rejects partial-label globs.
+    # Keep the existing blacklist mode and use Mihomo's native domain matching.
     body, filter_count = re.subn(
         r"(?m)^([ \t]*)'fake-ip-filter':[ \t]*\[\r?\n",
-        lambda match: match.group(0) + match.group(1) + "  'rule-set:repcz_real_ip_domains',\n",
+        lambda match: match.group(0) + match.group(1) + "  ...repczRealIpDomains,\n",
         body,
     )
     if filter_count != 1:
-        raise BuildError("Unable to add Repcz real-IP provider to fake-ip-filter")
+        raise BuildError("Unable to add Repcz real-IP domains to fake-ip-filter")
 
     # Always resolve mainland-domain rules and direct connections with system DNS.
     body, cn_count = re.subn(
@@ -404,12 +408,7 @@ def render_dns_section(upstream: str, real_ip_domains: list[str]) -> str:
     )
     if cn_count != 1 or direct_count != 1:
         raise BuildError("Unable to enforce system DNS for mainland or direct-domain resolution")
-    provider = {
-        "type": "inline",
-        "behavior": "classical",
-        "payload": [real_ip_domain_rule(domain) for domain in real_ip_domains],
-    }
-    return render_const("repczRealIpDomainProvider", provider) + "\n\n" + body
+    return "const repczRealIpDomains = " + json.dumps(real_ip_domains, ensure_ascii=False, indent=2) + ";\n\n" + body
 
 
 def sync_tun_stack(current: str, upstream: str) -> str:
@@ -494,7 +493,8 @@ def build(
     base, services, service_renames, service_order = select_upstream_definitions(
         extracted, manifest, previous_service_order
     )
-    script = render_script(current_script, upstream, sha, base, services, service_renames, real_ip_domains)
+    applied_domains, excluded_domains = select_real_ip_domains(real_ip_domains)
+    script = render_script(current_script, upstream, sha, base, services, service_renames, applied_domains)
     report = {
         "schema_version": 1,
         "upstream": {
@@ -508,6 +508,8 @@ def build(
             "path": manifest["real_ip_domains_upstream"]["path"],
             "commit": real_ip_domains_sha,
             "domains": real_ip_domains,
+            "applied_domains": applied_domains,
+            "excluded_domains": excluded_domains,
         },
         "retained_base_rule_providers": list(base),
         "upstream_service_order": service_order,
