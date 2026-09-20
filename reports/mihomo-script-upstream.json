@@ -1,5 +1,27 @@
 {
-  "output_sha256": "a8f9aeb82dde782cc5897ed1dd02ff587ce881a6f7c34bc929b59c40251c05a2",
+  "output_sha256": "93af07052aa0117e964f7adb9de8186b584ad2024e10b81bc538f8351a6205f9",
+  "real_ip_domains_upstream": {
+    "commit": "14096d214d0f870ee11f8172b2f8be94e93d0663",
+    "domains": [
+      "lancache.steamcontent.com",
+      "*.msftconnecttest.com",
+      "*.msftncsi.com",
+      "*.srv.nintendo.net",
+      "*.stun.playstation.net",
+      "xbox.*.microsoft.com",
+      "*.xboxlive.com",
+      "*.logon.battlenet.com.cn",
+      "*.logon.battle.net",
+      "stun.l.google.com",
+      "easy-login.10099.com.cn",
+      "*-update.xoyocdn.com",
+      "*.prod.cloud.netflix.com",
+      "appboot.netflix.com",
+      "*-appboot.netflix.com"
+    ],
+    "path": "Egern/Egern.yaml",
+    "repository": "Repcz/Tool"
+  },
   "retained_base_rule_providers": [
     "private",
     "private_ip",
