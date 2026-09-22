@@ -1,5 +1,5 @@
 {
-  "output_sha256": "708fcd19111c44571614584bad2256b026ba37b4b4d5afc37ced895017cf58d9",
+  "output_sha256": "41217242eac2d1c4f888e107ffa703a222b8f7f53787c7adfd6b02c5345c9459",
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -171,7 +171,7 @@
   },
   "schema_version": 1,
   "upstream": {
-    "commit": "a32b25025efc27dbbe52d1c00f3ac6239e18af74",
+    "commit": "4e7d74c7fb43bbb75983a1d45874c361f1b77a4d",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
   },
