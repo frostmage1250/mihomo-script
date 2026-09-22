@@ -1,5 +1,5 @@
 {
-  "output_sha256": "da411c852d5af3a2fb00deb260564d242dfd0f4fa7dd8569d5737917d691c640",
+  "output_sha256": "708fcd19111c44571614584bad2256b026ba37b4b4d5afc37ced895017cf58d9",
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -171,7 +171,7 @@
   },
   "schema_version": 1,
   "upstream": {
-    "commit": "d0ebbf9c67b3cf332ef8bd17de3b09eb95210371",
+    "commit": "a32b25025efc27dbbe52d1c00f3ac6239e18af74",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
   },
@@ -196,6 +196,7 @@
     "PikPak",
     "Spotify",
     "Crypto",
+    "PayPal",
     "EHentai",
     "AdBlock"
   ]
