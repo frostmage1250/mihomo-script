@@ -48,6 +48,10 @@ node-filtering, DNS, or region-classification contract changes.
   unsupported pattern, the build stops for review instead of broadening it.
 - Preserve upstream domain/IP pairs for selected services and the Apple/Microsoft CN
   layering. Add Threads, Facebook/domain+IP, and Twitch from Bett rules.
+- Add a dedicated Claude policy group and load the converter repository's classical
+  Claude provider, including authentication, telemetry, risk-control keywords,
+  IPv4, IPv6, and AS399358 coverage while excluding NTP. Match Claude before the
+  generic AI rule.
 - Override only the `geolocation-cn` provider URL with the reviewed converter output.
 
 ## Automation and validation

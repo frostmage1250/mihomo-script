@@ -54,6 +54,11 @@ assert(proxyNames.includes("日本 01") && proxyNames.includes("美国 01") && p
 assert(groups.has("订阅"), "subscription group is missing");
 assert(JSON.stringify(groups.get("订阅").proxies) === JSON.stringify(["日本 01", "美国 01", "韩国 01", "日本 0.5x"]), "subscription group must expand filtered airport nodes in source order");
 assert(groups.get("Proxy").proxies[0] === "订阅", "Proxy must select subscription first");
+assert(groups.has("Claude"), "Claude policy group is missing");
+assert(
+  JSON.stringify(groups.get("Claude").proxies) === JSON.stringify(groups.get("AI").proxies),
+  "Claude policy choices must follow the AI group",
+);
 assert(JSON.stringify(groups.get("Direct").proxies) === JSON.stringify(["DIRECT", "IPv4优先", "IPv6优先"]), "Direct choices changed");
 assert(groups.get("其他节点").proxies.includes("韩国 01"), "unrecognized normal regions must enter Other");
 assert(groups.get("低倍率节点").proxies.includes("日本 0.5x"), "low-rate node grouping failed");
@@ -105,7 +110,7 @@ for (const required of [
   "private", "private_ip", "games_cn", "apple_cn", "microsoft_cn", "geolocation-cn",
   "cn_ip", "geolocation-!cn", "fakeip_filter", "cn", "google", "google_ip",
   "telegram", "telegram_ip", "steam", "steam_ip", "tiktok", "tiktok_ip",
-  "twitter", "twitter_ip", "facebook", "facebook_ip", "threads", "twitch",
+  "twitter", "twitter_ip", "facebook", "facebook_ip", "threads", "twitch", "claude",
 ]) assert(required in providers, `required provider missing: ${required}`);
 
 for (const rule of output.rules) {
@@ -115,6 +120,18 @@ for (const rule of output.rules) {
 assert(!output.rules.some((rule) => /qwen|qbittorrent|cn_additional|googlefcm/i.test(rule)), "unapproved handwritten or removed rules remain");
 assert(output.rules.indexOf("RULE-SET,apple_cn,Direct") < output.rules.indexOf("RULE-SET,apple,Proxy"), "Apple CN layering order is wrong");
 assert(output.rules.indexOf("RULE-SET,microsoft_cn,Direct") < output.rules.indexOf("RULE-SET,microsoft,Proxy"), "Microsoft CN layering order is wrong");
+assert(providers.claude.type === "http", "Claude provider type changed");
+assert(providers.claude.format === "yaml", "Claude provider must use YAML");
+assert(providers.claude.behavior === "classical", "Claude provider must be classical");
+assert(
+  providers.claude.url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/claude.yaml",
+  "Claude provider must use the converter repository",
+);
+assert(output.rules.includes("RULE-SET,claude,Claude"), "Claude rule is missing");
+assert(
+  output.rules.indexOf("RULE-SET,claude,Claude") < output.rules.indexOf("RULE-SET,ai,AI"),
+  "Claude rule must precede the generic AI rule",
+);
 assert(output.rules[output.rules.length - 1] === "MATCH,Final", "Final rule must remain last");
 
 for (const forbidden of ["customizeProxies", "buildCustomizeProxies", "代理IPV4优先", "代理IPV6优先", "过滤高倍率节点"]) {

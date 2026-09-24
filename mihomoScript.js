@@ -93,6 +93,12 @@ const ruleProviderCommonIpcidr = {
   interval: 86400,
   behavior: 'ipcidr',
 };
+const ruleProviderCommonClassical = {
+  type: 'http',
+  format: 'yaml',
+  interval: 86400,
+  behavior: 'classical',
+};
 
 // BEGIN GENERATED: BASE_RULE_PROVIDERS
 // 定义基础 Rule Providers
@@ -983,6 +989,16 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
 // --- 单订阅输出层 ---
 
 const additionalServiceDefinitions = {
+  Claude: {
+    providers: {
+      claude: {
+        ...ruleProviderCommonClassical,
+        url: 'https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/claude.yaml',
+        path: './ruleset/claude.yaml',
+      },
+    },
+    rules: ['RULE-SET,claude,Claude'],
+  },
   Threads: {
     providers: {
       threads: {
@@ -1038,6 +1054,7 @@ const selectedBaseRuleProviderNames = [
 ];
 
 const servicePolicyTargets = {
+  Claude: 'Claude',
   YouTube: '媒体',
   Google: 'Google',
   AI: 'AI',
@@ -1122,6 +1139,7 @@ function buildRules() {
     ...serviceRules('Twitch'),
     ...serviceRules('TikTok'),
     ...serviceRules('Google'),
+    ...serviceRules('Claude'),
     ...serviceRules('AI'),
     ...serviceRules('PikPak'),
     ...serviceRules('EHentai'),
@@ -1149,6 +1167,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     simpleSelect('Proxy', ['订阅', ...availableRegions]),
     simpleSelect('订阅', subscriptionProxies.map((proxy) => proxy.name)),
     simpleSelect('Direct', ['DIRECT', ...directProxies.map((proxy) => proxy.name)]),
+    simpleSelect('Claude', ['Proxy', ...optional('日本', '台湾', '其他节点')]),
     simpleSelect('AI', ['Proxy', ...optional('日本', '台湾', '其他节点')]),
     simpleSelect('Google', ['Proxy']),
     simpleSelect('媒体', ['Proxy', ...optional('低倍率节点')]),
