@@ -999,34 +999,6 @@ const additionalServiceDefinitions = {
     },
     rules: ['RULE-SET,claude,Claude'],
   },
-  Threads: {
-    providers: {
-      threads: {
-        ...ruleProviderCommonDomain,
-        url: 'https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/threads.mrs',
-        path: './ruleset/threads.mrs',
-        'path-in-bundle': 'geo/geosite/threads.mrs',
-      },
-    },
-    rules: ['RULE-SET,threads,Threads'],
-  },
-  Facebook: {
-    providers: {
-      facebook: {
-        ...ruleProviderCommonDomain,
-        url: 'https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/facebook.mrs',
-        path: './ruleset/facebook.mrs',
-        'path-in-bundle': 'geo/geosite/facebook.mrs',
-      },
-      facebook_ip: {
-        ...ruleProviderCommonIpcidr,
-        url: 'https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/facebook.mrs',
-        path: './ruleset/facebook_ip.mrs',
-        'path-in-bundle': 'geo/geoip/facebook.mrs',
-      },
-    },
-    rules: ['RULE-SET,facebook,Facebook', 'RULE-SET,facebook_ip,Facebook,no-resolve'],
-  },
   Twitch: {
     providers: {
       twitch: {
@@ -1067,8 +1039,6 @@ const servicePolicyTargets = {
   "Meta": '媒体',
   PikPak: 'PikPak',
   EHentai: 'EHentai',
-  Threads: '媒体',
-  Facebook: '媒体',
   Twitch: '媒体',
 };
 
@@ -1139,9 +1109,7 @@ function buildRules() {
     ...serviceRules('Microsoft'),
     ...serviceRules('Telegram'),
     ...serviceRules('YouTube'),
-    ...serviceRules('Threads'),
     ...serviceRules("Meta"),
-    ...serviceRules('Facebook'),
     ...serviceRules('Twitter'),
     ...serviceRules('Twitch'),
     ...serviceRules('TikTok'),

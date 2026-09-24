@@ -47,7 +47,8 @@ node-filtering, DNS, or region-classification contract changes.
   partial-label wildcard syntax would require regex. If Repcz adds another
   unsupported pattern, the build stops for review instead of broadening it.
 - Preserve upstream domain/IP pairs for selected services and the Apple/Microsoft CN
-  layering. Add Threads, Facebook/domain+IP, and Twitch from Bett rules.
+  layering. Add Twitch from Bett rules; rely on the retained Meta domain/IP pair
+  because it fully covers the redundant Facebook and Threads domain sets.
 - Add a dedicated Claude policy group and load the converter repository's classical
   Claude provider, including authentication, telemetry, risk-control keywords,
   IPv4, IPv6, and AS399358 coverage while excluding NTP. Match Claude before the

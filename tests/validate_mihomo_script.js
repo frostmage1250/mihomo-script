@@ -115,8 +115,21 @@ for (const required of [
   "private", "private_ip", "games_cn", "apple_cn", "microsoft_cn", "geolocation-cn",
   "cn_ip", "geolocation-!cn", "fakeip_filter", "cn", "google", "google_ip",
   "telegram", "telegram_ip", "steam", "steam_ip", "tiktok", "tiktok_ip",
-  "twitter", "twitter_ip", "facebook", "facebook_ip", "threads", "twitch", "claude",
+  "twitter", "twitter_ip", "facebook_ip", "twitch", "claude",
 ]) assert(required in providers, `required provider missing: ${required}`);
+
+for (const redundant of ["facebook", "threads"]) {
+  assert(!(redundant in providers), `redundant Meta-family provider remains: ${redundant}`);
+}
+assert(!output.rules.some((rule) => /^RULE-SET,(?:facebook|threads),/.test(rule)), "redundant Meta-family rule remains");
+assert(
+  output.rules.filter((rule) => rule === "RULE-SET,facebook_ip,媒体,no-resolve").length === 1,
+  "Meta must retain exactly one Facebook IP fallback",
+);
+assert(
+  output.rules.indexOf("RULE-SET,facebook_ip,媒体,no-resolve") === output.rules.indexOf("RULE-SET,meta,媒体") + 1,
+  "Meta IP fallback must immediately follow the Meta domain rule",
+);
 
 for (const rule of output.rules) {
   const parts = rule.split(",");
