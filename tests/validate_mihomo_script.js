@@ -54,6 +54,11 @@ assert(proxyNames.includes("日本 01") && proxyNames.includes("美国 01") && p
 assert(groups.has("订阅"), "subscription group is missing");
 assert(JSON.stringify(groups.get("订阅").proxies) === JSON.stringify(["日本 01", "美国 01", "韩国 01", "日本 0.5x"]), "subscription group must expand filtered airport nodes in source order");
 assert(groups.get("Proxy").proxies[0] === "订阅", "Proxy must select subscription first");
+assert(groups.has("GitHub"), "GitHub policy group is missing");
+assert(
+  JSON.stringify(groups.get("GitHub").proxies) === JSON.stringify(["Proxy", "订阅", "AI"]),
+  "GitHub policy choices must be Proxy, subscription, and AI in order",
+);
 assert(groups.has("Claude"), "Claude policy group is missing");
 assert(
   JSON.stringify(groups.get("Claude").proxies) === JSON.stringify(groups.get("AI").proxies),
@@ -120,6 +125,8 @@ for (const rule of output.rules) {
 assert(!output.rules.some((rule) => /qwen|qbittorrent|cn_additional|googlefcm/i.test(rule)), "unapproved handwritten or removed rules remain");
 assert(output.rules.indexOf("RULE-SET,apple_cn,Direct") < output.rules.indexOf("RULE-SET,apple,Proxy"), "Apple CN layering order is wrong");
 assert(output.rules.indexOf("RULE-SET,microsoft_cn,Direct") < output.rules.indexOf("RULE-SET,microsoft,Proxy"), "Microsoft CN layering order is wrong");
+assert(output.rules.includes("RULE-SET,github,GitHub"), "GitHub rules must use the dedicated GitHub policy group");
+assert(!output.rules.includes("RULE-SET,github,Proxy"), "GitHub rules must not fall back to Proxy directly");
 assert(providers.claude.type === "http", "Claude provider type changed");
 assert(providers.claude.format === "yaml", "Claude provider must use YAML");
 assert(providers.claude.behavior === "classical", "Claude provider must be classical");

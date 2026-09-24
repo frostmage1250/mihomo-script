@@ -1072,6 +1072,10 @@ const servicePolicyTargets = {
   Twitch: '媒体',
 };
 
+const serviceRulePolicyTargets = {
+  github: 'GitHub',
+};
+
 function allRetainedServiceDefinitions() {
   return { ...retainedServiceDefinitions, ...additionalServiceDefinitions };
 }
@@ -1118,7 +1122,10 @@ function serviceRules(name) {
   const definition = allRetainedServiceDefinitions()[name];
   const target = servicePolicyTargets[name];
   if (!definition || !target) throw new Error('缺少保留服务定义或目标策略组：' + name);
-  return (definition.rules || []).map((rule) => retargetServiceRule(rule, target));
+  return (definition.rules || []).map((rule) => {
+    const providerName = rule.split(',')[1];
+    return retargetServiceRule(rule, serviceRulePolicyTargets[providerName] || target);
+  });
 }
 
 function buildRules() {
@@ -1167,6 +1174,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     simpleSelect('Proxy', ['订阅', ...availableRegions]),
     simpleSelect('订阅', subscriptionProxies.map((proxy) => proxy.name)),
     simpleSelect('Direct', ['DIRECT', ...directProxies.map((proxy) => proxy.name)]),
+    simpleSelect('GitHub', ['Proxy', '订阅', 'AI']),
     simpleSelect('Claude', ['Proxy', ...optional('日本', '台湾', '其他节点')]),
     simpleSelect('AI', ['Proxy', ...optional('日本', '台湾', '其他节点')]),
     simpleSelect('Google', ['Proxy']),

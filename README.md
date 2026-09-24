@@ -52,6 +52,8 @@ node-filtering, DNS, or region-classification contract changes.
   Claude provider, including authentication, telemetry, risk-control keywords,
   IPv4, IPv6, and AS399358 coverage while excluding NTP. Match Claude before the
   generic AI rule.
+- Add a dedicated GitHub policy group with `Proxy`, `订阅`, and `AI` choices,
+  and route the retained GitHub rules to it.
 - Override only the `geolocation-cn` provider URL with the reviewed converter output.
 
 ## Automation and validation
