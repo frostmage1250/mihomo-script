@@ -61,8 +61,8 @@ assert(
 );
 assert(groups.has("Claude"), "Claude policy group is missing");
 assert(
-  JSON.stringify(groups.get("Claude").proxies) === JSON.stringify(groups.get("AI").proxies),
-  "Claude policy choices must follow the AI group",
+  JSON.stringify(groups.get("Claude").proxies) === JSON.stringify(["Proxy", "订阅", ...groups.get("AI").proxies.slice(1)]),
+  "Claude policy choices must include subscription after Proxy, followed by the AI regional choices",
 );
 assert(JSON.stringify(groups.get("Direct").proxies) === JSON.stringify(["DIRECT", "IPv4优先", "IPv6优先"]), "Direct choices changed");
 assert(groups.get("其他节点").proxies.includes("韩国 01"), "unrecognized normal regions must enter Other");
