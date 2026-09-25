@@ -1143,7 +1143,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     simpleSelect('订阅', subscriptionProxies.map((proxy) => proxy.name)),
     simpleSelect('Direct', ['DIRECT', ...directProxies.map((proxy) => proxy.name)]),
     simpleSelect('GitHub', ['Proxy', '订阅', 'AI']),
-    simpleSelect('Claude', ['Proxy', ...optional('日本', '台湾', '其他节点')]),
+    simpleSelect('Claude', ['Proxy', '订阅', ...optional('日本', '台湾', '其他节点')]),
     simpleSelect('AI', ['Proxy', ...optional('日本', '台湾', '其他节点')]),
     simpleSelect('Google', ['Proxy']),
     simpleSelect('媒体', ['Proxy', ...optional('低倍率节点')]),
