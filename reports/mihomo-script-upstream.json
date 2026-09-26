@@ -1,5 +1,5 @@
 {
-  "output_sha256": "8395430e8b8670b55cb6b695388ccbe21647b5992a18dd815e3c7a8137e51ac2",
+  "output_sha256": "2a3c22e2dd38408eef6e63113c69a8216e4947751a34b1e701f869a0e39ade72",
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -51,7 +51,8 @@
     "cn_ip",
     "geolocation-!cn",
     "fakeip_filter",
-    "cn"
+    "cn",
+    "douyin"
   ],
   "retained_services": {
     "AI": {
@@ -171,7 +172,7 @@
   },
   "schema_version": 1,
   "upstream": {
-    "commit": "4e7d74c7fb43bbb75983a1d45874c361f1b77a4d",
+    "commit": "c6571214ba72481ccebfc855bd42b2486780a20f",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
   },

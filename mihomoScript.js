@@ -3,7 +3,7 @@
  * 作者：AIsouler
  * 源仓库：https://github.com/AIsouler/MyClash
  * 上游脚本：https://raw.githubusercontent.com/AIsouler/MyClash/main/Script/mihomoScript.js
- * 上游提交：4e7d74c7fb43bbb75983a1d45874c361f1b77a4d
+ * 上游提交：c6571214ba72481ccebfc855bd42b2486780a20f
  * 基于上游 mihomoScript.js 定制：两个机场配置分开使用同一脚本。
  * 友情推荐，非常好用、省电且内存占用低的代理软件：https://github.com/appshubcc/Bettbox
  */
@@ -192,6 +192,15 @@ const baseRuleProviders = {
     "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/cn.mrs",
     "path": "./ruleset/cn.mrs",
     "path-in-bundle": "geo/geosite/cn.mrs"
+  },
+  "douyin": {
+    "type": "http",
+    "format": "mrs",
+    "interval": 86400,
+    "behavior": "domain",
+    "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/douyin.mrs",
+    "path": "./ruleset/douyin.mrs",
+    "path-in-bundle": "geo/geosite/douyin.mrs"
   }
 };
 // END GENERATED: BASE_RULE_PROVIDERS
@@ -971,9 +980,12 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
     }),
     nameserver: foreignDNS,
     'nameserver-policy': {
+      'rule-set:private': 'system',
+      'rule-set:douyin': ['system', '180.184.1.1', '180.184.2.2'],
       'rule-set:cn': ['system'],
     },
     'direct-nameserver': ['system'],
+    'direct-nameserver-follow-policy': true,
   };
 
   const hosts = {
