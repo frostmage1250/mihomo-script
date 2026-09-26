@@ -1023,6 +1023,7 @@ const selectedBaseRuleProviderNames = [
   'geolocation-!cn',
   'fakeip_filter',
   'cn',
+  'douyin',
 ];
 
 const servicePolicyTargets = {

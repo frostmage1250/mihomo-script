@@ -39,7 +39,8 @@
     "cn_ip",
     "geolocation-!cn",
     "fakeip_filter",
-    "cn"
+    "cn",
+    "douyin"
   ],
   "reserved_extra_provider_names": ["threads", "facebook", "twitch"],
   "upstream_contract_hashes": {

@@ -79,6 +79,16 @@ for (const group of groups.values()) {
 assert(Array.isArray(output.dns["proxy-server-nameserver"]) && output.dns["proxy-server-nameserver"].length > 0, "proxy server DNS must follow upstream DNS configuration");
 assert(Array.isArray(output.dns["default-nameserver"]) && output.dns["default-nameserver"].length > 0, "default DNS must follow upstream DNS configuration");
 assert(JSON.stringify(output.dns["nameserver-policy"]["rule-set:cn"]) === JSON.stringify(["system"]), "CN domains must use system DNS");
+assert(output.dns["nameserver-policy"]["rule-set:private"] === "system", "private domains must use system DNS");
+assert(
+  JSON.stringify(output.dns["nameserver-policy"]["rule-set:douyin"]) === JSON.stringify(["system", "180.184.1.1", "180.184.2.2"]),
+  "Douyin DNS policy must follow upstream",
+);
+assert(output.dns["direct-nameserver-follow-policy"] === true, "direct DNS must follow matching nameserver policy");
+for (const key of Object.keys(output.dns["nameserver-policy"])) {
+  const match = /^rule-set:(.+)$/.exec(key);
+  if (match) assert(match[1] in providers, `DNS policy references missing provider: ${match[1]}`);
+}
 assert(JSON.stringify(output.dns["direct-nameserver"]) === JSON.stringify(["system"]), "direct traffic must use system DNS");
 assert(!output.dns["fake-ip-filter"].includes("rule-set:googlefcm"), "FCM fake-IP rule must not remain");
 
@@ -113,7 +123,7 @@ for (const host of [
 
 for (const required of [
   "private", "private_ip", "games_cn", "apple_cn", "microsoft_cn", "geolocation-cn",
-  "cn_ip", "geolocation-!cn", "fakeip_filter", "cn", "google", "google_ip",
+  "cn_ip", "geolocation-!cn", "fakeip_filter", "cn", "douyin", "google", "google_ip",
   "telegram", "telegram_ip", "steam", "steam_ip", "tiktok", "tiktok_ip",
   "twitter", "twitter_ip", "facebook_ip", "twitch", "claude",
 ]) assert(required in providers, `required provider missing: ${required}`);
@@ -140,6 +150,11 @@ assert(output.rules.indexOf("RULE-SET,apple_cn,Direct") < output.rules.indexOf("
 assert(output.rules.indexOf("RULE-SET,microsoft_cn,Direct") < output.rules.indexOf("RULE-SET,microsoft,Proxy"), "Microsoft CN layering order is wrong");
 assert(output.rules.includes("RULE-SET,github,GitHub"), "GitHub rules must use the dedicated GitHub policy group");
 assert(!output.rules.includes("RULE-SET,github,Proxy"), "GitHub rules must not fall back to Proxy directly");
+assert(buildReport.retained_base_rule_providers.includes("douyin"), "Douyin base provider missing from generation report");
+assert(providers.douyin.type === "http" && providers.douyin.format === "mrs" && providers.douyin.behavior === "domain", "Douyin provider format changed");
+assert(providers.douyin.url === "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/douyin.mrs", "Douyin provider URL changed");
+assert(providers.douyin.path === "./ruleset/douyin.mrs", "Douyin provider path changed");
+assert(providers.douyin["path-in-bundle"] === "geo/geosite/douyin.mrs", "Douyin bundle path changed");
 assert(providers.claude.type === "http", "Claude provider type changed");
 assert(providers.claude.format === "yaml", "Claude provider must use YAML");
 assert(providers.claude.behavior === "classical", "Claude provider must be classical");

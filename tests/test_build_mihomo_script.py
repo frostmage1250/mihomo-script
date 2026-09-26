@@ -86,9 +86,12 @@ const dns = {
     ...(ruleOptionsEnable['FCM'] ? ['rule-set:googlefcm'] : []),
   ],
   'nameserver-policy': {
+    'rule-set:private': 'system',
+    'rule-set:douyin': ['system', '180.184.1.1', '180.184.2.2'],
     'rule-set:cn': chinaDNS,
   },
   'direct-nameserver': chinaDNS,
+  'direct-nameserver-follow-policy': true,
 };
 const hosts = {
   'services.googleapis.cn': 'services.googleapis.com',
@@ -101,8 +104,11 @@ const hosts = {
         self.assertNotIn("services.googleapis.cn", rendered)
         self.assertNotIn("mcdn.bilivideo.com", rendered)
         self.assertIn("#Proxy", rendered)
+        self.assertIn("'rule-set:private': 'system'", rendered)
+        self.assertIn("'rule-set:douyin': ['system', '180.184.1.1', '180.184.2.2']", rendered)
         self.assertIn("'rule-set:cn': ['system']", rendered)
         self.assertIn("'direct-nameserver': ['system']", rendered)
+        self.assertIn("'direct-nameserver-follow-policy': true", rendered)
         self.assertNotIn("googlefcm", rendered)
         self.assertIn("...repczRealIpDomains", rendered)
         self.assertIn('"*.xboxlive.com"', rendered)
