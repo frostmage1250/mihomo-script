@@ -183,6 +183,30 @@ policy_groups:
         self.assertEqual(list(services["Service"]["providers"]), ["service", "service_ip"])
 
 
+    def test_ai_provider_uses_converter_url_without_bett_bundle_path(self) -> None:
+        provider = {
+            "type": "http", "format": "mrs", "interval": 86400,
+            "behavior": "domain", "url": "https://bett.example/ai.mrs",
+            "path": "./ruleset/ai.mrs",
+            "path-in-bundle": "geo/geosite/category-ai-!cn.mrs",
+        }
+        extracted = {
+            "baseRuleProviders": {},
+            "services": [{"name": "AI", "providers": {"ai": provider}, "rules": ["RULE-SET,ai,AI"]}],
+        }
+        manifest = {
+            "retained_services": ["AI"],
+            "retained_base_rule_providers": [],
+            "reserved_extra_provider_names": [],
+            "service_provider_url_overrides": {
+                "AI": {"ai": "https://raw.githubusercontent.com/example/ai.mrs"}
+            },
+        }
+        _base, services, _renames, _order = select_upstream_definitions(extracted, manifest)
+        self.assertEqual(services["AI"]["providers"]["ai"]["url"], manifest["service_provider_url_overrides"]["AI"]["ai"])
+        self.assertNotIn("path-in-bundle", services["AI"]["providers"]["ai"])
+        self.assertEqual(provider["url"], "https://bett.example/ai.mrs")
+
     def test_service_rename_is_detected_without_treating_new_additions_as_renames(self) -> None:
         self.assertEqual(
             detect_service_renames(

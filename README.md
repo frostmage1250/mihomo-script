@@ -55,7 +55,9 @@ node-filtering, DNS, or region-classification contract changes.
   generic AI rule.
 - Add a dedicated GitHub policy group with `Proxy`, `订阅`, and `AI` choices,
   and route the retained GitHub rules to it.
-- Override only the `geolocation-cn` provider URL with the reviewed converter output.
+- Route the retained AI service through the converter repository's extended Bett
+  `ai.mrs` and remove its obsolete Bett bundle path. Override the
+  `geolocation-cn` provider URL with the reviewed converter output.
 
 ## Automation and validation
 

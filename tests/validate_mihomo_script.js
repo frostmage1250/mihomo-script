@@ -151,6 +151,11 @@ assert(output.rules.indexOf("RULE-SET,microsoft_cn,Direct") < output.rules.index
 assert(output.rules.includes("RULE-SET,github,GitHub"), "GitHub rules must use the dedicated GitHub policy group");
 assert(!output.rules.includes("RULE-SET,github,Proxy"), "GitHub rules must not fall back to Proxy directly");
 assert(buildReport.retained_base_rule_providers.includes("douyin"), "Douyin base provider missing from generation report");
+assert(providers.ai.type === "http" && providers.ai.format === "mrs" && providers.ai.behavior === "domain", "AI provider format changed");
+assert(providers.ai.url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/ai.mrs", "AI provider must use the converter MRS");
+assert(providers.ai.path === "./ruleset/ai.mrs", "AI provider path changed");
+assert(!("path-in-bundle" in providers.ai), "external AI MRS cannot reference the Bett bundle");
+assert(buildReport.service_provider_url_overrides.AI.ai === providers.ai.url, "AI override missing from build report");
 assert(providers.douyin.type === "http" && providers.douyin.format === "mrs" && providers.douyin.behavior === "domain", "Douyin provider format changed");
 assert(providers.douyin.url === "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/douyin.mrs", "Douyin provider URL changed");
 assert(providers.douyin.path === "./ruleset/douyin.mrs", "Douyin provider path changed");

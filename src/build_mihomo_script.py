@@ -292,6 +292,10 @@ def select_upstream_definitions(
     selected_services: dict[str, Any] = {}
     reference_renames: dict[str, str] = {}
     selected_provider_names: set[str] = set()
+    provider_url_overrides = manifest.get("service_provider_url_overrides", {})
+    unknown_override_services = set(provider_url_overrides) - set(manifest["retained_services"])
+    if unknown_override_services:
+        raise BuildError("Provider URL override names unknown retained services: " + ", ".join(sorted(unknown_override_services)))
 
     for configured_name in manifest["retained_services"]:
         name, visited = _resolve_service_name(configured_name, services_by_name, aliases, detected_renames)
@@ -319,7 +323,20 @@ def select_upstream_definitions(
             raise BuildError(
                 f"Rule/provider mismatch for {name}: rules use {sorted(referenced)}, providers are {sorted(providers)}"
             )
-        selected_services[name] = {"providers": providers, "rules": rules}
+        service_overrides = provider_url_overrides.get(configured_name, {})
+        unknown_providers = set(service_overrides) - set(providers)
+        if unknown_providers:
+            raise BuildError(f"Provider URL override for {configured_name} references missing providers: {sorted(unknown_providers)}")
+        selected_providers: dict[str, Any] = {}
+        for provider_name, provider in providers.items():
+            override_url = service_overrides.get(provider_name)
+            if override_url is not None:
+                if not isinstance(override_url, str) or not override_url.startswith("https://"):
+                    raise BuildError(f"Provider URL override for {configured_name}.{provider_name} must be HTTPS")
+                provider = {**provider, "url": override_url}
+                provider.pop("path-in-bundle", None)
+            selected_providers[provider_name] = provider
+        selected_services[name] = {"providers": selected_providers, "rules": rules}
         selected_provider_names.update(providers)
 
     collisions = sorted(set(manifest["reserved_extra_provider_names"]) & selected_provider_names)
@@ -512,6 +529,7 @@ def build(
             "excluded_domains": excluded_domains,
         },
         "retained_base_rule_providers": list(base),
+        "service_provider_url_overrides": manifest.get("service_provider_url_overrides", {}),
         "upstream_service_order": service_order,
         "retained_services": {
             name: {"providers": list(value["providers"]), "rules": value["rules"]}
