@@ -3,7 +3,7 @@
  * 作者：AIsouler
  * 源仓库：https://github.com/AIsouler/MyClash
  * 上游脚本：https://raw.githubusercontent.com/AIsouler/MyClash/main/Script/mihomoScript.js
- * 上游提交：c6571214ba72481ccebfc855bd42b2486780a20f
+ * 上游提交：efa61d4e1e0dd3323b863b85b38c1c355622ee1a
  * 基于上游 mihomoScript.js 定制：两个机场配置分开使用同一脚本。
  * 友情推荐，非常好用、省电且内存占用低的代理软件：https://github.com/appshubcc/Bettbox
  */
@@ -258,9 +258,8 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/category-ai-!cn.mrs",
-        "path": "./ruleset/ai.mrs",
-        "path-in-bundle": "geo/geosite/category-ai-!cn.mrs"
+        "url": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/ai.mrs",
+        "path": "./ruleset/ai.mrs"
       }
     },
     "rules": [

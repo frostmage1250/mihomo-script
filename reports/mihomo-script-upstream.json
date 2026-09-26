@@ -1,5 +1,5 @@
 {
-  "output_sha256": "2a3c22e2dd38408eef6e63113c69a8216e4947751a34b1e701f869a0e39ade72",
+  "output_sha256": "10fc53c40a00dbdec651305856d50bf6c0ab813d2b23a65a2577fd3ee31d6601",
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -171,8 +171,13 @@
     }
   },
   "schema_version": 1,
+  "service_provider_url_overrides": {
+    "AI": {
+      "ai": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/ai.mrs"
+    }
+  },
   "upstream": {
-    "commit": "c6571214ba72481ccebfc855bd42b2486780a20f",
+    "commit": "efa61d4e1e0dd3323b863b85b38c1c355622ee1a",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
   },
