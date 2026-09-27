@@ -1000,6 +1000,16 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
 // --- 单订阅输出层 ---
 
 const additionalServiceDefinitions = {
+  绕过日本: {
+    providers: {
+      bypass_japan: {
+        ...ruleProviderCommonDomain,
+        url: 'https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/bypass-japan.mrs',
+        path: './ruleset/bypass-japan.mrs',
+      },
+    },
+    rules: ['RULE-SET,bypass_japan,绕过日本'],
+  },
   Claude: {
     providers: {
       claude: {
@@ -1038,6 +1048,7 @@ const selectedBaseRuleProviderNames = [
 ];
 
 const servicePolicyTargets = {
+  绕过日本: '绕过日本',
   Claude: 'Claude',
   YouTube: '媒体',
   Google: 'Google',
@@ -1118,6 +1129,8 @@ function buildRules() {
     'RULE-SET,apple_cn,Direct',
     ...serviceRules('Apple'),
     'RULE-SET,microsoft_cn,Direct',
+    ...serviceRules('Claude'),
+    ...serviceRules('AI'),
     ...serviceRules('Microsoft'),
     ...serviceRules('Telegram'),
     ...serviceRules('YouTube'),
@@ -1126,10 +1139,9 @@ function buildRules() {
     ...serviceRules('Twitch'),
     ...serviceRules('TikTok'),
     ...serviceRules('Google'),
-    ...serviceRules('Claude'),
-    ...serviceRules('AI'),
     ...serviceRules('PikPak'),
     ...serviceRules('EHentai'),
+    ...serviceRules('绕过日本'),
     'RULE-SET,geolocation-!cn,Proxy',
     'RULE-SET,geolocation-cn,Direct',
     'RULE-SET,cn_ip,Direct',
@@ -1157,6 +1169,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     simpleSelect('GitHub', ['Proxy', '订阅', 'AI']),
     simpleSelect('Claude', ['Proxy', '订阅', ...optional('日本', '台湾', '其他节点')]),
     simpleSelect('AI', ['Proxy', ...optional('日本', '台湾', '其他节点')]),
+    simpleSelect('绕过日本', []),
     simpleSelect('Google', ['Proxy']),
     simpleSelect('媒体', ['Proxy', ...optional('低倍率节点')]),
     simpleSelect('Telegram', ['Proxy', ...optional('低倍率节点')]),

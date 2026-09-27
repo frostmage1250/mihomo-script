@@ -60,6 +60,8 @@ assert(
   "GitHub policy choices must be Proxy, subscription, and AI in order",
 );
 assert(groups.has("Claude"), "Claude policy group is missing");
+assert(groups.has("绕过日本"), "Bypass Japan policy group is missing");
+assert(JSON.stringify(groups.get("绕过日本").proxies) === "[]", "Bypass Japan policy group must have no options");
 assert(
   JSON.stringify(groups.get("Claude").proxies) === JSON.stringify(["Proxy", "订阅", ...groups.get("AI").proxies.slice(1)]),
   "Claude policy choices must include subscription after Proxy, followed by the AI regional choices",
@@ -125,7 +127,7 @@ for (const required of [
   "private", "private_ip", "games_cn", "apple_cn", "microsoft_cn", "geolocation-cn",
   "cn_ip", "geolocation-!cn", "fakeip_filter", "cn", "douyin", "google", "google_ip",
   "telegram", "telegram_ip", "steam", "steam_ip", "tiktok", "tiktok_ip",
-  "twitter", "twitter_ip", "facebook_ip", "twitch", "claude",
+  "twitter", "twitter_ip", "facebook_ip", "twitch", "claude", "bypass_japan",
 ]) assert(required in providers, `required provider missing: ${required}`);
 
 for (const redundant of ["facebook", "threads"]) {
@@ -160,6 +162,9 @@ assert(providers.douyin.type === "http" && providers.douyin.format === "mrs" && 
 assert(providers.douyin.url === "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/douyin.mrs", "Douyin provider URL changed");
 assert(providers.douyin.path === "./ruleset/douyin.mrs", "Douyin provider path changed");
 assert(providers.douyin["path-in-bundle"] === "geo/geosite/douyin.mrs", "Douyin bundle path changed");
+assert(providers.bypass_japan.type === "http" && providers.bypass_japan.format === "mrs" && providers.bypass_japan.behavior === "domain", "Bypass Japan provider format changed");
+assert(providers.bypass_japan.url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/bypass-japan.mrs", "Bypass Japan provider must use converter MRS");
+assert(providers.bypass_japan.path === "./ruleset/bypass-japan.mrs", "Bypass Japan provider path changed");
 assert(providers.claude.type === "http", "Claude provider type changed");
 assert(providers.claude.format === "yaml", "Claude provider must use YAML");
 assert(providers.claude.behavior === "classical", "Claude provider must be classical");
@@ -168,6 +173,16 @@ assert(
   "Claude provider must use the converter repository",
 );
 assert(output.rules.includes("RULE-SET,claude,Claude"), "Claude rule is missing");
+assert(output.rules.includes("RULE-SET,bypass_japan,绕过日本"), "Bypass Japan rule is missing");
+assert(
+  output.rules.indexOf("RULE-SET,claude,Claude") < output.rules.indexOf("RULE-SET,ai,AI")
+  && output.rules.indexOf("RULE-SET,ai,AI") < output.rules.indexOf("RULE-SET,github,GitHub"),
+  "Claude and AI must precede GitHub in order",
+);
+assert(
+  output.rules.indexOf("RULE-SET,bypass_japan,绕过日本") < output.rules.indexOf("RULE-SET,geolocation-!cn,Proxy"),
+  "Bypass Japan rule must precede the broad foreign fallback",
+);
 assert(
   output.rules.indexOf("RULE-SET,claude,Claude") < output.rules.indexOf("RULE-SET,ai,AI"),
   "Claude rule must precede the generic AI rule",
