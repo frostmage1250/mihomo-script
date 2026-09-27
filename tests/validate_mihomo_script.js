@@ -46,13 +46,13 @@ const groups = new Map(output["proxy-groups"].map((group) => [group.name, group]
 const providers = output["rule-providers"];
 
 assert(proxyNames.filter((name) => name === "日本 01").length === 1, "exact duplicate names must keep the first node only");
-assert(!proxyNames.some((name) => name.includes("香港")), "Hong Kong nodes must be removed");
+assert(proxyNames.includes("香港 01"), "Hong Kong nodes must be retained");
 assert(!proxyNames.some((name) => name.includes("官网")), "airport information nodes must be removed");
 assert(output.proxies.every((proxy) => !("dialer-proxy" in proxy)), "dialer-proxy must be removed from every node");
 assert(proxyNames.includes("日本 01") && proxyNames.includes("美国 01") && proxyNames.includes("韩国 01"), "original node names must be preserved");
 
 assert(groups.has("订阅"), "subscription group is missing");
-assert(JSON.stringify(groups.get("订阅").proxies) === JSON.stringify(["日本 01", "美国 01", "韩国 01", "日本 0.5x"]), "subscription group must expand filtered airport nodes in source order");
+assert(JSON.stringify(groups.get("订阅").proxies) === JSON.stringify(["日本 01", "香港 01", "美国 01", "韩国 01", "日本 0.5x"]), "subscription group must expand filtered airport nodes in source order");
 assert(groups.get("Proxy").proxies[0] === "订阅", "Proxy must select subscription first");
 assert(groups.has("GitHub"), "GitHub policy group is missing");
 assert(
@@ -61,6 +61,8 @@ assert(
 );
 assert(groups.has("Claude"), "Claude policy group is missing");
 assert(groups.has("绕过日本"), "Bypass Japan policy group is missing");
+assert(groups.has("YouTube"), "YouTube policy group is missing");
+assert(JSON.stringify(groups.get("YouTube").proxies) === JSON.stringify(["Proxy", ...groups.get("订阅").proxies]), "YouTube policy group must expand all filtered subscription nodes after Proxy");
 assert(JSON.stringify(groups.get("绕过日本").proxies) === JSON.stringify(["Proxy", ...groups.get("订阅").proxies]), "Bypass Japan policy group must expand all filtered subscription nodes after Proxy");
 assert(
   JSON.stringify(groups.get("Claude").proxies) === JSON.stringify(["Proxy", "订阅", ...groups.get("AI").proxies.slice(1)]),
@@ -69,7 +71,9 @@ assert(
 assert(JSON.stringify(groups.get("Direct").proxies) === JSON.stringify(["DIRECT", "IPv4优先", "IPv6优先"]), "Direct choices changed");
 assert(groups.get("其他节点").proxies.includes("韩国 01"), "unrecognized normal regions must enter Other");
 assert(groups.get("低倍率节点").proxies.includes("日本 0.5x"), "low-rate node grouping failed");
-assert(!groups.has("香港") && !groups.has("GLOBAL") && !groups.has("高倍率节点"), "forbidden groups were generated");
+assert(JSON.stringify(groups.get("香港").proxies) === JSON.stringify(["香港 01"]), "Hong Kong region group must contain its nodes");
+assert(groups.get("Proxy").proxies.includes("香港"), "Proxy group must include the Hong Kong region");
+assert(!groups.has("GLOBAL") && !groups.has("高倍率节点"), "forbidden groups were generated");
 
 for (const group of groups.values()) {
   assert(group["empty-fallback"] === "REJECT", `empty-fallback missing from ${group.name}`);
@@ -173,6 +177,8 @@ assert(
   "Claude provider must use the converter repository",
 );
 assert(output.rules.includes("RULE-SET,claude,Claude"), "Claude rule is missing");
+assert(output.rules.includes("RULE-SET,youtube,YouTube"), "YouTube rule must use its dedicated policy group");
+assert(!output.rules.includes("RULE-SET,youtube,媒体"), "YouTube rule must not use the media group");
 assert(output.rules.includes("RULE-SET,bypass_japan,绕过日本"), "Bypass Japan rule is missing");
 assert(
   output.rules.indexOf("RULE-SET,claude,Claude") < output.rules.indexOf("RULE-SET,ai,AI")

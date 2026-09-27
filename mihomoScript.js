@@ -511,7 +511,7 @@ function getMatchedRegions(proxyName) {
 }
 
 /**
- * 过滤节点：保留机场原始节点名称，删除香港、链式拨号和内置/信息节点，
+ * 过滤节点：保留机场原始节点名称，删除链式拨号和内置/信息节点，
  * 再按完全相同名称去重。
  */
 function filterProxies(config) {
@@ -531,7 +531,6 @@ function filterProxies(config) {
     if (type === 'direct' || type === 'reject' || type === 'rematch') return false;
 
     const matchedRegions = getMatchedRegions(proxy.name);
-    if (matchedRegions.some((region) => region.name === '香港')) return false;
     if (lowRateRegex?.test(proxy.name)) return false;
 
     if (!filterNonRegionProxiesEnabled) return true;
@@ -1050,7 +1049,7 @@ const selectedBaseRuleProviderNames = [
 const servicePolicyTargets = {
   绕过日本: '绕过日本',
   Claude: 'Claude',
-  YouTube: '媒体',
+  YouTube: 'YouTube',
   Google: 'Google',
   AI: 'AI',
   Microsoft: 'Proxy',
@@ -1151,7 +1150,7 @@ function buildRules() {
 }
 
 function buildProxyGroups(regionProxyMap, subscriptionProxies) {
-  const regionOrder = ['台湾', '新加坡', '日本', '美国', '其他节点', '低倍率节点'];
+  const regionOrder = ['香港', '台湾', '新加坡', '日本', '美国', '其他节点', '低倍率节点'];
   const sourceRegionName = (name) => (name === '台湾' ? '台湾省' : name);
   const availableRegions = regionOrder.filter((name) => regionProxyMap.has(sourceRegionName(name)));
   const simpleSelect = (name, proxies) => ({
@@ -1172,6 +1171,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     simpleSelect('绕过日本', ['Proxy', ...subscriptionProxies.map((proxy) => proxy.name)]),
     simpleSelect('Google', ['Proxy']),
     simpleSelect('媒体', ['Proxy', ...optional('低倍率节点')]),
+    simpleSelect('YouTube', ['Proxy', ...subscriptionProxies.map((proxy) => proxy.name)]),
     simpleSelect('Telegram', ['Proxy', ...optional('低倍率节点')]),
     simpleSelect('PikPak', ['Proxy', 'Direct', ...optional('低倍率节点')]),
     simpleSelect('EHentai', ['Proxy']),
