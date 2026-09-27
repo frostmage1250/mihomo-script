@@ -62,7 +62,7 @@ assert(
 assert(groups.has("Claude"), "Claude policy group is missing");
 assert(groups.has("绕过日本"), "Bypass Japan policy group is missing");
 assert(groups.has("YouTube"), "YouTube policy group is missing");
-assert(JSON.stringify(groups.get("YouTube").proxies) === JSON.stringify(["Proxy", ...groups.get("订阅").proxies]), "YouTube policy group must expand all filtered subscription nodes after Proxy");
+assert(JSON.stringify(groups.get("YouTube").proxies) === JSON.stringify(["Proxy"]), "YouTube policy group must use Proxy as its sole placeholder");
 assert(JSON.stringify(groups.get("绕过日本").proxies) === JSON.stringify(["Proxy", ...groups.get("订阅").proxies]), "Bypass Japan policy group must expand all filtered subscription nodes after Proxy");
 assert(
   JSON.stringify(groups.get("Claude").proxies) === JSON.stringify(["Proxy", "订阅", ...groups.get("AI").proxies.slice(1)]),

@@ -1171,7 +1171,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     simpleSelect('绕过日本', ['Proxy', ...subscriptionProxies.map((proxy) => proxy.name)]),
     simpleSelect('Google', ['Proxy']),
     simpleSelect('媒体', ['Proxy', ...optional('低倍率节点')]),
-    simpleSelect('YouTube', ['Proxy', ...subscriptionProxies.map((proxy) => proxy.name)]),
+    simpleSelect('YouTube', ['Proxy']),
     simpleSelect('Telegram', ['Proxy', ...optional('低倍率节点')]),
     simpleSelect('PikPak', ['Proxy', 'Direct', ...optional('低倍率节点')]),
     simpleSelect('EHentai', ['Proxy']),
