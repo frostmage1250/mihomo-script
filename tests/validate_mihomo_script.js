@@ -31,6 +31,7 @@ const fixture = {
     ss("日本 01"),
     ss("日本 01", { server: "duplicate.example.com" }),
     ss("香港 01"),
+    ss("新加坡 01"),
     ss("美国 01", { "dialer-proxy": "日本 01" }),
     ss("韩国 01"),
     ss("日本 0.5x"),
@@ -52,7 +53,7 @@ assert(output.proxies.every((proxy) => !("dialer-proxy" in proxy)), "dialer-prox
 assert(proxyNames.includes("日本 01") && proxyNames.includes("美国 01") && proxyNames.includes("韩国 01"), "original node names must be preserved");
 
 assert(groups.has("订阅"), "subscription group is missing");
-assert(JSON.stringify(groups.get("订阅").proxies) === JSON.stringify(["日本 01", "香港 01", "美国 01", "韩国 01", "日本 0.5x"]), "subscription group must expand filtered airport nodes in source order");
+assert(JSON.stringify(groups.get("订阅").proxies) === JSON.stringify(["日本 01", "香港 01", "新加坡 01", "美国 01", "韩国 01", "日本 0.5x"]), "subscription group must expand filtered airport nodes in source order");
 assert(groups.get("Proxy").proxies[0] === "订阅", "Proxy must select subscription first");
 assert(groups.has("GitHub"), "GitHub policy group is missing");
 assert(
@@ -67,7 +68,7 @@ for (const name of ["媒体", "Telegram"]) {
   assert(JSON.stringify(groups.get(name).proxies) === JSON.stringify(["Proxy", "低倍率节点", "香港"]), `${name} must retain low-rate choices and include Hong Kong`);
 }
 assert(JSON.stringify(groups.get("PikPak").proxies) === JSON.stringify(["Proxy", "Direct", "低倍率节点", "香港"]), "PikPak must retain Direct and low-rate choices and include Hong Kong");
-assert(JSON.stringify(groups.get("绕过日本").proxies) === JSON.stringify(["Proxy", ...groups.get("订阅").proxies]), "Bypass Japan policy group must expand all filtered subscription nodes after Proxy");
+assert(JSON.stringify(groups.get("绕过日本").proxies) === JSON.stringify(["Proxy", "香港", "新加坡"]), "Bypass Japan must offer Proxy, Hong Kong, and Singapore groups without expanding subscription nodes");
 assert(
   JSON.stringify(groups.get("Claude").proxies) === JSON.stringify(["Proxy", "订阅", ...groups.get("AI").proxies.slice(1)]),
   "Claude policy choices must include subscription after Proxy, followed by the AI regional choices",
