@@ -1090,6 +1090,13 @@ function buildRuleProviders() {
     }
   }
 
+  if (providers['mcdn屏蔽']) throw new Error('mcdn屏蔽规则集名称冲突');
+  providers['mcdn屏蔽'] = {
+    ...ruleProviderCommonDomain,
+    url: 'https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/mcdn-block.mrs',
+    path: './ruleset/mcdn-block.mrs',
+  };
+
   providers['geolocation-cn'] = {
     ...providers['geolocation-cn'],
     url: 'https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs',
@@ -1122,6 +1129,7 @@ function serviceRules(name) {
 
 function buildRules() {
   return [
+    'RULE-SET,mcdn屏蔽,REJECT',
     'RULE-SET,private,Direct',
     'RULE-SET,games_cn,Direct',
     ...serviceRules('Steam'),

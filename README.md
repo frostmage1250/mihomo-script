@@ -82,3 +82,13 @@ domain resolution (`rule-set:cn`) and direct resolution (`direct-nameserver`) to
 only `system`; the local proxy group name and intentionally removed FCM rule remain
 preserved. The `services.googleapis.cn` rewrite and Bilibili PCDN blocking hosts are
 permanently excluded even if upstream adds them again.
+
+## MCDN blocking
+
+The script references **mcdn屏蔽** from the rule converter's
+`dist/mihomo/mcdn-block.mrs` as an HTTP provider with domain behavior and MRS
+format. Its REJECT rule is first, before general service and China DIRECT
+rules. The four reviewed suffixes include their apex and all subdomains:
+`mcdn.bilivideo.com`, `mcdn.bilivideo.cn`, `edge.mountaintoys.cn`, and
+`h2.smtcdns.net`. This is connection routing; no DNS Hosts block or HTTPS
+rewrite is added.

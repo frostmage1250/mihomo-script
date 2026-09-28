@@ -53,7 +53,8 @@
     "threads",
     "facebook",
     "twitch",
-    "bypass_japan"
+    "bypass_japan",
+    "mcdn屏蔽"
   ],
   "upstream_contract_hashes": {
     "directProxies": "274c2d92801cbf5c5e794cb295f386350375aa5cd172da91e2ba049f73946ab7",

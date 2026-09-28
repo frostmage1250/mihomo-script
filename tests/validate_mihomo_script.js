@@ -170,6 +170,12 @@ assert(providers.douyin.type === "http" && providers.douyin.format === "mrs" && 
 assert(providers.douyin.url === "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/douyin.mrs", "Douyin provider URL changed");
 assert(providers.douyin.path === "./ruleset/douyin.mrs", "Douyin provider path changed");
 assert(providers.douyin["path-in-bundle"] === "geo/geosite/douyin.mrs", "Douyin bundle path changed");
+assert(providers["mcdn屏蔽"].type === "http" && providers["mcdn屏蔽"].format === "mrs" && providers["mcdn屏蔽"].behavior === "domain", "MCDN block provider must be domain MRS");
+assert(providers["mcdn屏蔽"].url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/mcdn-block.mrs", "MCDN block must use converter MRS");
+assert(providers["mcdn屏蔽"].path === "./ruleset/mcdn-block.mrs", "MCDN provider cache path changed");
+assert(!("path-in-bundle" in providers["mcdn屏蔽"]), "MCDN provider cannot reference the Bett bundle");
+assert(output.rules[0] === "RULE-SET,mcdn屏蔽,REJECT", "MCDN rejection must precede general routing");
+assert(output.rules.filter(rule => rule === "RULE-SET,mcdn屏蔽,REJECT").length === 1, "MCDN rejection must not be duplicated");
 assert(providers.bypass_japan.type === "http" && providers.bypass_japan.format === "mrs" && providers.bypass_japan.behavior === "domain", "Bypass Japan provider format changed");
 assert(providers.bypass_japan.url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/bypass-japan.mrs", "Bypass Japan provider must use converter MRS");
 assert(providers.bypass_japan.path === "./ruleset/bypass-japan.mrs", "Bypass Japan provider path changed");
