@@ -164,6 +164,11 @@ for (const rule of output.rules) {
 }
 assert(!output.rules.some((rule) => /qwen|qbittorrent|cn_additional|googlefcm/i.test(rule)), "unapproved handwritten or removed rules remain");
 assert(output.rules.indexOf("RULE-SET,apple_cn,Direct") < output.rules.indexOf("RULE-SET,apple,Proxy"), "Apple CN layering order is wrong");
+assert(providers.apple.format === "mrs" && providers.apple.behavior === "domain", "Apple merge must use domain MRS");
+assert(providers.apple.url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/apple-merged.mrs", "Apple must use the shared merged provider");
+assert(!("path-in-bundle" in providers.apple), "Apple merge cannot reference the Bett bundle");
+assert(output.rules.indexOf("RULE-SET,apple_ip,Proxy,no-resolve") === output.rules.indexOf("RULE-SET,apple,Proxy") + 1, "Apple IP pair must remain adjacent");
+
 assert(output.rules.indexOf("RULE-SET,microsoft_cn,Direct") < output.rules.indexOf("RULE-SET,microsoft,Proxy"), "Microsoft CN layering order is wrong");
 assert(output.rules.includes("RULE-SET,github,GitHub"), "GitHub rules must use the dedicated GitHub policy group");
 assert(!output.rules.includes("RULE-SET,github,Proxy"), "GitHub rules must not fall back to Proxy directly");

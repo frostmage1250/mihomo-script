@@ -29,6 +29,9 @@
   "service_provider_url_overrides": {
     "AI": {
       "ai": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/ai.mrs"
+    },
+    "Apple": {
+      "apple": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/apple-merged.mrs"
     }
   },
   "retained_service_aliases": {
