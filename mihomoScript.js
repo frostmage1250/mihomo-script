@@ -309,9 +309,8 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/apple.mrs",
-        "path": "./ruleset/apple.mrs",
-        "path-in-bundle": "geo/geosite/apple.mrs"
+        "url": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/apple-merged.mrs",
+        "path": "./ruleset/apple.mrs"
       },
       "apple_ip": {
         "type": "http",

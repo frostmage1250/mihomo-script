@@ -1,5 +1,5 @@
 {
-  "output_sha256": "a83c52d4bdc1c7fca2008e6b7193efb19e121748b12788e094adf0d98641476a",
+  "output_sha256": "95d19611c8ac5c0ba81e12ee1e26310336d11e56087c15bf94c112fdabe6f4b3",
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -174,6 +174,9 @@
   "service_provider_url_overrides": {
     "AI": {
       "ai": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/ai.mrs"
+    },
+    "Apple": {
+      "apple": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/apple-merged.mrs"
     }
   },
   "upstream": {
