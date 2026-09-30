@@ -221,5 +221,21 @@ for (const forbidden of ["customizeProxies", "buildCustomizeProxies", "代理IPV
   assert(!source.includes(forbidden), `dead feature remains in generated source: ${forbidden}`);
 }
 
+// Taiwan is a local region even when the upstream definition is removed.
+// Include an exclusion keyword to exercise region-based retention as well.
+const taiwanNames = ["🇹🇼 01", "台湾 01", "台北 01", "高雄 01", "TW 01", "TWN 01", "Taiwan 01", "台湾 备用 01"];
+const taiwanOutput = main({
+  proxies: [...taiwanNames.map((name) => ss(name)), ss("韩国 01")],
+  dns: {},
+  hosts: {},
+});
+const taiwanGroups = new Map(taiwanOutput["proxy-groups"].map((group) => [group.name, group]));
+assert(JSON.stringify(taiwanGroups.get("台湾")?.proxies) === JSON.stringify(taiwanNames), "local Taiwan matching and region grouping must be preserved");
+assert(JSON.stringify(taiwanGroups.get("其他节点")?.proxies) === JSON.stringify(["韩国 01"]), "Taiwan nodes must not fall into Other");
+assert(JSON.stringify(taiwanGroups.get("订阅").proxies) === JSON.stringify([...taiwanNames, "韩国 01"]), "Taiwan nodes must remain in the subscription group");
+for (const name of ["Proxy", "AI", "Claude"]) {
+  assert(taiwanGroups.get(name).proxies.includes("台湾"), `Taiwan choice missing from ${name}`);
+}
+
 if (process.argv[2]) fs.writeFileSync(process.argv[2], JSON.stringify(output, null, 2) + "\n", "utf8");
 console.log(`Validated ${output.proxies.length} proxies, ${groups.size} groups, ${Object.keys(providers).length} providers, and ${output.rules.length} rules.`);

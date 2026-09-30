@@ -36,6 +36,11 @@ node-filtering, DNS, or region-classification contract changes.
 - Preserve original airport node names and deduplicate exact names only.
 - Remove Hong Kong nodes and every airport-provided `dialer-proxy`.
 - Keep Taiwan, Singapore, Japan, United States, Other, and low-rate groups.
+- Maintain the Taiwan region definition and its original matching regex locally in
+  `mihomoScript.js`, independently of upstream removal or changes. Taiwan remains
+  available in `Proxy`, `AI`, and `Claude`; the other reviewed upstream region
+  contracts remain enforced. Behavioral validation checks Taiwan name variants,
+  region grouping, and retention of Taiwan nodes with exclusion keywords.
 - Add a fully expanded `订阅` group and place it first in `Proxy`.
 - Keep only `DIRECT`, `IPv4优先`, and `IPv6优先` in `Direct`.
 - Remove custom-node, chain-proxy, high-rate, foreign-QUIC, FCM, icon, health-check,

@@ -10,6 +10,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from build_mihomo_script import (  # noqa: E402
     BuildError,
+    contract_hashes,
+    validate_contracts,
     detect_service_renames,
     extract_real_ip_domains,
     select_real_ip_domains,
@@ -21,6 +23,29 @@ from build_mihomo_script import (  # noqa: E402
 
 
 class BuilderTests(unittest.TestCase):
+    def test_upstream_taiwan_removal_is_accepted_but_other_regions_are_guarded(self) -> None:
+        contracts = {
+            "excludeFilter": "/information/i",
+            "commonDnsList": [],
+            "directProxies": [],
+            "regionDefinitions": [
+                {"name": name, "regex": f"/{name}/i"}
+                for name in ("香港", "日本", "美国", "新加坡", "台湾省")
+            ],
+            "rateRegionDefinitions": [{"name": "低倍率节点", "regex": "/low/i"}],
+            "functions": {},
+        }
+        manifest = {"upstream_contract_hashes": contract_hashes(contracts)}
+        contracts["regionDefinitions"] = [
+            region for region in contracts["regionDefinitions"] if region["name"] != "台湾省"
+        ]
+        validate_contracts({"contracts": contracts}, manifest)
+        contracts["regionDefinitions"] = [
+            region for region in contracts["regionDefinitions"] if region["name"] != "香港"
+        ]
+        with self.assertRaisesRegex(BuildError, "Required upstream region definition disappeared: 香港"):
+            validate_contracts({"contracts": contracts}, manifest)
+
     def test_marked_region_is_replaced_once(self) -> None:
         text = "before\n// BEGIN\nold\n// END\nafter\n"
         self.assertEqual(

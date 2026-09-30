@@ -60,6 +60,7 @@ const regionDefinitions = [
     name: '新加坡',
     regex: /🇸🇬|新加坡|狮城|(?<![A-Za-z])SGP?(?![A-Za-z])|singapore/i,
   },
+  // 本地保留的台湾区域定义；不随上游删除。
   {
     name: '台湾省',
     regex: /🇹🇼|台湾|台北|高雄|(?<![A-Za-z])TWN?(?![A-Za-z])|taiwan/i,

@@ -194,7 +194,8 @@ def contract_hashes(contracts: Mapping[str, Any]) -> dict[str, str]:
     }
     selected_regions = {item["name"]: item for item in contracts["regionDefinitions"]}
     selected_rates = {item["name"]: item for item in contracts["rateRegionDefinitions"]}
-    for name in ("香港", "日本", "美国", "新加坡", "台湾省"):
+    # Taiwan is maintained in the local output, independently of upstream removal.
+    for name in ("香港", "日本", "美国", "新加坡"):
         if name not in selected_regions:
             raise BuildError(f"Required upstream region definition disappeared: {name}")
         result[f"region:{name}"] = canonical_hash(selected_regions[name])
