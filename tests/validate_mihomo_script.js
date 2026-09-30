@@ -54,7 +54,13 @@ assert(proxyNames.includes("日本 01") && proxyNames.includes("美国 01") && p
 
 assert(groups.has("订阅"), "subscription group is missing");
 assert(JSON.stringify(groups.get("订阅").proxies) === JSON.stringify(["日本 01", "香港 01", "新加坡 01", "美国 01", "韩国 01", "日本 0.5x"]), "subscription group must expand filtered airport nodes in source order");
-assert(groups.get("Proxy").proxies[0] === "订阅", "Proxy must select subscription first");
+assert(
+  JSON.stringify(groups.get("Proxy").proxies) === JSON.stringify([
+    "订阅", "香港", "新加坡", "日本", "美国", "其他节点", "低倍率节点",
+    "日本 01", "香港 01", "新加坡 01", "美国 01", "韩国 01", "日本 0.5x",
+  ]),
+  "Proxy must retain subscription and regional choices, then expand every filtered subscription node in source order",
+);
 assert(groups.has("GitHub"), "GitHub policy group is missing");
 assert(
   JSON.stringify(groups.get("GitHub").proxies) === JSON.stringify(["Proxy", "订阅", "AI"]),

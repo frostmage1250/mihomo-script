@@ -1170,7 +1170,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
   const optional = (...names) => names.filter((name) => regionProxyMap.has(sourceRegionName(name)));
 
   return [
-    simpleSelect('Proxy', ['订阅', ...availableRegions]),
+    simpleSelect('Proxy', ['订阅', ...availableRegions, ...subscriptionProxies.map((proxy) => proxy.name)]),
     simpleSelect('订阅', subscriptionProxies.map((proxy) => proxy.name)),
     simpleSelect('Direct', ['DIRECT', ...directProxies.map((proxy) => proxy.name)]),
     simpleSelect('GitHub', ['Proxy', '订阅', 'AI']),
