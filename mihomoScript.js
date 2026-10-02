@@ -999,7 +999,7 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
 // --- 单订阅输出层 ---
 
 const additionalServiceDefinitions = {
-  绕过日本: {
+  pron: {
     providers: {
       bypass_japan: {
         ...ruleProviderCommonDomain,
@@ -1007,7 +1007,7 @@ const additionalServiceDefinitions = {
         path: './ruleset/bypass-japan.mrs',
       },
     },
-    rules: ['RULE-SET,bypass_japan,绕过日本'],
+    rules: ['RULE-SET,bypass_japan,pron'],
   },
   Claude: {
     providers: {
@@ -1047,7 +1047,7 @@ const selectedBaseRuleProviderNames = [
 ];
 
 const servicePolicyTargets = {
-  绕过日本: '绕过日本',
+  pron: 'pron',
   Claude: 'Claude',
   YouTube: 'YouTube',
   Google: 'Google',
@@ -1148,7 +1148,7 @@ function buildRules() {
     ...serviceRules('Google'),
     ...serviceRules('PikPak'),
     ...serviceRules('EHentai'),
-    ...serviceRules('绕过日本'),
+    ...serviceRules('pron'),
     'RULE-SET,geolocation-!cn,Proxy',
     'RULE-SET,geolocation-cn,Direct',
     'RULE-SET,cn_ip,Direct',
@@ -1176,7 +1176,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     simpleSelect('GitHub', ['Proxy', '订阅', 'AI']),
     simpleSelect('Claude', ['Proxy', '订阅', ...optional('日本', '台湾', '其他节点')]),
     simpleSelect('AI', ['Proxy', ...optional('日本', '台湾', '其他节点')]),
-    simpleSelect('绕过日本', ['Proxy', ...optional('香港', '新加坡')]),
+    simpleSelect('pron', ['Proxy', ...optional('香港', '新加坡')]),
     simpleSelect('Google', ['Proxy', '订阅']),
     simpleSelect('媒体', ['Proxy', ...optional('低倍率节点', '香港')]),
     simpleSelect('YouTube', ['Proxy', ...optional('香港', '低倍率节点')]),

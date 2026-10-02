@@ -67,14 +67,14 @@ assert(
   "GitHub policy choices must be Proxy, subscription, and AI in order",
 );
 assert(groups.has("Claude"), "Claude policy group is missing");
-assert(groups.has("绕过日本"), "Bypass Japan policy group is missing");
+assert(groups.has("pron"), "pron policy group is missing");
 assert(groups.has("YouTube"), "YouTube policy group is missing");
 assert(JSON.stringify(groups.get("YouTube").proxies) === JSON.stringify(["Proxy", "香港", "低倍率节点"]), "YouTube must offer Proxy, Hong Kong, and low-rate choices without expanding subscription nodes");
 for (const name of ["媒体", "Telegram"]) {
   assert(JSON.stringify(groups.get(name).proxies) === JSON.stringify(["Proxy", "低倍率节点", "香港"]), `${name} must retain low-rate choices and include Hong Kong`);
 }
 assert(JSON.stringify(groups.get("PikPak").proxies) === JSON.stringify(["Proxy", "Direct", "低倍率节点", "香港"]), "PikPak must retain Direct and low-rate choices and include Hong Kong");
-assert(JSON.stringify(groups.get("绕过日本").proxies) === JSON.stringify(["Proxy", "香港", "新加坡"]), "Bypass Japan must offer Proxy, Hong Kong, and Singapore groups without expanding subscription nodes");
+assert(JSON.stringify(groups.get("pron").proxies) === JSON.stringify(["Proxy", "香港", "新加坡"]), "pron must offer Proxy, Hong Kong, and Singapore groups without expanding subscription nodes");
 assert(
   JSON.stringify(groups.get("Claude").proxies) === JSON.stringify(["Proxy", "订阅", ...groups.get("AI").proxies.slice(1)]),
   "Claude policy choices must include subscription after Proxy, followed by the AI regional choices",
@@ -188,9 +188,9 @@ assert(providers["mcdn屏蔽"].path === "./ruleset/mcdn-block.mrs", "MCDN provid
 assert(!("path-in-bundle" in providers["mcdn屏蔽"]), "MCDN provider cannot reference the Bett bundle");
 assert(output.rules[0] === "RULE-SET,mcdn屏蔽,REJECT", "MCDN rejection must precede general routing");
 assert(output.rules.filter(rule => rule === "RULE-SET,mcdn屏蔽,REJECT").length === 1, "MCDN rejection must not be duplicated");
-assert(providers.bypass_japan.type === "http" && providers.bypass_japan.format === "mrs" && providers.bypass_japan.behavior === "domain", "Bypass Japan provider format changed");
-assert(providers.bypass_japan.url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/bypass-japan.mrs", "Bypass Japan provider must use converter MRS");
-assert(providers.bypass_japan.path === "./ruleset/bypass-japan.mrs", "Bypass Japan provider path changed");
+assert(providers.bypass_japan.type === "http" && providers.bypass_japan.format === "mrs" && providers.bypass_japan.behavior === "domain", "pron provider format changed");
+assert(providers.bypass_japan.url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/bypass-japan.mrs", "pron provider must use converter MRS");
+assert(providers.bypass_japan.path === "./ruleset/bypass-japan.mrs", "pron provider path changed");
 assert(providers.claude.type === "http", "Claude provider type changed");
 assert(providers.claude.format === "yaml", "Claude provider must use YAML");
 assert(providers.claude.behavior === "classical", "Claude provider must be classical");
@@ -201,15 +201,15 @@ assert(
 assert(output.rules.includes("RULE-SET,claude,Claude"), "Claude rule is missing");
 assert(output.rules.includes("RULE-SET,youtube,YouTube"), "YouTube rule must use its dedicated policy group");
 assert(!output.rules.includes("RULE-SET,youtube,媒体"), "YouTube rule must not use the media group");
-assert(output.rules.includes("RULE-SET,bypass_japan,绕过日本"), "Bypass Japan rule is missing");
+assert(output.rules.includes("RULE-SET,bypass_japan,pron"), "pron rule is missing");
 assert(
   output.rules.indexOf("RULE-SET,claude,Claude") < output.rules.indexOf("RULE-SET,ai,AI")
   && output.rules.indexOf("RULE-SET,ai,AI") < output.rules.indexOf("RULE-SET,github,GitHub"),
   "Claude and AI must precede GitHub in order",
 );
 assert(
-  output.rules.indexOf("RULE-SET,bypass_japan,绕过日本") < output.rules.indexOf("RULE-SET,geolocation-!cn,Proxy"),
-  "Bypass Japan rule must precede the broad foreign fallback",
+  output.rules.indexOf("RULE-SET,bypass_japan,pron") < output.rules.indexOf("RULE-SET,geolocation-!cn,Proxy"),
+  "pron rule must precede the broad foreign fallback",
 );
 assert(
   output.rules.indexOf("RULE-SET,claude,Claude") < output.rules.indexOf("RULE-SET,ai,AI"),
