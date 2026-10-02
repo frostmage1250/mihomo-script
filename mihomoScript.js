@@ -1000,6 +1000,7 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
 
 const additionalServiceDefinitions = {
   pron: {
+    // Converter-selected category-porn sites/CDNs; exclusions and scope: config/pron-sites.json.
     providers: {
       bypass_japan: {
         ...ruleProviderCommonDomain,
