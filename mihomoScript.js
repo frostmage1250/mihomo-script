@@ -607,6 +607,16 @@ const repczRealIpDomains = [
   "appboot.netflix.com"
 ];
 
+// 仅过滤节点 DNS 的 AAAA；保留原有路由和其他 DNS 参数。
+function nodeDnsIpv4(dns) {
+  const value = String(dns);
+  const hashIndex = value.indexOf('#');
+  const address = hashIndex === -1 ? value : value.slice(0, hashIndex);
+  const options = hashIndex === -1 ? [] : value.slice(hashIndex + 1).split('&');
+  const keptOptions = options.filter((option) => option && !/^disable-ipv6(?:=|$)/i.test(option));
+  return address + '#' + [...keptOptions, 'disable-ipv6=true'].join('&');
+}
+
 // 常见的公共 DNS，用于过滤订阅中的公共 DNS
 const commonDnsList = [
   // IPv4（国内）
@@ -994,6 +1004,13 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
 
   };
 
+  // 节点入口集中使用 IPv4 解析；普通网站 DNS 与 Hosts 处理保持原样。
+  dns['proxy-server-nameserver'] = dns['proxy-server-nameserver'].map(nodeDnsIpv4);
+  for (const [domain, servers] of Object.entries(dns['proxy-server-nameserver-policy'] || {})) {
+    dns['proxy-server-nameserver-policy'][domain] =
+      Array.isArray(servers) ? servers.map(nodeDnsIpv4) : nodeDnsIpv4(servers);
+  }
+
   return { dns, hosts, proxies: mappedProxies };
 }
 // --- 单订阅输出层 ---
@@ -1201,13 +1218,7 @@ function main(config) {
 
   const filteredProxies = filterProxies(config);
   const regionProxyMap = buildRegionProxyMap(filteredProxies);
-  const { dns, hosts, proxies: hostsMappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);
-  // 节点域名仅使用 IPv4 入口；在订阅 Hosts 改写完成后设置。
-  const mappedProxies = hostsMappedProxies.map((proxy) =>
-    typeof proxy.server === 'string' && !isIpAddress(proxy.server)
-      ? { ...proxy, 'ip-version': 'ipv4' }
-      : proxy,
-  );
+  const { dns, hosts, proxies: mappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);
 
   return {
     dns,
