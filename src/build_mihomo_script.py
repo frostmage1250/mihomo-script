@@ -413,6 +413,17 @@ def render_dns_section(upstream: str, real_ip_domains: list[str]) -> str:
     if filter_count != 1:
         raise BuildError("Unable to add Repcz real-IP domains to fake-ip-filter")
 
+    # Diagnostic comparison: restore airport private DNS only for Google domains.
+    body, google_dns_count = re.subn(
+        r"(?m)^([ \t]*)'nameserver-policy':[ \t]*\{\r?\n",
+        lambda match: match.group(0)
+        + match.group(1) + "  // 对照诊断：订阅含私有 DNS 时，Google 使用订阅原始 DNS。\n"
+        + match.group(1) + "  ...(privateDNS.length > 0 ? { 'rule-set:google': privateDNS } : {}),\n",
+        body,
+    )
+    if google_dns_count != 1:
+        raise BuildError("Unable to add Google private-DNS comparison policy")
+
     # Always resolve mainland-domain rules and direct connections with system DNS.
     body, cn_count = re.subn(
         r"(?m)^(\s*)'rule-set:cn':\s*[^\n]+,$",

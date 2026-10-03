@@ -285,5 +285,35 @@ assert(
   "every default domain-based subscription node must use IPv4 ingress",
 );
 
-if (process.argv[2]) fs.writeFileSync(process.argv[2], JSON.stringify(output, null, 2) + "\n", "utf8");
+// MESL diagnostic: only Google website DNS reuses private subscription resolvers.
+const meslPrivateDns = [
+  "https://zone.rlose.com:39933/api-query",
+  "https://radar.rlose.com/api-query",
+];
+const googleDnsFixture = {
+  ...fixture,
+  dns: { nameserver: [...meslPrivateDns, "https://dns.google/dns-query", "system"] },
+};
+const googleDnsBefore = JSON.stringify(googleDnsFixture);
+const googleDnsOutput = main(googleDnsFixture);
+const googleDnsPolicy = googleDnsOutput.dns["nameserver-policy"];
+assert(JSON.stringify(googleDnsPolicy["rule-set:google"]) === JSON.stringify(meslPrivateDns), "Google must reuse only private subscription DNS, excluding public and system resolvers");
+assert(Object.keys(googleDnsPolicy)[0] === "rule-set:google", "Google comparison policy must precede broader DNS rule sets");
+const { ["rule-set:google"]: _googleComparison, ...remainingDnsPolicy } = googleDnsPolicy;
+assert(JSON.stringify(remainingDnsPolicy) === JSON.stringify(output.dns["nameserver-policy"]), "other website DNS policies must remain unchanged");
+const { ["nameserver-policy"]: _googlePolicy, ["proxy-server-nameserver-policy"]: _nodePolicy, ...googleOtherDns } = googleDnsOutput.dns;
+const { ["nameserver-policy"]: _baselinePolicy, ["proxy-server-nameserver-policy"]: _baselineNodePolicy, ...baselineOtherDns } = output.dns;
+assert(JSON.stringify(googleOtherDns) === JSON.stringify(baselineOtherDns), "default DNS, IPv6, fake-IP, and direct DNS must remain unchanged");
+assert(JSON.stringify(googleDnsOutput.dns["proxy-server-nameserver-policy"]["node.example.com"]) === JSON.stringify(meslPrivateDns), "node-domain private DNS must remain intact");
+assert(JSON.stringify(googleDnsOutput.hosts) === JSON.stringify(output.hosts), "Google DNS comparison must not alter Hosts");
+assert(JSON.stringify(googleDnsOutput.proxies) === JSON.stringify(output.proxies), "Google DNS comparison must not alter nodes or IPv4 ingress");
+assert(JSON.stringify(googleDnsOutput["proxy-groups"]) === JSON.stringify(output["proxy-groups"]) && JSON.stringify(googleDnsOutput.rules) === JSON.stringify(output.rules), "Google DNS comparison must not alter routing");
+assert(JSON.stringify(googleDnsFixture) === googleDnsBefore, "Google DNS comparison must not mutate the subscription");
+assert(!("rule-set:google" in output.dns["nameserver-policy"]), "subscriptions without private DNS must not receive the Google comparison policy");
+const publicDnsOutput = main({ ...fixture, dns: { nameserver: ["https://dns.google/dns-query", "https://cloudflare-dns.com/dns-query", "system"] } });
+assert(!("rule-set:google" in publicDnsOutput.dns["nameserver-policy"]), "public-only subscription DNS must retain ordinary Google DNS");
+assert(!("rule-set:google" in hostsIngressOutput.dns["nameserver-policy"]), "Flower local DNS and Hosts rewriting must not create a Google private-DNS policy");
+
+// Export the private-DNS case so the remote Mihomo config check covers the new policy.
+if (process.argv[2]) fs.writeFileSync(process.argv[2], JSON.stringify(googleDnsOutput, null, 2) + "\n", "utf8");
 console.log(`Validated ${output.proxies.length} proxies, ${groups.size} groups, ${Object.keys(providers).length} providers, and ${output.rules.length} rules.`);
