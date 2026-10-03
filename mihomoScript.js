@@ -3,7 +3,7 @@
  * 作者：AIsouler
  * 源仓库：https://github.com/AIsouler/MyClash
  * 上游脚本：https://raw.githubusercontent.com/AIsouler/MyClash/main/Script/mihomoScript.js
- * 上游提交：60344c2655ffe2d6ba4234be35f4d0251f8b518a
+ * 上游提交：e55ad8e4344cdf951e185c228dfa5c755cc3a202
  * 基于上游 mihomoScript.js 定制：两个机场配置分开使用同一脚本。
  * 友情推荐，非常好用、省电且内存占用低的代理软件：https://github.com/appshubcc/Bettbox
  */
