@@ -978,8 +978,6 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
     }),
     nameserver: foreignDNS,
     'nameserver-policy': {
-      // 对照诊断：订阅含私有 DNS 时，Google 使用订阅原始 DNS。
-      ...(privateDNS.length > 0 ? { 'rule-set:google': privateDNS } : {}),
       'rule-set:private': 'system',
       'rule-set:douyin': ['system', '180.184.1.1', '180.184.2.2'],
       'rule-set:cn': ['system'],
