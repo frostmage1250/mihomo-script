@@ -1131,6 +1131,7 @@ function serviceRules(name) {
 function buildRules() {
   return [
     'RULE-SET,mcdn屏蔽,REJECT',
+    'AND,((RULE-SET,google),(NETWORK,UDP),(DST-PORT,443)),REJECT',
     'RULE-SET,private,Direct',
     'RULE-SET,games_cn,Direct',
     ...serviceRules('Steam'),

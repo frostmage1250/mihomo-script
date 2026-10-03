@@ -188,6 +188,13 @@ assert(providers["mcdn屏蔽"].path === "./ruleset/mcdn-block.mrs", "MCDN provid
 assert(!("path-in-bundle" in providers["mcdn屏蔽"]), "MCDN provider cannot reference the Bett bundle");
 assert(output.rules[0] === "RULE-SET,mcdn屏蔽,REJECT", "MCDN rejection must precede general routing");
 assert(output.rules.filter(rule => rule === "RULE-SET,mcdn屏蔽,REJECT").length === 1, "MCDN rejection must not be duplicated");
+
+const googleQuicReject = "AND,((RULE-SET,google),(NETWORK,UDP),(DST-PORT,443)),REJECT";
+assert(output.rules[1] === googleQuicReject, "Google UDP/443 rejection must precede every ordinary routing rule");
+assert(output.rules.filter((rule) => rule === googleQuicReject).length === 1, "Google QUIC rejection must not be duplicated");
+assert(output.rules.includes("RULE-SET,google,Google"), "Google TCP routing must retain its policy group");
+assert(output.rules.includes("RULE-SET,google_ip,Google,no-resolve"), "Google IP fallback must remain unchanged");
+assert(!groups.get("Google")["disable-udp"], "Google QUIC must be rejected by rules rather than group UDP fallthrough");
 assert(providers.bypass_japan.type === "http" && providers.bypass_japan.format === "mrs" && providers.bypass_japan.behavior === "domain", "pron provider format changed");
 assert(providers.bypass_japan.url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/bypass-japan.mrs", "pron provider must use converter MRS");
 assert(providers.bypass_japan.path === "./ruleset/bypass-japan.mrs", "pron provider path changed");
