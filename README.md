@@ -51,9 +51,10 @@ node-filtering, DNS, or region-classification contract changes.
   filter. Omit `*-update.xoyocdn.com` and `*-appboot.netflix.com`; their
   partial-label wildcard syntax would require regex. If Repcz adds another
   unsupported pattern, the build stops for review instead of broadening it.
-- Reject UDP/443 matching the Google domain provider immediately after the MCDN
-  rejection and before ordinary routing. Browsers can fall back to TCP while the
-  existing Google TCP and IP routing rules remain intact.
+- Set `disable-udp: true` only on the Google policy group. This disables all UDP
+  through that group while preserving its TCP routing and policy choices. UDP
+  skips rules targeting this group and may match a later proxy or DIRECT rule;
+  no Google UDP/443 REJECT rule is installed.
 - Preserve upstream domain/IP pairs for selected services and the Apple/Microsoft CN
   layering. Add Twitch from Bett rules; rely on the retained Meta domain/IP pair
   because it fully covers the redundant Facebook and Threads domain sets.

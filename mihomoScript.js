@@ -1131,7 +1131,6 @@ function serviceRules(name) {
 function buildRules() {
   return [
     'RULE-SET,mcdn屏蔽,REJECT',
-    'AND,((RULE-SET,google),(NETWORK,UDP),(DST-PORT,443)),REJECT',
     'RULE-SET,private,Direct',
     'RULE-SET,games_cn,Direct',
     ...serviceRules('Steam'),
@@ -1179,7 +1178,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     simpleSelect('Claude', ['Proxy', '订阅', ...optional('日本', '台湾', '其他节点')]),
     simpleSelect('AI', ['Proxy', ...optional('日本', '台湾', '其他节点')]),
     simpleSelect('pron', ['Proxy', ...optional('香港', '新加坡')]),
-    simpleSelect('Google', ['Proxy', '订阅']),
+    { ...simpleSelect('Google', ['Proxy', '订阅']), 'disable-udp': true },
     simpleSelect('媒体', ['Proxy', ...optional('低倍率节点', '香港')]),
     simpleSelect('YouTube', ['Proxy', ...optional('香港', '低倍率节点')]),
     simpleSelect('Telegram', ['Proxy', ...optional('低倍率节点', '香港')]),
