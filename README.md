@@ -34,6 +34,10 @@ node-filtering, DNS, or region-classification contract changes.
 ## Local customizations
 
 - Preserve original airport node names and deduplicate exact names only.
+- Force `ip-version: ipv4` on every subscription node whose final server is a
+  domain, after upstream Hosts rewriting. This overrides subscription IPv6
+  preferences to keep node ingress consistent with IPv4-only airport profiles.
+  Literal IP servers and the global/DNS IPv6 settings retain their existing behavior.
 - Remove Hong Kong nodes and every airport-provided `dialer-proxy`.
 - Keep Taiwan, Singapore, Japan, United States, Other, and low-rate groups.
 - Maintain the Taiwan region definition and its original matching regex locally in

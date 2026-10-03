@@ -18,6 +18,7 @@ from build_mihomo_script import (  # noqa: E402
     replace_marked,
     render_dns_section,
     render_script,
+    enforce_ipv4_proxy_domains,
     select_upstream_definitions,
 )
 
@@ -77,6 +78,9 @@ const config = {
     stack: 'system',
   },
 };
+function main(config) {
+  const { dns, hosts, proxies: mappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);
+}
 """
         upstream = """// ---dns和hosts相关处理---
 const foreignDNS = ['https://dns.example/dns-query#默认代理'];
@@ -100,6 +104,15 @@ newConfig['tun'] = {
         self.assertEqual(first, second)
         self.assertIn(f"上游提交：{sha}", first)
         self.assertIn("stack: 'mips'", first)
+        self.assertIn("proxies: hostsMappedProxies", first)
+        self.assertEqual(first.count("'ip-version': 'ipv4'"), 1)
+
+    def test_ipv4_node_policy_rejects_missing_or_duplicate_entrypoints(self) -> None:
+        with self.assertRaisesRegex(BuildError, "reviewed DNS/hosts entrypoint changed"):
+            enforce_ipv4_proxy_domains("function main(config) {}")
+        entrypoint = "  const { dns, hosts, proxies: mappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);"
+        with self.assertRaisesRegex(BuildError, "reviewed DNS/hosts entrypoint changed"):
+            enforce_ipv4_proxy_domains(entrypoint + "\n" + entrypoint)
 
     def test_dns_section_tracks_upstream_but_keeps_system_dns_invariants(self) -> None:
         upstream = """// ---dns和hosts相关处理---
