@@ -18,7 +18,7 @@ from build_mihomo_script import (  # noqa: E402
     replace_marked,
     render_dns_section,
     render_script,
-    enforce_ipv4_proxy_domains,
+    restore_node_entrypoint,
     select_upstream_definitions,
 )
 
@@ -93,6 +93,9 @@ const dns = {
   },
   'direct-nameserver': chinaDNS,
 };
+function buildDnsAndHostsConfig() {
+  return { dns, hosts, proxies: mappedProxies };
+}
 // --- 主入口 ---
 newConfig['tun'] = {
   stack: 'mips',
@@ -104,15 +107,30 @@ newConfig['tun'] = {
         self.assertEqual(first, second)
         self.assertIn(f"上游提交：{sha}", first)
         self.assertIn("stack: 'mips'", first)
-        self.assertIn("proxies: hostsMappedProxies", first)
-        self.assertEqual(first.count("'ip-version': 'ipv4'"), 1)
+        self.assertIn("proxies: mappedProxies", first)
+        self.assertNotIn("hostsMappedProxies", first)
+        self.assertNotIn("'ip-version': 'ipv4'", first)
+        self.assertIn("disable-ipv6=true", first)
+        self.assertEqual(first.count("function nodeDnsIpv4"), 1)
 
-    def test_ipv4_node_policy_rejects_missing_or_duplicate_entrypoints(self) -> None:
+    def test_node_dns_migration_rejects_missing_or_duplicate_entrypoints(self) -> None:
         with self.assertRaisesRegex(BuildError, "reviewed DNS/hosts entrypoint changed"):
-            enforce_ipv4_proxy_domains("function main(config) {}")
+            restore_node_entrypoint("function main(config) {}")
         entrypoint = "  const { dns, hosts, proxies: mappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);"
         with self.assertRaisesRegex(BuildError, "reviewed DNS/hosts entrypoint changed"):
-            enforce_ipv4_proxy_domains(entrypoint + "\n" + entrypoint)
+            restore_node_entrypoint(entrypoint + "\n" + entrypoint)
+
+    def test_node_dns_migration_removes_previous_per_node_override(self) -> None:
+        legacy = """  const { dns, hosts, proxies: hostsMappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);
+  // 节点域名仅使用 IPv4 入口；在订阅 Hosts 改写完成后设置。
+  const mappedProxies = hostsMappedProxies.map((proxy) =>
+    typeof proxy.server === 'string' && !isIpAddress(proxy.server)
+      ? { ...proxy, 'ip-version': 'ipv4' }
+      : proxy,
+  );"""
+        restored = restore_node_entrypoint(legacy)
+        self.assertEqual(restored, "  const { dns, hosts, proxies: mappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);")
+        self.assertEqual(restore_node_entrypoint(restored), restored)
 
     def test_dns_section_tracks_upstream_but_keeps_system_dns_invariants(self) -> None:
         upstream = """// ---dns和hosts相关处理---
@@ -135,6 +153,9 @@ const hosts = {
   'services.googleapis.cn': 'services.googleapis.com',
   '+.mcdn.bilivideo.com': ['0.0.0.0'],
 };
+function buildDnsAndHostsConfig() {
+  return { dns, hosts, proxies: mappedProxies };
+}
 // --- 主入口 ---
 """
         rendered = render_dns_section(upstream, ["example.com", "*.xboxlive.com"])
@@ -151,6 +172,9 @@ const hosts = {
         self.assertIn("...repczRealIpDomains", rendered)
         self.assertIn('"*.xboxlive.com"', rendered)
         self.assertNotIn("DOMAIN-REGEX", rendered)
+        self.assertIn("dns['proxy-server-nameserver'].map(nodeDnsIpv4)", rendered)
+        self.assertIn("servers.map(nodeDnsIpv4)", rendered)
+        self.assertIn("disable-ipv6=true", rendered)
 
     def test_extract_and_select_repcz_real_ip_domains(self) -> None:
         source = """dns:

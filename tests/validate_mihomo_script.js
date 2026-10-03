@@ -7,8 +7,8 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const scriptPath = path.join(root, "mihomoScript.js");
 const source = fs.readFileSync(scriptPath, "utf8");
-const load = new Function(`${source}\nreturn { main };`);
-const { main } = load();
+const load = new Function(`${source}\nreturn { main, nodeDnsIpv4 };`);
+const { main, nodeDnsIpv4 } = load();
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -238,35 +238,65 @@ for (const name of ["Proxy", "AI", "Claude"]) {
 }
 
 
-// Domain-based node ingress must use IPv4 even when the subscription asks for IPv6.
-const ingressFixture = {
-  proxies: [
-    ss("日本 IPv6 指定", { server: "a.airport.example", "ip-version": "ipv6" }),
-    ss("香港 IPv6 优先", { server: "b.airport.example", "ip-version": "ipv6-prefer" }),
-    ss("新加坡 IPv4 地址", { server: "192.0.2.10", "ip-version": "ipv4-prefer" }),
-    ss("美国 IPv6 地址", { server: "2001:db8::10", "ip-version": "ipv6" }),
-  ],
-  dns: { nameserver: ["https://private-resolver.example/dns-query"] },
-};
-const ingressBefore = JSON.stringify(ingressFixture);
-const ingressOutput = main(ingressFixture);
-const ingressNodes = new Map(ingressOutput.proxies.map((proxy) => [proxy.name, proxy]));
-for (const name of ["日本 IPv6 指定", "香港 IPv6 优先"]) {
-  assert(ingressNodes.get(name)["ip-version"] === "ipv4", name + ": domain ingress must be IPv4 only");
-}
-assert(ingressNodes.get("新加坡 IPv4 地址")["ip-version"] === "ipv4-prefer", "literal IPv4 nodes must retain their settings");
-assert(ingressNodes.get("美国 IPv6 地址")["ip-version"] === "ipv6", "literal IPv6 nodes must retain their settings");
-assert(JSON.stringify(ingressFixture) === ingressBefore, "IPv4 ingress enforcement must not mutate the subscription");
-assert(ingressOutput.ipv6 === true && ingressOutput.dns.ipv6 === true, "node ingress restriction must not disable global or DNS IPv6");
+// Default and private node DNS must filter AAAA without adding per-node fields.
+const defaultNodeDns = [
+  "114.114.114.114#DIRECT&disable-ipv6=true",
+  "tls://223.5.5.5#DIRECT&disable-ipv6=true",
+  "https://doh.pub/dns-query#DIRECT&disable-ipv6=true",
+];
+assert(JSON.stringify(output.dns["proxy-server-nameserver"]) === JSON.stringify(defaultNodeDns), "all default node DNS must filter AAAA");
 assert(
-  JSON.stringify(ingressOutput.dns["proxy-server-nameserver-policy"]["+.airport.example"]) === JSON.stringify(ingressFixture.dns.nameserver),
-  "private DNS must still resolve subscription node domains",
+  output.proxies.filter((proxy) => proxy.type !== "direct").every((proxy) => !("ip-version" in proxy)),
+  "the script must not add ip-version to subscription nodes",
 );
+assert(
+  JSON.stringify(output.dns.nameserver) === JSON.stringify([
+    "https://cloudflare-dns.com/dns-query#Proxy",
+    "https://dns.google/dns-query#Proxy",
+  ]),
+  "ordinary domain DNS must retain IPv6 and its existing proxy routing",
+);
+assert(JSON.stringify(output.dns["default-nameserver"]) === JSON.stringify([
+  "114.114.114.114#DIRECT", "tls://223.5.5.5#DIRECT", "https://1.12.12.12/dns-query#DIRECT",
+]), "bootstrap DNS must remain unchanged");
+assert(output.ipv6 === true && output.dns.ipv6 === true, "global and DNS IPv6 must remain enabled");
 
-// Flower-style local DNS plus Hosts must be rewritten before the IPv4 restriction.
-const hostsIngressOutput = main({
+const privateDnsFixture = {
   proxies: [
-    ss("日本 Hosts 域名", { server: "alias.airport.example", "ip-version": "ipv6" }),
+    ss("日本 私有 DNS", { server: "a.airport.example" }),
+    ss("香港 私有 DNS", { server: "b.airport.example", "ip-version": "ipv4-prefer" }),
+  ],
+  dns: { nameserver: ["https://private-resolver.example/dns-query", "https://secondary-resolver.example/dns-query"] },
+};
+const privateDnsBefore = JSON.stringify(privateDnsFixture);
+const privateDnsOutput = main(privateDnsFixture);
+assert(
+  JSON.stringify(privateDnsOutput.dns["proxy-server-nameserver-policy"]["+.airport.example"]) === JSON.stringify([
+    "https://private-resolver.example/dns-query#disable-ipv6=true",
+    "https://secondary-resolver.example/dns-query#disable-ipv6=true",
+  ]),
+  "airport private DNS must remain in the node policy and filter AAAA",
+);
+assert(JSON.stringify(privateDnsFixture) === privateDnsBefore, "DNS filtering must not mutate the subscription");
+assert(privateDnsOutput.proxies.find((proxy) => proxy.name === "香港 私有 DNS")["ip-version"] === "ipv4-prefer", "subscription-provided node options must be preserved");
+
+const policyDnsOutput = main({
+  proxies: [ss("日本 域名策略", { server: "a.airport.example" }), ss("香港 域名策略", { server: "b.airport.example" })],
+  dns: {
+    "nameserver-policy": { "a.airport.example": "https://one-resolver.example/dns-query#DIRECT" },
+    "proxy-server-nameserver-policy": { "b.airport.example": ["tls://two-resolver.example#DIRECT", "https://three-resolver.example/dns-query"] },
+  },
+});
+assert(policyDnsOutput.dns["proxy-server-nameserver-policy"]["a.airport.example"] === "https://one-resolver.example/dns-query#DIRECT&disable-ipv6=true", "string node DNS policies must filter AAAA and keep DIRECT routing");
+assert(JSON.stringify(policyDnsOutput.dns["proxy-server-nameserver-policy"]["b.airport.example"]) === JSON.stringify([
+  "tls://two-resolver.example#DIRECT&disable-ipv6=true",
+  "https://three-resolver.example/dns-query#disable-ipv6=true",
+]), "array node DNS policies must filter AAAA");
+
+// Flower-style Hosts rewriting remains upstream behavior and uses default node DNS.
+const hostsDnsOutput = main({
+  proxies: [
+    ss("日本 Hosts 域名", { server: "alias.airport.example" }),
     ss("美国 Hosts 地址", { server: "ip-alias.airport.example" }),
   ],
   dns: { listen: "127.0.0.1:7874", "proxy-server-nameserver": ["udp://127.0.0.1:7874"] },
@@ -275,15 +305,21 @@ const hostsIngressOutput = main({
     "ip-alias.airport.example": "192.0.2.20",
   },
 });
-const hostsIngressNodes = new Map(hostsIngressOutput.proxies.map((proxy) => [proxy.name, proxy]));
-assert(hostsIngressNodes.get("日本 Hosts 域名").server === "final.entry.example", "subscription Hosts domain rewriting must be preserved");
-assert(hostsIngressNodes.get("日本 Hosts 域名")["ip-version"] === "ipv4", "Hosts-rewritten domains must use IPv4 ingress");
-assert(hostsIngressNodes.get("美国 Hosts 地址").server === "192.0.2.20", "subscription Hosts IP rewriting must be preserved");
-assert(!("ip-version" in hostsIngressNodes.get("美国 Hosts 地址")), "Hosts-rewritten IP literals must not acquire a domain-only override");
-assert(
-  output.proxies.filter((proxy) => proxy.type !== "direct").every((proxy) => proxy["ip-version"] === "ipv4"),
-  "every default domain-based subscription node must use IPv4 ingress",
-);
+const hostsDnsNodes = new Map(hostsDnsOutput.proxies.map((proxy) => [proxy.name, proxy]));
+assert(hostsDnsNodes.get("日本 Hosts 域名").server === "final.entry.example", "subscription Hosts domain rewriting must be preserved");
+assert(hostsDnsNodes.get("美国 Hosts 地址").server === "192.0.2.20", "subscription Hosts IP rewriting must be preserved");
+assert(!("ip-version" in hostsDnsNodes.get("日本 Hosts 域名")), "Hosts-rewritten nodes must not acquire per-node overrides");
+assert(JSON.stringify(hostsDnsOutput.dns["proxy-server-nameserver"]) === JSON.stringify(defaultNodeDns), "Hosts-rewritten domains must use the IPv4-only default node DNS");
+assert(!("proxy-server-nameserver-policy" in hostsDnsOutput.dns), "the self-referencing local DNS must not become a private node DNS policy");
+
+for (const [input, expected] of [
+  ["114.114.114.114", "114.114.114.114#disable-ipv6=true"],
+  ["https://resolver.example/dns-query#DIRECT", "https://resolver.example/dns-query#DIRECT&disable-ipv6=true"],
+  ["https://resolver.example/dns-query#DIRECT&disable-ipv6=false&ecs=1.2.3.0/24&h3=true", "https://resolver.example/dns-query#DIRECT&ecs=1.2.3.0/24&h3=true&disable-ipv6=true"],
+]) {
+  assert(nodeDnsIpv4(input) === expected, "node DNS suffix must preserve other parameters: " + input);
+  assert(nodeDnsIpv4(nodeDnsIpv4(input)) === expected, "node DNS suffix must be idempotent: " + input);
+}
 
 if (process.argv[2]) fs.writeFileSync(process.argv[2], JSON.stringify(output, null, 2) + "\n", "utf8");
 console.log(`Validated ${output.proxies.length} proxies, ${groups.size} groups, ${Object.keys(providers).length} providers, and ${output.rules.length} rules.`);
