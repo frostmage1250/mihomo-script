@@ -454,23 +454,6 @@ def sync_tun_stack(current: str, upstream: str) -> str:
     return updated
 
 
-def enforce_ipv4_proxy_domains(current: str) -> str:
-    """Keep domain-based node ingress on IPv4 after subscription hosts rewriting."""
-    original = """  const { dns, hosts, proxies: mappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);"""
-    rendered = """  const { dns, hosts, proxies: hostsMappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);
-  // 节点域名仅使用 IPv4 入口；在订阅 Hosts 改写完成后设置。
-  const mappedProxies = hostsMappedProxies.map((proxy) =>
-    typeof proxy.server === 'string' && !isIpAddress(proxy.server)
-      ? { ...proxy, 'ip-version': 'ipv4' }
-      : proxy,
-  );"""
-    if current.count(rendered) == 1 and original not in current:
-        return current
-    if current.count(original) != 1 or rendered in current:
-        raise BuildError("Unable to enforce IPv4 node domains: reviewed DNS/hosts entrypoint changed")
-    return current.replace(original, rendered)
-
-
 def render_script(
     current: str,
     upstream: str,
@@ -498,7 +481,6 @@ def render_script(
         updated = re.sub(call_pattern, f"serviceRules({json.dumps(new_name, ensure_ascii=False)})", updated)
     updated = replace_marked(updated, BEGIN_DNS, END_DNS, render_dns_section(upstream, real_ip_domains))
     updated = sync_tun_stack(updated, upstream)
-    updated = enforce_ipv4_proxy_domains(updated)
     updated = replace_marked(
         updated,
         BEGIN_BASE,

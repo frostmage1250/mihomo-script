@@ -237,53 +237,5 @@ for (const name of ["Proxy", "AI", "Claude"]) {
   assert(taiwanGroups.get(name).proxies.includes("台湾"), `Taiwan choice missing from ${name}`);
 }
 
-
-// Domain-based node ingress must use IPv4 even when the subscription asks for IPv6.
-const ingressFixture = {
-  proxies: [
-    ss("日本 IPv6 指定", { server: "a.airport.example", "ip-version": "ipv6" }),
-    ss("香港 IPv6 优先", { server: "b.airport.example", "ip-version": "ipv6-prefer" }),
-    ss("新加坡 IPv4 地址", { server: "192.0.2.10", "ip-version": "ipv4-prefer" }),
-    ss("美国 IPv6 地址", { server: "2001:db8::10", "ip-version": "ipv6" }),
-  ],
-  dns: { nameserver: ["https://private-resolver.example/dns-query"] },
-};
-const ingressBefore = JSON.stringify(ingressFixture);
-const ingressOutput = main(ingressFixture);
-const ingressNodes = new Map(ingressOutput.proxies.map((proxy) => [proxy.name, proxy]));
-for (const name of ["日本 IPv6 指定", "香港 IPv6 优先"]) {
-  assert(ingressNodes.get(name)["ip-version"] === "ipv4", name + ": domain ingress must be IPv4 only");
-}
-assert(ingressNodes.get("新加坡 IPv4 地址")["ip-version"] === "ipv4-prefer", "literal IPv4 nodes must retain their settings");
-assert(ingressNodes.get("美国 IPv6 地址")["ip-version"] === "ipv6", "literal IPv6 nodes must retain their settings");
-assert(JSON.stringify(ingressFixture) === ingressBefore, "IPv4 ingress enforcement must not mutate the subscription");
-assert(ingressOutput.ipv6 === true && ingressOutput.dns.ipv6 === true, "node ingress restriction must not disable global or DNS IPv6");
-assert(
-  JSON.stringify(ingressOutput.dns["proxy-server-nameserver-policy"]["+.airport.example"]) === JSON.stringify(ingressFixture.dns.nameserver),
-  "private DNS must still resolve subscription node domains",
-);
-
-// Flower-style local DNS plus Hosts must be rewritten before the IPv4 restriction.
-const hostsIngressOutput = main({
-  proxies: [
-    ss("日本 Hosts 域名", { server: "alias.airport.example", "ip-version": "ipv6" }),
-    ss("美国 Hosts 地址", { server: "ip-alias.airport.example" }),
-  ],
-  dns: { listen: "127.0.0.1:7874", "proxy-server-nameserver": ["udp://127.0.0.1:7874"] },
-  hosts: {
-    "alias.airport.example": "final.entry.example",
-    "ip-alias.airport.example": "192.0.2.20",
-  },
-});
-const hostsIngressNodes = new Map(hostsIngressOutput.proxies.map((proxy) => [proxy.name, proxy]));
-assert(hostsIngressNodes.get("日本 Hosts 域名").server === "final.entry.example", "subscription Hosts domain rewriting must be preserved");
-assert(hostsIngressNodes.get("日本 Hosts 域名")["ip-version"] === "ipv4", "Hosts-rewritten domains must use IPv4 ingress");
-assert(hostsIngressNodes.get("美国 Hosts 地址").server === "192.0.2.20", "subscription Hosts IP rewriting must be preserved");
-assert(!("ip-version" in hostsIngressNodes.get("美国 Hosts 地址")), "Hosts-rewritten IP literals must not acquire a domain-only override");
-assert(
-  output.proxies.filter((proxy) => proxy.type !== "direct").every((proxy) => proxy["ip-version"] === "ipv4"),
-  "every default domain-based subscription node must use IPv4 ingress",
-);
-
 if (process.argv[2]) fs.writeFileSync(process.argv[2], JSON.stringify(output, null, 2) + "\n", "utf8");
 console.log(`Validated ${output.proxies.length} proxies, ${groups.size} groups, ${Object.keys(providers).length} providers, and ${output.rules.length} rules.`);
