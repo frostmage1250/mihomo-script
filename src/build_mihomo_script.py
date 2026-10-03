@@ -426,37 +426,7 @@ def render_dns_section(upstream: str, real_ip_domains: list[str]) -> str:
     )
     if cn_count != 1 or direct_count != 1:
         raise BuildError("Unable to enforce system DNS for mainland or direct-domain resolution")
-    # Filter AAAA only on node DNS, after the upstream private-DNS and Hosts logic.
-    node_dns_patch = """  // 节点入口集中使用 IPv4 解析；普通网站 DNS 与 Hosts 处理保持原样。
-  dns['proxy-server-nameserver'] = dns['proxy-server-nameserver'].map(nodeDnsIpv4);
-  for (const [domain, servers] of Object.entries(dns['proxy-server-nameserver-policy'] || {})) {
-    dns['proxy-server-nameserver-policy'][domain] =
-      Array.isArray(servers) ? servers.map(nodeDnsIpv4) : nodeDnsIpv4(servers);
-  }
-
-"""
-    node_dns_helper = """// 仅过滤节点 DNS 的 AAAA；保留原有路由和其他 DNS 参数。
-function nodeDnsIpv4(dns) {
-  const value = String(dns);
-  const hashIndex = value.indexOf('#');
-  const address = hashIndex === -1 ? value : value.slice(0, hashIndex);
-  const options = hashIndex === -1 ? [] : value.slice(hashIndex + 1).split('&');
-  const keptOptions = options.filter((option) => option && !/^disable-ipv6(?:=|$)/i.test(option));
-  return address + '#' + [...keptOptions, 'disable-ipv6=true'].join('&');
-}
-"""
-    return_statement = "  return { dns, hosts, proxies: mappedProxies };"
-    if body.count(return_statement) != 1:
-        raise BuildError("Unable to locate the reviewed DNS/hosts return statement")
-    body = body.replace(return_statement, node_dns_patch + return_statement)
-    return (
-        "const repczRealIpDomains = "
-        + json.dumps(real_ip_domains, ensure_ascii=False, indent=2)
-        + ";\n\n"
-        + node_dns_helper
-        + "\n"
-        + body
-    )
+    return "const repczRealIpDomains = " + json.dumps(real_ip_domains, ensure_ascii=False, indent=2) + ";\n\n" + body
 
 
 def sync_tun_stack(current: str, upstream: str) -> str:
@@ -484,21 +454,21 @@ def sync_tun_stack(current: str, upstream: str) -> str:
     return updated
 
 
-def restore_node_entrypoint(current: str) -> str:
-    """Remove the superseded per-node patch while preserving the upstream entrypoint."""
+def enforce_ipv4_proxy_domains(current: str) -> str:
+    """Keep domain-based node ingress on IPv4 after subscription hosts rewriting."""
     original = """  const { dns, hosts, proxies: mappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);"""
-    legacy = """  const { dns, hosts, proxies: hostsMappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);
+    rendered = """  const { dns, hosts, proxies: hostsMappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);
   // 节点域名仅使用 IPv4 入口；在订阅 Hosts 改写完成后设置。
   const mappedProxies = hostsMappedProxies.map((proxy) =>
     typeof proxy.server === 'string' && !isIpAddress(proxy.server)
       ? { ...proxy, 'ip-version': 'ipv4' }
       : proxy,
   );"""
-    if current.count(original) == 1 and legacy not in current:
+    if current.count(rendered) == 1 and original not in current:
         return current
-    if current.count(legacy) != 1 or original in current:
-        raise BuildError("Unable to remove per-node IPv4 patch: reviewed DNS/hosts entrypoint changed")
-    return current.replace(legacy, original)
+    if current.count(original) != 1 or rendered in current:
+        raise BuildError("Unable to enforce IPv4 node domains: reviewed DNS/hosts entrypoint changed")
+    return current.replace(original, rendered)
 
 
 def render_script(
@@ -528,7 +498,7 @@ def render_script(
         updated = re.sub(call_pattern, f"serviceRules({json.dumps(new_name, ensure_ascii=False)})", updated)
     updated = replace_marked(updated, BEGIN_DNS, END_DNS, render_dns_section(upstream, real_ip_domains))
     updated = sync_tun_stack(updated, upstream)
-    updated = restore_node_entrypoint(updated)
+    updated = enforce_ipv4_proxy_domains(updated)
     updated = replace_marked(
         updated,
         BEGIN_BASE,
