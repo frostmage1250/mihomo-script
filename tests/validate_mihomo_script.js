@@ -193,9 +193,8 @@ const googleQuicReject = "AND,((RULE-SET,google),(NETWORK,UDP),(DST-PORT,443)),R
 assert(!output.rules.includes(googleQuicReject), "Google QUIC REJECT rule must be removed");
 assert(output.rules.includes("RULE-SET,google,Google"), "Google TCP routing must retain its policy group");
 assert(output.rules.includes("RULE-SET,google_ip,Google,no-resolve"), "Google IP fallback must remain unchanged");
-assert(groups.get("Google")["disable-udp"] === true, "Google policy group must disable UDP");
 for (const [name, group] of groups) {
-  if (name !== "Google") assert(!("disable-udp" in group), `UDP support must remain unchanged for ${name}`);
+  assert(!("disable-udp" in group), `UDP support must remain unchanged for ${name}`);
 }
 assert(providers.bypass_japan.type === "http" && providers.bypass_japan.format === "mrs" && providers.bypass_japan.behavior === "domain", "pron provider format changed");
 assert(providers.bypass_japan.url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/bypass-japan.mrs", "pron provider must use converter MRS");
