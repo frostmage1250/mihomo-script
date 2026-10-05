@@ -142,7 +142,7 @@ for (const required of [
   "private", "private_ip", "games_cn", "apple_cn", "microsoft_cn", "geolocation-cn",
   "cn_ip", "geolocation-!cn", "fakeip_filter", "cn", "douyin", "google", "google_ip",
   "telegram", "telegram_ip", "steam", "steam_ip", "tiktok", "tiktok_ip",
-  "twitter", "twitter_ip", "facebook_ip", "twitch", "claude", "bypass_japan",
+  "twitter", "twitter_ip", "facebook_ip", "twitch", "appletv", "claude", "bypass_japan",
 ]) assert(required in providers, `required provider missing: ${required}`);
 
 for (const redundant of ["facebook", "threads"]) {
@@ -186,7 +186,25 @@ assert(providers["mcdn屏蔽"].type === "http" && providers["mcdn屏蔽"].format
 assert(providers["mcdn屏蔽"].url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/mcdn-block.mrs", "MCDN block must use converter MRS");
 assert(providers["mcdn屏蔽"].path === "./ruleset/mcdn-block.mrs", "MCDN provider cache path changed");
 assert(!("path-in-bundle" in providers["mcdn屏蔽"]), "MCDN provider cannot reference the Bett bundle");
-assert(output.rules[0] === "RULE-SET,mcdn屏蔽,REJECT", "MCDN rejection must precede general routing");
+assert(
+  JSON.stringify(output.rules.slice(0, 3)) === JSON.stringify([
+    "RULE-SET,private,Direct", "RULE-SET,private_ip,Direct,no-resolve", "RULE-SET,mcdn屏蔽,REJECT",
+  ]),
+  "Private domains and IPs must precede MCDN rejection",
+);
+assert(providers.appletv.format === "mrs" && providers.appletv.behavior === "domain", "AppleTV must use domain MRS");
+assert(providers.appletv.url === "https://raw.githubusercontent.com/appshubcc/bett-rules/meta/geo/geosite/apple-tvplus.mrs", "AppleTV must use the full Bett provider");
+assert(output.rules.includes("RULE-SET,appletv,媒体"), "AppleTV must target the media group");
+const reviewedOrder = [
+  "claude", "ai", "github", "telegram", "telegram_ip",
+  "appletv", "twitch", "twitter", "twitter_ip", "tiktok", "tiktok_ip", "youtube", "meta", "facebook_ip",
+  "games_cn", "apple_cn", "microsoft_cn", "pikpak", "ehentai", "bypass_japan",
+  "steam", "steam_ip", "google", "google_ip", "apple", "apple_ip", "microsoft", "microsoft_ip",
+  "geolocation-!cn", "geolocation-cn", "cn_ip",
+];
+const reviewedPositions = reviewedOrder.map((provider) => output.rules.findIndex((rule) => rule.split(",")[1] === provider));
+assert(reviewedPositions.every((position, index) => position >= 0 && (index === 0 || position > reviewedPositions[index - 1])), "Reviewed business and fallback order changed");
+assert(!Object.values(providers).some((provider) => /geoip\/openai\.mrs$/.test(provider.url || "")), "AI must not gain an OpenAI IP provider");
 assert(output.rules.filter(rule => rule === "RULE-SET,mcdn屏蔽,REJECT").length === 1, "MCDN rejection must not be duplicated");
 
 const googleQuicReject = "AND,((RULE-SET,google),(NETWORK,UDP),(DST-PORT,443)),REJECT";

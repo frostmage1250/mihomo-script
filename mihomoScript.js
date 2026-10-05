@@ -999,6 +999,17 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
 // --- 单订阅输出层 ---
 
 const additionalServiceDefinitions = {
+  AppleTV: {
+    providers: {
+      appletv: {
+        ...ruleProviderCommonDomain,
+        url: 'https://raw.githubusercontent.com/appshubcc/bett-rules/meta/geo/geosite/apple-tvplus.mrs',
+        path: './ruleset/appletv.mrs',
+        'path-in-bundle': 'geo/geosite/apple-tvplus.mrs',
+      },
+    },
+    rules: ['RULE-SET,appletv,AppleTV'],
+  },
   pron: {
     // Converter-selected category-porn sites/CDNs; exclusions and scope: config/pron-sites.json.
     providers: {
@@ -1063,6 +1074,7 @@ const servicePolicyTargets = {
   PikPak: 'PikPak',
   EHentai: 'EHentai',
   Twitch: '媒体',
+  AppleTV: '媒体',
 };
 
 const serviceRulePolicyTargets = {
@@ -1130,30 +1142,33 @@ function serviceRules(name) {
 
 function buildRules() {
   return [
-    'RULE-SET,mcdn屏蔽,REJECT',
     'RULE-SET,private,Direct',
-    'RULE-SET,games_cn,Direct',
-    ...serviceRules('Steam'),
-    'RULE-SET,apple_cn,Direct',
-    ...serviceRules('Apple'),
-    'RULE-SET,microsoft_cn,Direct',
+    'RULE-SET,private_ip,Direct,no-resolve',
+    'RULE-SET,mcdn屏蔽,REJECT',
     ...serviceRules('Claude'),
     ...serviceRules('AI'),
-    ...serviceRules('Microsoft'),
+    ...serviceRules('Microsoft').filter((rule) => rule.split(',')[1] === 'github'),
     ...serviceRules('Telegram'),
+    // Media groups by reviewed domain + IP entry counts; retain adjacent IP fallbacks.
+    ...serviceRules('AppleTV'),
+    ...serviceRules('Twitch'),
+    ...serviceRules('Twitter'),
+    ...serviceRules('TikTok'),
     ...serviceRules('YouTube'),
     ...serviceRules("Meta"),
-    ...serviceRules('Twitter'),
-    ...serviceRules('Twitch'),
-    ...serviceRules('TikTok'),
-    ...serviceRules('Google'),
+    'RULE-SET,games_cn,Direct',
+    'RULE-SET,apple_cn,Direct',
+    'RULE-SET,microsoft_cn,Direct',
     ...serviceRules('PikPak'),
     ...serviceRules('EHentai'),
     ...serviceRules('pron'),
+    ...serviceRules('Steam'),
+    ...serviceRules('Google'),
+    ...serviceRules('Apple'),
+    ...serviceRules('Microsoft').filter((rule) => rule.split(',')[1] !== 'github'),
     'RULE-SET,geolocation-!cn,Proxy',
     'RULE-SET,geolocation-cn,Direct',
     'RULE-SET,cn_ip,Direct',
-    'RULE-SET,private_ip,Direct',
     'MATCH,Final',
   ];
 }
