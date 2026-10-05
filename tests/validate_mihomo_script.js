@@ -198,8 +198,8 @@ assert(output.rules.includes("RULE-SET,appletv,媒体"), "AppleTV must target th
 const reviewedOrder = [
   "claude", "ai", "github", "telegram", "telegram_ip",
   "appletv", "twitch", "twitter", "twitter_ip", "tiktok", "tiktok_ip", "youtube", "meta", "facebook_ip",
-  "games_cn", "apple_cn", "microsoft_cn", "pikpak", "ehentai", "bypass_japan",
-  "steam", "steam_ip", "google", "google_ip", "apple", "apple_ip", "microsoft", "microsoft_ip",
+  "games_cn", "apple_cn", "microsoft_cn", "steam", "steam_ip", "pikpak", "ehentai", "bypass_japan",
+  "google", "google_ip", "apple", "apple_ip", "microsoft", "microsoft_ip",
   "geolocation-!cn", "geolocation-cn", "cn_ip",
 ];
 const reviewedPositions = reviewedOrder.map((provider) => output.rules.findIndex((rule) => rule.split(",")[1] === provider));
