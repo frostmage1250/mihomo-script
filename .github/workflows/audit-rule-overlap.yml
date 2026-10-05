@@ -1,0 +1,287 @@
+name: Audit proposed rule overlap
+on:
+  push:
+    branches: ["audit/rule-overlap-20261005"]
+    paths: [".github/workflows/audit-rule-overlap.yml"]
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Inspect pinned rules and proposed precedence
+        shell: bash
+        run: |
+          python - <<'PY'
+          import concurrent.futures as futures
+          import hashlib, ipaddress, json, re, subprocess, urllib.request, urllib.parse
+          from pathlib import Path
+          PINS = {"script":{"repo":"frostmage1250/mihomo-script","commit":"157951215f927afc74068486dac7f904dbbc9935"},"converter":{"repo":"frostmage1250/proxy-rules-converter","commit":"aeb22a124d457c71caa143658738ff0fc1c2069c"},"bett":{"repo":"appshubcc/bett-rules","commit":"3ab11685d346c28709e29d7f650f9e9a59ede6b2"}}
+          RAW = "https://raw.githubusercontent.com/"
+          SPECS = {
+          "mcdn": ("converter","dist/mihomo/mcdn-block.list","domain","REJECT"),
+          "private": ("bett","geo/geosite/private.list","domain","Direct"),
+          "private_ip": ("bett","geo/geoip/private.list","ip","Direct"),
+          "claude": ("converter","dist/mihomo/claude.yaml","classical","Claude"),
+          "ai": ("converter","dist/mihomo/ai.list","domain","AI"),
+          "github": ("bett","geo/geosite/github.list","domain","GitHub"),
+          "telegram": ("bett","geo/geosite/telegram.list","domain","Telegram"),
+          "telegram_ip": ("bett","geo/geoip/telegram.list","ip","Telegram"),
+          "youtube": ("bett","geo/geosite/youtube.list","domain","YouTube"),
+          "apple-tvplus": ("bett","geo/geosite/apple-tvplus.list","domain","媒体"),
+          "meta": ("bett","geo/geosite/meta.list","domain","媒体"),
+          "facebook_ip": ("bett","geo/geoip/facebook.list","ip","媒体"),
+          "twitter": ("bett","geo/geosite/twitter.list","domain","媒体"),
+          "twitter_ip": ("bett","geo/geoip/twitter.list","ip","媒体"),
+          "twitch": ("bett","geo/geosite/twitch.list","domain","媒体"),
+          "tiktok": ("bett","geo/geosite/tiktok.list","domain","媒体"),
+          "tiktok_ip": ("bett","geo/geoip/tiktok.list","ip","媒体"),
+          "games_cn": ("bett","geo/geosite/category-games@cn.list","domain","Direct"),
+          "apple_cn": ("bett","geo/geosite/apple@cn.list","domain","Direct"),
+          "microsoft_cn": ("bett","geo/geosite/microsoft@cn.list","domain","Direct"),
+          "pikpak": ("bett","geo/geosite/pikpak.list","domain","PikPak"),
+          "ehentai": ("bett","geo/geosite/ehentai.list","domain","EHentai"),
+          "pron": ("converter","dist/mihomo/bypass-japan.list","domain","pron"),
+          "steam": ("bett","geo/geosite/steam.list","domain","Proxy"),
+          "steam_ip": ("bett","geo/geoip/steam.list","ip","Proxy"),
+          "google": ("bett","geo/geosite/google.list","domain","Google"),
+          "google_ip": ("bett","geo/geoip/google.list","ip","Google"),
+          "apple": ("converter","dist/mihomo/apple-merged.list","domain","Proxy"),
+          "apple_ip": ("bett","geo/geoip/apple.list","ip","Proxy"),
+          "microsoft": ("bett","geo/geosite/microsoft.list","domain","Proxy"),
+          "microsoft_ip": ("bett","geo/geoip/microsoft.list","ip","Proxy"),
+          "geolocation_non_cn": ("bett","geo/geosite/geolocation-!cn.list","domain","Proxy"),
+          "geolocation_cn": ("converter","dist/mihomo/geolocation-cn.list","domain","Direct"),
+          "cn_ip": ("bett","geo/geoip/cn.list","ip","Direct"),
+          "apple-ai-future": ("bett","geo/geosite/apple-intelligence.list","domain","AI"),
+          "private-relay-egern": ("converter","dist/egern/privaterelay.yaml","native","Proxy"),
+          }
+          ORDER = ["mcdn","private","private_ip","claude","ai","github","telegram","telegram_ip","youtube","apple-tvplus","meta","facebook_ip","twitter","twitter_ip","twitch","tiktok","tiktok_ip","games_cn","apple_cn","microsoft_cn","pikpak","ehentai","pron","steam","steam_ip","google","google_ip","apple","apple_ip","microsoft","microsoft_ip","geolocation_non_cn","geolocation_cn","cn_ip"]
+          CURRENT = ["mcdn","private","games_cn","steam","steam_ip","apple_cn","apple","apple_ip","microsoft_cn","claude","ai","github","microsoft","microsoft_ip","telegram","telegram_ip","youtube","meta","facebook_ip","twitter","twitter_ip","twitch","tiktok","tiktok_ip","google","google_ip","pikpak","ehentai","pron","geolocation_non_cn","geolocation_cn","cn_ip","private_ip"]
+          unsupported=[]
+          def fetch(item):
+              name,(owner,path,mode,policy)=item
+              pin=PINS[owner]
+              url=RAW+pin["repo"]+"/"+pin["commit"]+"/"+urllib.parse.quote(path)
+              req=urllib.request.Request(url,headers={"User-Agent":"mihomo-rule-overlap-audit"})
+              with urllib.request.urlopen(req,timeout=60) as response:raw=response.read()
+              return name,{"source":url,"sha256":hashlib.sha256(raw).hexdigest(),"mode":mode,"policy":policy,"text":raw.decode("utf-8-sig"),"domain":[],"ip":[],"asn":[]}
+          with futures.ThreadPoolExecutor(max_workers=8) as pool:DATA=dict(pool.map(fetch,SPECS.items()))
+          def pattern(raw):
+              raw=raw.strip().lower()
+              if raw.startswith("keyword:"):return {"kind":"keyword","value":raw[8:],"raw":raw}
+              if raw.startswith(("regexp:","regex:")):return {"kind":"regex","value":raw.split(":",1)[1],"raw":raw}
+              raw=raw.removeprefix("full:")
+              if raw.startswith("domain:"):raw="+."+raw[7:]
+              if raw.startswith("+."):base,open_,extra=raw[2:],True,0
+              elif raw.startswith("."):base,open_,extra=raw[1:],True,1
+              else:base,open_,extra=raw,False,0
+              labels=base.split(".")
+              if any(not x or ("*" in x and x!="*") or "?" in x or "+" in x for x in labels):raise ValueError("unsupported wildcard/label "+raw)
+              return {"kind":"domain","labels":labels[::-1],"open":open_,"extra":extra,"raw":raw,"literal":not open_ and "*" not in labels}
+          def add_domain(name,line):
+              try:DATA[name]["domain"].append(pattern(line))
+              except ValueError as e:unsupported.append({"provider":name,"rule":line,"reason":str(e)})
+          for name,data in DATA.items():
+              native_field=None
+              for line in data["text"].splitlines():
+                  line=line.strip()
+                  if not line or line.startswith(("#",";","//")):continue
+                  if data["mode"]=="native":
+                      if line.endswith(":"):native_field=line[:-1];continue
+                      if line.startswith("- "):
+                          value=line[2:].strip().strip("'\"")
+                          if native_field=="domain_suffix_set":add_domain(name,"+."+value)
+                          elif native_field=="domain_set":add_domain(name,value)
+                          else:unsupported.append({"provider":name,"rule":line,"reason":"native field "+str(native_field)})
+                      continue
+                  if data["mode"]=="classical":
+                      if line=="payload:":continue
+                      line=line.removeprefix("- ").strip().strip("'\"")
+                      parts=line.split(",");kind,value=parts[:2]
+                      if kind=="DOMAIN":add_domain(name,value)
+                      elif kind=="DOMAIN-SUFFIX":add_domain(name,"+."+value)
+                      elif kind=="DOMAIN-KEYWORD":add_domain(name,"keyword:"+value)
+                      elif kind=="DOMAIN-REGEX":add_domain(name,"regex:"+value)
+                      elif kind in ("IP-CIDR","IP-CIDR6"):data["ip"].append(ipaddress.ip_network(value))
+                      elif kind=="IP-ASN":data["asn"].append(value)
+                      else:unsupported.append({"provider":name,"rule":line,"reason":"classical kind "+kind})
+                  elif data["mode"]=="ip":data["ip"].append(ipaddress.ip_network(line))
+                  else:add_domain(name,line)
+          def accepts(p,host):
+              if p["kind"]=="keyword":return p["value"] in host
+              if p["kind"]=="regex":return re.search(p["value"],host) is not None
+              labels=host.split(".")[::-1];fixed=p["labels"]
+              if (not p["open"] and len(labels)!=len(fixed)) or (p["open"] and len(labels)<len(fixed)+p["extra"]):return False
+              return all(a=="*" or a==b for a,b in zip(fixed,labels))
+          def witness(a,b):
+              if a["kind"]!="domain" or b["kind"]!="domain":
+                  if a["kind"]=="regex" or b["kind"]=="regex":return None
+                  if a["kind"]=="keyword" and b["kind"]=="keyword":return "audit-"+a["value"]+"-"+b["value"]+".example",False
+                  k,p=(a,b) if a["kind"]=="keyword" else (b,a)
+                  base=".".join(x if x!="*" else "audit-"+k["value"] for x in p["labels"][::-1])
+                  candidates=[base]
+                  if p["open"]:candidates.append("audit-"+k["value"]+"."+base)
+                  for host in candidates:
+                      if accepts(k,host) and accepts(p,host):return host,p.get("literal",False) and host==p["raw"]
+                  return None
+              x,y=a["labels"],b["labels"]
+              if not a["open"]:n=len(x)
+              elif not b["open"]:n=len(y)
+              else:n=max(len(x)+a["extra"],len(y)+b["extra"])
+              for p in (a,b):
+                  if not p["open"] and n!=len(p["labels"]):return None
+                  if p["open"] and n<len(p["labels"])+p["extra"]:return None
+              result=[]
+              for i in range(n):
+                  aa=x[i] if i<len(x) else "*";bb=y[i] if i<len(y) else "*"
+                  if aa!="*" and bb!="*" and aa!=bb:return None
+                  result.append(aa if aa!="*" else bb if bb!="*" else "audit-label")
+              return ".".join(result[::-1]),a["literal"] or b["literal"]
+          class Index:
+              def __init__(self,rules):
+                  self.root={};self.special=[]
+                  for p in rules:
+                      if p["kind"]!="domain":self.special.append(p);continue
+                      node=self.root
+                      for label in p["labels"]:node=node.setdefault(label,{})
+                      node.setdefault("_suffix" if p["open"] else "_end",[]).append(p)
+              def candidates(self,p):
+                  def descendants(node):
+                      yield from node.get("_end",[])
+                      yield from node.get("_suffix",[])
+                      for key,child in node.items():
+                          if not key.startswith("_"):yield from descendants(child)
+                  if p["kind"]!="domain":
+                      yield from descendants(self.root)
+                      yield from self.special
+                      return
+                  labels=p["labels"]
+                  def walk(node,i):
+                      if i==len(labels):
+                          if p["open"]:yield from descendants(node)
+                          else:
+                              yield from node.get("_end",[])
+                              yield from node.get("_suffix",[])
+                          return
+                      yield from node.get("_suffix",[])
+                      label=labels[i]
+                      if label=="*":
+                          for key,child in node.items():
+                              if not key.startswith("_"):yield from walk(child,i+1)
+                      else:
+                          if label in node:yield from walk(node[label],i+1)
+                          if "*" in node:yield from walk(node["*"],i+1)
+                  yield from walk(self.root,0)
+                  yield from self.special
+          INDEX={name:Index(data["domain"]) for name,data in DATA.items()}
+          def pair(a,b):
+              literal_count=potential_count=0;exact_samples=[];symbolic_samples=[]
+              for p in DATA[b]["domain"]:
+                  for q in INDEX[a].candidates(p):
+                      w=witness(q,p)
+                      if w is None:continue
+                      host,literal=w
+                      sample={"earlier_rule":q["raw"],"later_rule":p["raw"],"witness":host,"witness_is_source_literal":literal}
+                      if literal:
+                          literal_count+=1
+                          if len(exact_samples)<8:exact_samples.append(sample)
+                      else:
+                          potential_count+=1
+                          if len(symbolic_samples)<5:symbolic_samples.append(sample)
+              if literal_count or potential_count:
+                  return {"earlier":a,"later":b,"earlier_policy":DATA[a]["policy"],"later_policy":DATA[b]["policy"],"different_policy":DATA[a]["policy"]!=DATA[b]["policy"],"literal_rule_pairs":literal_count,"symbolic_rule_pairs":potential_count,"literal_samples":exact_samples,"symbolic_samples":symbolic_samples}
+          pairs=[]
+          for i,b in enumerate(ORDER):
+              for a in ORDER[:i]:
+                  result=pair(a,b)
+                  if result:pairs.append(result)
+          supplements=[]
+          for name in ["apple-ai-future","private-relay-egern"]:
+              for other in ORDER:
+                  result=pair(other,name)
+                  if result:supplements.append(result)
+          def networks(data,version):
+              return sorted(ipaddress.collapse_addresses(n for n in data["ip"] if n.version==version),key=lambda n:int(n.network_address))
+          NETWORKS={(name,version):networks(data,version) for name,data in DATA.items() for version in (4,6)}
+          ip_pairs=[]
+          for i,b in enumerate(ORDER):
+              for a in ORDER[:i]:
+                  count=0;samples=[]
+                  for version in (4,6):
+                      aa=NETWORKS[a,version];bb=NETWORKS[b,version];x=y=0
+                      while x<len(aa) and y<len(bb):
+                          n,m=aa[x],bb[y]
+                          low=max(int(n.network_address),int(m.network_address));high=min(int(n.broadcast_address),int(m.broadcast_address))
+                          if low<=high:
+                              count+=1
+                              addr=ipaddress.IPv4Address(low) if version==4 else ipaddress.IPv6Address(low)
+                              if len(samples)<5:samples.append({"earlier_cidr":str(n),"later_cidr":str(m),"witness_ip":str(addr)})
+                          if int(n.broadcast_address)<=int(m.broadcast_address):x+=1
+                          else:y+=1
+                  if count:ip_pairs.append({"earlier":a,"later":b,"different_policy":DATA[a]["policy"]!=DATA[b]["policy"],"earlier_policy":DATA[a]["policy"],"later_policy":DATA[b]["policy"],"collapsed_range_pairs":count,"samples":samples})
+          hosts=["vod-ap-aoc.tv.apple.com","tv.apple.com","np-edge.itunes.apple.com","play-edge.itunes.apple.com","uts-api.itunes.apple.com","hls.itunes.apple.com","hls-amt.itunes.apple.com","tv.applemusic.com","apple-relay.apple.com","apple-relay.cloudflare.com","apple-relay.fastly-edge.com","gspe1-ssl.ls.apple.com","github.com","api.github.com","copilot.microsoft.com","www.youtube.com","youtubei.googleapis.com","www.twitch.tv","gql.twitch.tv","www.tiktok.com","api.twitter.com","telegram.org","api.mypikpak.com","mypikpak.com","store.steampowered.com","cdn.akamai.steamstatic.com","claude.ai","chatgpt.com","openai.com","api.statsig.com","sentry.io","browser-intake-us5-datadoghq.com"]
+          resolver_code="import socket,sys,json;print(json.dumps(sorted({x[4][0] for x in socket.getaddrinfo(sys.argv[1],443,type=socket.SOCK_STREAM)})))"
+          def dns(host):
+              try:
+                  r=subprocess.run(["python","-c",resolver_code,host],capture_output=True,text=True,timeout=15,check=True)
+                  return host,{"ips":json.loads(r.stdout)}
+              except Exception as e:return host,{"ips":[],"error":str(e)}
+          with futures.ThreadPoolExecutor(max_workers=8) as pool:resolved=dict(pool.map(dns,hosts))
+          def route(order,host,ip=None):
+              for name in order:
+                  data=DATA[name]
+                  for p in data["domain"]:
+                      if accepts(p,host):return {"provider":name,"policy":data["policy"],"matched":p["raw"],"kind":"domain"}
+                  if ip:
+                      addr=ipaddress.ip_address(ip)
+                      for net in data["ip"]:
+                          if addr.version==net.version and addr in net:return {"provider":name,"policy":data["policy"],"matched":str(net),"kind":"ip"}
+              return {"provider":"MATCH","policy":"Final","kind":"fallback"}
+          routes=[]
+          for host,dnsdata in resolved.items():
+              matches=[{"provider":name,"policy":data["policy"],"rules":[p["raw"] for p in data["domain"] if accepts(p,host)]} for name,data in DATA.items() if any(accepts(p,host) for p in data["domain"])]
+              rows=[{"ip":ip,"proposed":route(ORDER,host,ip),"current":route(CURRENT,host,ip)} for ip in dnsdata["ips"]]
+              routes.append({"host":host,"domain_only_current":route(CURRENT,host),"domain_only_proposed":route(ORDER,host),"domain_matches":matches,"dns":dnsdata,"when_destination_ip_available":rows})
+          manifest={name:{k:v for k,v in data.items() if k not in ("text","domain","ip","asn")} | {"domain_entries":len(data["domain"]),"ip_entries":len(data["ip"]),"asn_entries":data["asn"]} for name,data in DATA.items()}
+          report={"pins":PINS,"current_order":CURRENT,"proposed_order":ORDER,"sources":manifest,"unsupported":unsupported,"domain_pairs":pairs,"ip_pairs":ip_pairs,"future_and_egern_supplemental_pairs":supplements,"sample_routes":routes,"limitations":["Domain witnesses marked false are structural possibilities, not observed requests or confirmed existing hostnames.","Keyword matching can overlap shared telemetry and arbitrary domains; these are not interpreted as service ownership.","DNS samples were resolved on a GitHub-hosted runner and may differ from the user's DNS/CDN region.","IP route samples assume the destination IP is already available; no-resolve may skip an IP rule when it is not.","ASN-vs-CIDR and ASN runtime ownership were not evaluated.","Future Apple AI and Egern-only Private Relay are supplemental, not enabled in the proposed Mihomo order.","A static overlap is not automatically an error; desired policy determines intentional precedence."]}
+          out=Path("reports/rule-overlap-audit");out.mkdir(parents=True,exist_ok=True)
+          (out/"audit.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n")
+          tick=chr(96)
+          lines=["# Rule overlap audit","","- Proposed order is a review draft; main rules were not changed.","- Sources are fixed to commits listed below.",""]
+          for key,pin in PINS.items():lines.append("- "+key+": "+tick+pin["repo"]+"@"+pin["commit"]+tick)
+          lines+=["","## Domain overlaps with different policies","","| Earlier | Later | Source-literal pairs | Structural pairs | Example |","|---|---|---:|---:|---|"]
+          for p in pairs:
+              if p["different_policy"]:
+                  samples=p["literal_samples"] or p["symbolic_samples"]
+                  lines.append("| "+p["earlier"]+" | "+p["later"]+" | "+str(p["literal_rule_pairs"])+" | "+str(p["symbolic_rule_pairs"])+" | "+tick+samples[0]["witness"]+tick+" |")
+          lines+=["","## Selected domain routing","","| Host | Current | Proposed |","|---|---|---|"]
+          for r in routes:lines.append("| "+tick+r["host"]+tick+" | "+r["domain_only_current"]["provider"]+" / "+r["domain_only_current"]["policy"]+" | "+r["domain_only_proposed"]["provider"]+" / "+r["domain_only_proposed"]["policy"]+" |")
+          lines+=["","## IP overlaps with different policies","","| Earlier | Later | Collapsed range pairs | Example |","|---|---|---:|---|"]
+          for p in ip_pairs:
+              if p["different_policy"]:lines.append("| "+p["earlier"]+" | "+p["later"]+" | "+str(p["collapsed_range_pairs"])+" | "+tick+p["samples"][0]["witness_ip"]+tick+" |")
+          lines+=["","## DNS samples changing a domain result because of an earlier IP rule",""]
+          for r in routes:
+              for item in r["when_destination_ip_available"]:
+                  winner=item["proposed"];domain=r["domain_only_proposed"]
+                  if winner["kind"]=="ip" and winner["policy"]!=domain["policy"]:
+                      lines.append("- "+tick+r["host"]+tick+" -> "+tick+item["ip"]+tick+": "+winner["provider"]+" / "+winner["policy"]+" instead of domain result "+domain["provider"]+" / "+domain["policy"])
+          lines+=["","## Limits",""]+["- "+x for x in report["limitations"]]
+          lines+=["","## Unsupported rules","",json.dumps(unsupported,ensure_ascii=False)]
+          (out/"report.md").write_text("\n".join(lines)+"\n")
+          print(json.dumps({"providers":len(DATA),"domain_overlap_pairs":len(pairs),"different_policy_domain_pairs":sum(p["different_policy"] for p in pairs),"ip_overlap_pairs":len(ip_pairs),"unsupported":unsupported},ensure_ascii=False))
+          if unsupported:raise SystemExit("Unsupported syntax prevents a complete audit")
+          
+          PY
+      - name: Save audit report on review branch
+        run: |
+          git add reports/rule-overlap-audit
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs: record proposed rule overlap audit"
+          git push origin HEAD:audit/rule-overlap-20261005
