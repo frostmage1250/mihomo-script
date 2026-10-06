@@ -1,5 +1,5 @@
 {
-  "output_sha256": "bd82f6c743b02520f3e5b9eade1b340868805cd3b84db8c45f8156a17e04c6be",
+  "output_sha256": "080a7658920b7f2c781b84ea7ce77468bd21c537b97278c024cd22e6a1c8d920",
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -180,9 +180,36 @@
     }
   },
   "upstream": {
-    "commit": "d2300df2db6ef303939d6834c93708f63c4ef89e",
+    "commit": "f055343bfe3f90e8fe35540ee4b899daea75ae6b",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
+  },
+  "upstream_matching": {
+    "excludeFilter": "/群|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|电报|无法|说明|使用|提示|访问|支持|教程|关注|更新|作者|加入|超时|收藏|优惠|福利|邀请|好友|失联|选择|剩余|公益|发布|DIZTNA|通路|登录|禁止|定时|渠道|牢记|永久|余额|阁下|本站|刷新|导航|建议|重置|以下|过滤|⚠️|@|t\\.me\\/\\+|\\bexpire\\b|\\bhttps?:\\/\\/|\\.com|\\btraffic\\b/iu",
+    "rateRegionDefinitions": [
+      {
+        "name": "低倍率节点",
+        "regex": "/^(?!.*(?:剩|期)).*(?:(?<!\\d)0\\.[0-5]|(?<=[\\s\\[\\(【|｜丨∣┃\\-‐–—−－﹣])0[*×✕✖⨯⨉x倍])|(?:(?<=[\\s\\[\\(【|｜丨∣┃\\-‐–—−－﹣])[*×✕✖⨯⨉x]0(?=[\\s】\\)\\]]|倍|$))|^(?!.*(?:客户端|软件)).*下载|低倍|免费|(?<![A-Za-z])free(?![A-Za-z])/i"
+      }
+    ],
+    "regionDefinitions": [
+      {
+        "name": "香港",
+        "regex": "/🇭🇰|香港|(?<![A-Za-z])HKG?(?![A-Za-z])|hong\\s*kong/i"
+      },
+      {
+        "name": "日本",
+        "regex": "/🇯🇵|日本|东京|大阪|京都|(?<![A-Za-z])JPN?(?![A-Za-z])|japan/i"
+      },
+      {
+        "name": "美国",
+        "regex": "/🇺🇸|美国|纽约|洛杉矶|旧金山|芝加哥|休斯顿|迈阿密|西雅图|波士顿|华盛顿|拉斯维加斯|圣何塞|圣地亚哥|(?<![A-Za-z])USA?(?![A-Za-z])|america|united\\s*states/i"
+      },
+      {
+        "name": "新加坡",
+        "regex": "/🇸🇬|新加坡|狮城|(?<![A-Za-z])SGP?(?![A-Za-z])|singapore/i"
+      }
+    ]
   },
   "upstream_service_order": [
     "手动选择",
