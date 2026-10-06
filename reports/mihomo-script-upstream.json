@@ -1,5 +1,5 @@
 {
-  "output_sha256": "080a7658920b7f2c781b84ea7ce77468bd21c537b97278c024cd22e6a1c8d920",
+  "output_sha256": "4354428c309ccfd9da258cbffa2682db045263413a02727ca144b9344cb9963b",
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -180,7 +180,7 @@
     }
   },
   "upstream": {
-    "commit": "f055343bfe3f90e8fe35540ee4b899daea75ae6b",
+    "commit": "fd3225bd69a8d39c33d3b3615597164f46a4099a",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
   },
@@ -189,7 +189,7 @@
     "rateRegionDefinitions": [
       {
         "name": "低倍率节点",
-        "regex": "/^(?!.*(?:剩|期)).*(?:(?<!\\d)0\\.[0-5]|(?<=[\\s\\[\\(【|｜丨∣┃\\-‐–—−－﹣])0[*×✕✖⨯⨉x倍])|(?:(?<=[\\s\\[\\(【|｜丨∣┃\\-‐–—−－﹣])[*×✕✖⨯⨉x]0(?=[\\s】\\)\\]]|倍|$))|^(?!.*(?:客户端|软件)).*下载|低倍|免费|(?<![A-Za-z])free(?![A-Za-z])/i"
+        "regex": "/^(?!.*(?:剩|期)).*(?:(?<!\\d)0(\\.[0-5]|[*×✕✖⨯⨉x倍]))|(?:[*×✕✖⨯⨉x]0)|^(?!.*(?:客户端|软件)).*下载|低倍|免费|(?<![A-Za-z])free(?![A-Za-z])/i"
       }
     ],
     "regionDefinitions": [

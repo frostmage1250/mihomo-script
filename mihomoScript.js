@@ -3,7 +3,7 @@
  * 作者：AIsouler
  * 源仓库：https://github.com/AIsouler/MyClash
  * 上游脚本：https://raw.githubusercontent.com/AIsouler/MyClash/main/Script/mihomoScript.js
- * 上游提交：f055343bfe3f90e8fe35540ee4b899daea75ae6b
+ * 上游提交：fd3225bd69a8d39c33d3b3615597164f46a4099a
  * 基于上游 mihomoScript.js 定制：两个机场配置分开使用同一脚本。
  * 友情推荐，非常好用、省电且内存占用低的代理软件：https://github.com/appshubcc/Bettbox
  */
@@ -74,7 +74,7 @@ const rateRegionDefinitions = [
   {
     name: lowRateRegionName,
     regex:
-      /^(?!.*(?:剩|期)).*(?:(?<!\d)0\.[0-5]|(?<=[\s\[\(【|｜丨∣┃\-‐–—−－﹣])0[*×✕✖⨯⨉x倍])|(?:(?<=[\s\[\(【|｜丨∣┃\-‐–—−－﹣])[*×✕✖⨯⨉x]0(?=[\s】\)\]]|倍|$))|^(?!.*(?:客户端|软件)).*下载|低倍|免费|(?<![A-Za-z])free(?![A-Za-z])/i,
+      /^(?!.*(?:剩|期)).*(?:(?<!\d)0(\.[0-5]|[*×✕✖⨯⨉x倍]))|(?:[*×✕✖⨯⨉x]0)|^(?!.*(?:客户端|软件)).*下载|低倍|免费|(?<![A-Za-z])free(?![A-Za-z])/i,
   },
 ];
 
