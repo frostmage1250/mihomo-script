@@ -31,6 +31,13 @@ UPSTREAM_END_DNS = "// --- 主入口 ---"
 EXCLUDED_REAL_IP_DOMAINS = frozenset({"*-update.xoyocdn.com", "*-appboot.netflix.com"})
 
 
+
+AUTO_SYNC_MATCHING_CONTRACTS = frozenset({
+    "excludeFilter", "rate:低倍率节点",
+    "region:香港", "region:日本", "region:美国", "region:新加坡",
+})
+JS_REGEX_LITERAL = r"/(?:\\.|[^/\\\r\n])+/[a-z]*"
+
 class BuildError(RuntimeError):
     """Raised when upstream cannot be transformed without review."""
 
@@ -211,7 +218,10 @@ def validate_contracts(extracted: Mapping[str, Any], manifest: Mapping[str, Any]
     actual = contract_hashes(extracted["contracts"])
     expected = manifest["upstream_contract_hashes"]
     missing = sorted(set(expected) - set(actual))
-    changed = sorted(name for name in expected if actual.get(name) != expected[name])
+    changed = sorted(
+        name for name in expected
+        if name not in AUTO_SYNC_MATCHING_CONTRACTS and actual.get(name) != expected[name]
+    )
     if missing or changed:
         details = []
         if missing:
@@ -454,6 +464,53 @@ def sync_tun_stack(current: str, upstream: str) -> str:
     return updated
 
 
+def sync_node_matching(current: str, contracts: Mapping[str, Any]) -> str:
+    """Follow upstream regex changes while preserving local group definitions."""
+    def replace_regex(text: str, prefix: str, value: str, label: str) -> str:
+        if not isinstance(value, str) or not re.fullmatch(JS_REGEX_LITERAL, value):
+            raise BuildError(f"Unsupported upstream matching expression: {label}")
+        pattern = rf"(?P<prefix>{prefix}){JS_REGEX_LITERAL}(?P<suffix>\s*[,;])"
+        updated, count = re.subn(
+            pattern,
+            lambda match: match.group("prefix") + value + match.group("suffix"),
+            text, flags=re.MULTILINE,
+        )
+        if count != 1:
+            raise BuildError(f"Expected exactly one local matching expression: {label}")
+        return updated
+
+    current = replace_regex(
+        current, r"^const excludeFilter\s*=\s*",
+        contracts["excludeFilter"], "excludeFilter",
+    )
+
+    def sync_definitions(text: str, declaration: str, values: Mapping[str, str]) -> str:
+        pattern = rf"(?ms)^const {declaration} = \[(?P<body>.*?)^\];"
+        def replace_block(match: re.Match[str]) -> str:
+            body = match.group("body")
+            for name, value in values.items():
+                name_pattern = (
+                    r"lowRateRegionName" if name == "低倍率节点"
+                    else rf"""(?P<quote>['"]){re.escape(name)}(?P=quote)"""
+                )
+                body = replace_regex(
+                    body, rf"name:\s*{name_pattern},\s*regex:\s*", value, name,
+                )
+            return f"const {declaration} = [" + body + "];"
+        updated, count = re.subn(pattern, replace_block, text)
+        if count != 1:
+            raise BuildError(f"Expected exactly one local definition block: {declaration}")
+        return updated
+
+    regions = {item["name"]: item["regex"] for item in contracts["regionDefinitions"]}
+    current = sync_definitions(
+        current, "regionDefinitions",
+        {name: regions[name] for name in ("香港", "日本", "美国", "新加坡")},
+    )
+    rates = {item["name"]: item["regex"] for item in contracts["rateRegionDefinitions"]}
+    return sync_definitions(current, "rateRegionDefinitions", {"低倍率节点": rates["低倍率节点"]})
+
+
 def render_script(
     current: str,
     upstream: str,
@@ -512,6 +569,7 @@ def build(
         extracted, manifest, previous_service_order
     )
     applied_domains, excluded_domains = select_real_ip_domains(real_ip_domains)
+    current_script = sync_node_matching(current_script, extracted["contracts"])
     script = render_script(current_script, upstream, sha, base, services, service_renames, applied_domains)
     report = {
         "schema_version": 1,
@@ -519,6 +577,17 @@ def build(
             "repository": manifest["upstream"]["repository"],
             "path": manifest["upstream"]["path"],
             "commit": sha,
+        },
+        "upstream_matching": {
+            "excludeFilter": extracted["contracts"]["excludeFilter"],
+            "regionDefinitions": [
+                item for item in extracted["contracts"]["regionDefinitions"]
+                if f"region:{item['name']}" in AUTO_SYNC_MATCHING_CONTRACTS
+            ],
+            "rateRegionDefinitions": [
+                item for item in extracted["contracts"]["rateRegionDefinitions"]
+                if item["name"] == "低倍率节点"
+            ],
         },
         "output_sha256": hashlib.sha256(script.encode("utf-8")).hexdigest(),
         "real_ip_domains_upstream": {

@@ -110,6 +110,25 @@ assert(JSON.stringify(output.dns["direct-nameserver"]) === JSON.stringify(["syst
 assert(!output.dns["fake-ip-filter"].includes("rule-set:googlefcm"), "FCM fake-IP rule must not remain");
 
 const buildReport = JSON.parse(fs.readFileSync(path.join(root, "reports", "mihomo-script-upstream.json"), "utf8"));
+
+const matching = new Function(
+  source + "\nreturn { excludeFilter, regionDefinitions, rateRegionDefinitions };"
+)();
+assert(String(matching.excludeFilter) === buildReport.upstream_matching.excludeFilter, "node exclusion regex must match upstream");
+for (const kind of ["regionDefinitions", "rateRegionDefinitions"]) {
+  for (const item of buildReport.upstream_matching[kind]) {
+    const actual = matching[kind].find((value) => value.name === item.name);
+    assert(actual && String(actual.regex) === item.regex, "node matching regex differs from upstream: " + item.name);
+  }
+}
+const bracketRateNames = ["日本【x0】", "日本\t0倍", "日本\u00a0x0 "];
+const bracketRateOutput = main({ proxies: bracketRateNames.map((name) => ss(name)), dns: {}, hosts: {} });
+const bracketRateGroup = bracketRateOutput["proxy-groups"].find((group) => group.name === "低倍率节点");
+assert(
+  JSON.stringify(bracketRateGroup?.proxies) === JSON.stringify(bracketRateNames),
+  "upstream low-rate matching must support Chinese brackets and whitespace",
+);
+
 const repczSource = buildReport.real_ip_domains_upstream;
 const excludedPatterns = new Set(["*-update.xoyocdn.com", "*-appboot.netflix.com"]);
 assert(Array.isArray(repczSource?.domains) && repczSource.domains.length > 0, "Repcz source domains missing from build report");

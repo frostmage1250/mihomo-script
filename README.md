@@ -17,19 +17,25 @@ https://raw.githubusercontent.com/frostmage1250/mihomo-script/main/mihomoScript.
 - `config/mihomo-script-customizations.json` is the reviewed structured patch.
 - `src/build_mihomo_script.py` resolves the newest upstream commit, downloads that
   immutable revision, extracts selected rule providers and service rules, validates
-  the reviewed upstream contract, synchronizes the upstream DNS/hosts section and
+  the reviewed upstream contract, automatically synchronizes node exclusion, retained
+  region and low-rate matching expressions, synchronizes the upstream DNS/hosts section and
   TUN stack, extracts Repcz's `real_ip_domains` from its newest commit, and regenerates
   `mihomoScript.js`.
 - `mihomoScript.js` is the standalone generated subscription artifact.
 - `reports/mihomo-script-upstream.json` records both upstream commits, the extracted
-  Repcz domains, applied domains, excluded domains, and the output digest.
+  Repcz domains, applied domains, excluded domains, upstream matching expressions,
+  and the output digest.
 
 For every retained service, internally consistent provider additions/removals, rule
 additions/removals, and provider URL/path updates are accepted automatically. The
 generated script is still rejected before publication when a retained service
 disappears or is renamed, a provider becomes invalid, rules and providers no longer
 reference each other exactly, a reserved Bett provider name collides, or a reviewed
-node-filtering, DNS, or region-classification contract changes.
+function or direct-proxy contract changes. Node exclusion, Hong Kong, Japan,
+United States, Singapore, and low-rate regex changes follow upstream automatically;
+missing required definitions or an unsupported local definition layout still stop
+the build. These expressions are copied into the static artifact and recorded in
+the provenance report, without requiring a new reviewed hash for each regex change.
 
 ## Local customizations
 
@@ -39,7 +45,7 @@ node-filtering, DNS, or region-classification contract changes.
 - Maintain the Taiwan region definition and its original matching regex locally in
   `mihomoScript.js`, independently of upstream removal or changes. Taiwan remains
   available in `Proxy`, `AI`, and `Claude`; the other reviewed upstream region
-  contracts remain enforced. Behavioral validation checks Taiwan name variants,
+  expressions follow upstream automatically. Behavioral validation checks Taiwan name variants,
   region grouping, and retention of Taiwan nodes with exclusion keywords.
 - Add a fully expanded `订阅` group and place it first in `Proxy`.
 - Keep only `DIRECT`, `IPv4优先`, and `IPv6优先` in `Direct`.

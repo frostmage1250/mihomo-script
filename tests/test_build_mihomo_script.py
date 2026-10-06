@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from build_mihomo_script import (  # noqa: E402
     BuildError,
     contract_hashes,
+    sync_node_matching,
     validate_contracts,
     detect_service_renames,
     extract_real_ip_domains,
@@ -45,6 +46,74 @@ class BuilderTests(unittest.TestCase):
         ]
         with self.assertRaisesRegex(BuildError, "Required upstream region definition disappeared: 香港"):
             validate_contracts({"contracts": contracts}, manifest)
+
+    def test_matching_changes_follow_upstream_but_functions_remain_guarded(self) -> None:
+        contracts = {
+            "excludeFilter": "/old/i",
+            "commonDnsList": [],
+            "directProxies": [],
+            "regionDefinitions": [
+                {"name": name, "regex": "/old/i"}
+                for name in ("香港", "日本", "美国", "新加坡")
+            ],
+            "rateRegionDefinitions": [{"name": "低倍率节点", "regex": "/old/i"}],
+            "functions": {"filterAndNormalizeProxies": "old"},
+        }
+        manifest = {"upstream_contract_hashes": contract_hashes(contracts)}
+        contracts["excludeFilter"] = "/new/iu"
+        for region in contracts["regionDefinitions"]:
+            region["regex"] = "/new/i"
+        contracts["rateRegionDefinitions"][0]["regex"] = "/new/i"
+        validate_contracts({"contracts": contracts}, manifest)
+        contracts["functions"]["filterAndNormalizeProxies"] = "changed"
+        with self.assertRaisesRegex(BuildError, "function:filterAndNormalizeProxies"):
+            validate_contracts({"contracts": contracts}, manifest)
+        contracts["functions"]["filterAndNormalizeProxies"] = "old"
+        contracts["rateRegionDefinitions"] = []
+        with self.assertRaisesRegex(BuildError, "Required upstream low-rate definition disappeared"):
+            validate_contracts({"contracts": contracts}, manifest)
+
+    def test_sync_matching_preserves_local_taiwan_and_is_deterministic(self) -> None:
+        current = """const excludeFilter = /old/i;
+const regionDefinitions = [
+  { name: '香港', regex: /old/i, },
+  { name: '日本', regex: /old/i, },
+  { name: '美国', regex: /old/i, },
+  { name: '新加坡', regex: /old/i, },
+  { name: '台湾省', regex: /local-taiwan/i, },
+];
+const rateRegionDefinitions = [
+  { name: lowRateRegionName, regex: /old/i, },
+];
+const policy = 'unchanged';
+"""
+        contracts = {
+            "excludeFilter": r"/new\sfilter/iu",
+            "regionDefinitions": [
+                {"name": name, "regex": f"/new-{name}/i"}
+                for name in ("香港", "日本", "美国", "新加坡", "台湾省")
+            ],
+            "rateRegionDefinitions": [
+                {"name": "低倍率节点", "regex": r"/【x0】|\s0倍/i"},
+                {"name": "高倍率节点", "regex": "/high/i"},
+            ],
+        }
+        rendered = sync_node_matching(current, contracts)
+        self.assertIn(r"/new\sfilter/iu", rendered)
+        for name in ("香港", "日本", "美国", "新加坡"):
+            self.assertIn(f"/new-{name}/i", rendered)
+        self.assertIn(r"/【x0】|\s0倍/i", rendered)
+        self.assertIn("/local-taiwan/i", rendered)
+        self.assertNotIn("/new-台湾省/i", rendered)
+        self.assertNotIn("/high/i", rendered)
+        self.assertIn("const policy = 'unchanged';", rendered)
+        self.assertEqual(sync_node_matching(rendered, contracts), rendered)
+        with self.assertRaisesRegex(BuildError, "exactly one local matching expression"):
+            sync_node_matching(current.replace("name: '香港'", "name: 'missing'"), contracts)
+        with self.assertRaisesRegex(BuildError, "exactly one local matching expression"):
+            sync_node_matching(current + "const excludeFilter = /duplicate/i;\n", contracts)
+        with self.assertRaisesRegex(BuildError, "Unsupported upstream matching expression"):
+            sync_node_matching(current, {**contracts, "excludeFilter": "not a regex"})
 
     def test_marked_region_is_replaced_once(self) -> None:
         text = "before\n// BEGIN\nold\n// END\nafter\n"
