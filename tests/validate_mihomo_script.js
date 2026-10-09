@@ -3,6 +3,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { isDeepStrictEqual } = require("util");
 
 const root = path.resolve(__dirname, "..");
 const scriptPath = path.join(root, "mihomoScript.js");
@@ -111,6 +112,36 @@ assert(!output.dns["fake-ip-filter"].includes("rule-set:googlefcm"), "FCM fake-I
 
 const buildReport = JSON.parse(fs.readFileSync(path.join(root, "reports", "mihomo-script-upstream.json"), "utf8"));
 
+const manifest = JSON.parse(fs.readFileSync(path.join(root, "config", "mihomo-script-customizations.json"), "utf8"));
+assert(isDeepStrictEqual(buildReport.service_provider_url_overrides, manifest.service_provider_url_overrides), "custom provider overrides differ from manifest");
+assert(isDeepStrictEqual(Object.keys(buildReport.upstream_base_rule_providers).sort(), [...manifest.retained_base_rule_providers].sort()), "upstream base provider snapshot is incomplete");
+assert(isDeepStrictEqual(Object.keys(buildReport.upstream_service_rule_providers).sort(), Object.keys(buildReport.retained_services).sort()), "upstream service provider snapshot is incomplete");
+
+// Compare ordinary providers with this build's pinned upstream definitions.
+// CDN, URL, path, interval and other field changes follow upstream automatically.
+function assertUpstreamProvider(name, upstreamProvider, overrideUrl, removeBundlePath = false) {
+  const expected = { ...upstreamProvider };
+  if (overrideUrl !== undefined) expected.url = overrideUrl;
+  if (removeBundlePath) delete expected["path-in-bundle"];
+  assert(isDeepStrictEqual(providers[name], expected), `provider differs from pinned upstream/custom override: ${name}`);
+}
+for (const [name, provider] of Object.entries(buildReport.upstream_base_rule_providers)) {
+  const overrideUrl = name === "geolocation-cn"
+    ? "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs"
+    : undefined;
+  assertUpstreamProvider(name, provider, overrideUrl);
+}
+for (const [serviceName, upstreamProviders] of Object.entries(buildReport.upstream_service_rule_providers)) {
+  const configuredName = manifest.retained_services.find((name) =>
+    name === serviceName || (manifest.retained_service_aliases?.[name] || []).includes(serviceName)
+  );
+  const overrides = manifest.service_provider_url_overrides?.[configuredName || serviceName] || {};
+  assert(isDeepStrictEqual(Object.keys(upstreamProviders).sort(), [...buildReport.retained_services[serviceName].providers].sort()), `upstream provider snapshot is incomplete: ${serviceName}`);
+  for (const [name, provider] of Object.entries(upstreamProviders)) {
+    assertUpstreamProvider(name, provider, overrides[name], overrides[name] !== undefined);
+  }
+}
+
 const matching = new Function(
   source + "\nreturn { excludeFilter, regionDefinitions, rateRegionDefinitions };"
 )();
@@ -194,12 +225,8 @@ assert(!output.rules.includes("RULE-SET,github,Proxy"), "GitHub rules must not f
 assert(buildReport.retained_base_rule_providers.includes("douyin"), "Douyin base provider missing from generation report");
 assert(providers.ai.type === "http" && providers.ai.format === "mrs" && providers.ai.behavior === "domain", "AI provider format changed");
 assert(providers.ai.url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/ai.mrs", "AI provider must use the converter MRS");
-assert(providers.ai.path === "./ruleset/ai.mrs", "AI provider path changed");
 assert(!("path-in-bundle" in providers.ai), "external AI MRS cannot reference the Bett bundle");
 assert(buildReport.service_provider_url_overrides.AI.ai === providers.ai.url, "AI override missing from build report");
-assert(providers.douyin.type === "http" && providers.douyin.format === "mrs" && providers.douyin.behavior === "domain", "Douyin provider format changed");
-assert(providers.douyin.url === "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/douyin.mrs", "Douyin provider URL changed");
-assert(providers.douyin.path === "./ruleset/douyin.mrs", "Douyin provider path changed");
 assert(providers.douyin["path-in-bundle"] === "geo/geosite/douyin.mrs", "Douyin bundle path changed");
 assert(providers["mcdn屏蔽"].type === "http" && providers["mcdn屏蔽"].format === "mrs" && providers["mcdn屏蔽"].behavior === "domain", "MCDN block provider must be domain MRS");
 assert(providers["mcdn屏蔽"].url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/mcdn-block.mrs", "MCDN block must use converter MRS");

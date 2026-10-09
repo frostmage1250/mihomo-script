@@ -24,10 +24,16 @@ https://raw.githubusercontent.com/frostmage1250/mihomo-script/main/mihomoScript.
 - `mihomoScript.js` is the standalone generated subscription artifact.
 - `reports/mihomo-script-upstream.json` records both upstream commits, the extracted
   Repcz domains, applied domains, excluded domains, upstream matching expressions,
-  and the output digest.
+  complete retained upstream provider definitions, and the output digest.
 
-For every retained service, internally consistent provider additions/removals, rule
-additions/removals, and provider URL/path updates are accepted automatically. The
+All ordinary retained base and service providers follow the pinned upstream
+revision automatically, including CDN/URL, cache path, bundle path, interval, and
+other provider fields. Validation compares complete definitions with the upstream
+snapshots recorded in the build report instead of freezing historical URLs.
+Only the explicit AI and Apple URL overrides in the customization manifest, the
+local geolocation-cn URL override, and locally added providers retain their custom
+sources. For every retained service, internally consistent provider additions/removals
+and rule additions/removals are also accepted automatically. The
 generated script is still rejected before publication when a retained service
 disappears or is renamed, a provider becomes invalid, rules and providers no longer
 reference each other exactly, a reserved Bett provider name collides, or a reviewed

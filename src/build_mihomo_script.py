@@ -598,6 +598,15 @@ def build(
             "applied_domains": applied_domains,
             "excluded_domains": excluded_domains,
         },
+        # Record unmodified definitions from the pinned upstream revision.
+        # Only explicit custom URL overrides may differ in the final output.
+        "upstream_base_rule_providers": {
+            name: extracted["baseRuleProviders"][name] for name in base
+        },
+        "upstream_service_rule_providers": {
+            service["name"]: service["providers"]
+            for service in extracted["services"] if service["name"] in services
+        },
         "retained_base_rule_providers": list(base),
         "service_provider_url_overrides": manifest.get("service_provider_url_overrides", {}),
         "upstream_service_order": service_order,

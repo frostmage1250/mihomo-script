@@ -277,6 +277,40 @@ policy_groups:
         self.assertEqual(list(services["Service"]["providers"]), ["service", "service_ip"])
 
 
+    def test_ordinary_base_and_service_providers_follow_upstream_fields(self) -> None:
+        old_provider = {
+            "type": "http", "format": "mrs", "interval": 86400,
+            "behavior": "domain",
+            "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/douyin.mrs",
+            "path": "./ruleset/douyin.mrs",
+            "path-in-bundle": "geo/geosite/douyin.mrs",
+        }
+        upstream_provider = {
+            **old_provider,
+            "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/douyin.mrs",
+            "path": "./ruleset/upstream-douyin.mrs",
+            "path-in-bundle": "geo/geosite/upstream-douyin.mrs",
+            "interval": 21600,
+            "proxy": "DIRECT",
+        }
+        extracted = {
+            "baseRuleProviders": {"douyin": upstream_provider},
+            "services": [{
+                "name": "Service",
+                "providers": {"service": {**upstream_provider, "url": "https://new-cdn.example/service.mrs"}},
+                "rules": ["RULE-SET,service,Service"],
+            }],
+        }
+        manifest = {
+            "retained_services": ["Service"],
+            "retained_base_rule_providers": ["douyin"],
+            "reserved_extra_provider_names": [],
+        }
+        base, services, _renames, _order = select_upstream_definitions(extracted, manifest)
+        self.assertEqual(base["douyin"], upstream_provider)
+        self.assertNotEqual(base["douyin"], old_provider)
+        self.assertEqual(services["Service"]["providers"], extracted["services"][0]["providers"])
+
     def test_ai_provider_uses_converter_url_without_bett_bundle_path(self) -> None:
         provider = {
             "type": "http", "format": "mrs", "interval": 86400,
