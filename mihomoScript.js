@@ -3,7 +3,7 @@
  * 作者：AIsouler
  * 源仓库：https://github.com/AIsouler/MyClash
  * 上游脚本：https://raw.githubusercontent.com/AIsouler/MyClash/main/Script/mihomoScript.js
- * 上游提交：fd3225bd69a8d39c33d3b3615597164f46a4099a
+ * 上游提交：e8d54b380b247b9c8d7823e0c37b7d555734b96d
  * 基于上游 mihomoScript.js 定制：两个机场配置分开使用同一脚本。
  * 友情推荐，非常好用、省电且内存占用低的代理软件：https://github.com/appshubcc/Bettbox
  */
@@ -109,7 +109,7 @@ const baseRuleProviders = {
     "format": "mrs",
     "interval": 86400,
     "behavior": "domain",
-    "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/private.mrs",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/private.mrs",
     "path": "./ruleset/private.mrs",
     "path-in-bundle": "geo/geosite/private.mrs"
   },
@@ -118,7 +118,7 @@ const baseRuleProviders = {
     "format": "mrs",
     "interval": 86400,
     "behavior": "ipcidr",
-    "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/private.mrs",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geoip/private.mrs",
     "path": "./ruleset/private_ip.mrs",
     "path-in-bundle": "geo/geoip/private.mrs"
   },
@@ -127,7 +127,7 @@ const baseRuleProviders = {
     "format": "mrs",
     "interval": 86400,
     "behavior": "domain",
-    "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/category-games@cn.mrs",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/category-games@cn.mrs",
     "path": "./ruleset/category-games@cn.mrs",
     "path-in-bundle": "geo/geosite/category-games@cn.mrs"
   },
@@ -136,7 +136,7 @@ const baseRuleProviders = {
     "format": "mrs",
     "interval": 86400,
     "behavior": "domain",
-    "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/apple@cn.mrs",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/apple@cn.mrs",
     "path": "./ruleset/apple@cn.mrs",
     "path-in-bundle": "geo/geosite/apple@cn.mrs"
   },
@@ -145,7 +145,7 @@ const baseRuleProviders = {
     "format": "mrs",
     "interval": 86400,
     "behavior": "domain",
-    "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/microsoft@cn.mrs",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/microsoft@cn.mrs",
     "path": "./ruleset/microsoft@cn.mrs",
     "path-in-bundle": "geo/geosite/microsoft@cn.mrs"
   },
@@ -154,7 +154,7 @@ const baseRuleProviders = {
     "format": "mrs",
     "interval": 86400,
     "behavior": "domain",
-    "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/geolocation-cn.mrs",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/geolocation-cn.mrs",
     "path": "./ruleset/geolocation-cn.mrs",
     "path-in-bundle": "geo/geosite/geolocation-cn.mrs"
   },
@@ -163,7 +163,7 @@ const baseRuleProviders = {
     "format": "mrs",
     "interval": 86400,
     "behavior": "ipcidr",
-    "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/cn.mrs",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geoip/cn.mrs",
     "path": "./ruleset/cn_ip.mrs",
     "path-in-bundle": "geo/geoip/cn.mrs"
   },
@@ -172,7 +172,7 @@ const baseRuleProviders = {
     "format": "mrs",
     "interval": 86400,
     "behavior": "domain",
-    "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/geolocation-!cn.mrs",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/geolocation-!cn.mrs",
     "path": "./ruleset/geolocation-!cn.mrs",
     "path-in-bundle": "geo/geosite/geolocation-!cn.mrs"
   },
@@ -181,7 +181,7 @@ const baseRuleProviders = {
     "format": "mrs",
     "interval": 86400,
     "behavior": "domain",
-    "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/fakeip-filter.mrs",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/fakeip-filter.mrs",
     "path": "./ruleset/fakeip-filter.mrs",
     "path-in-bundle": "geo/geosite/fakeip-filter.mrs"
   },
@@ -190,7 +190,7 @@ const baseRuleProviders = {
     "format": "mrs",
     "interval": 86400,
     "behavior": "domain",
-    "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/cn.mrs",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/cn.mrs",
     "path": "./ruleset/cn.mrs",
     "path-in-bundle": "geo/geosite/cn.mrs"
   },
@@ -199,7 +199,7 @@ const baseRuleProviders = {
     "format": "mrs",
     "interval": 86400,
     "behavior": "domain",
-    "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/douyin.mrs",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/douyin.mrs",
     "path": "./ruleset/douyin.mrs",
     "path-in-bundle": "geo/geosite/douyin.mrs"
   }
@@ -217,7 +217,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/youtube.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/youtube.mrs",
         "path": "./ruleset/youtube.mrs",
         "path-in-bundle": "geo/geosite/youtube.mrs"
       }
@@ -233,7 +233,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/google.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/google.mrs",
         "path": "./ruleset/google.mrs",
         "path-in-bundle": "geo/geosite/google.mrs"
       },
@@ -242,7 +242,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "ipcidr",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/google.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geoip/google.mrs",
         "path": "./ruleset/google_ip.mrs",
         "path-in-bundle": "geo/geoip/google.mrs"
       }
@@ -274,7 +274,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/github.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/github.mrs",
         "path": "./ruleset/github.mrs",
         "path-in-bundle": "geo/geosite/github.mrs"
       },
@@ -283,7 +283,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/microsoft.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/microsoft.mrs",
         "path": "./ruleset/microsoft.mrs",
         "path-in-bundle": "geo/geosite/microsoft.mrs"
       },
@@ -292,7 +292,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "ipcidr",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/microsoft.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geoip/microsoft.mrs",
         "path": "./ruleset/microsoft_ip.mrs",
         "path-in-bundle": "geo/geoip/microsoft.mrs"
       }
@@ -318,7 +318,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "ipcidr",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/apple.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geoip/apple.mrs",
         "path": "./ruleset/apple_ip.mrs",
         "path-in-bundle": "geo/geoip/apple.mrs"
       }
@@ -335,7 +335,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/telegram.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/telegram.mrs",
         "path": "./ruleset/telegram.mrs",
         "path-in-bundle": "geo/geosite/telegram.mrs"
       },
@@ -344,7 +344,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "ipcidr",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/telegram.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geoip/telegram.mrs",
         "path": "./ruleset/telegram_ip.mrs",
         "path-in-bundle": "geo/geoip/telegram.mrs"
       }
@@ -361,7 +361,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/steam.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/steam.mrs",
         "path": "./ruleset/steam.mrs",
         "path-in-bundle": "geo/geosite/steam.mrs"
       },
@@ -370,7 +370,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "ipcidr",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/steam.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geoip/steam.mrs",
         "path": "./ruleset/steam_ip.mrs",
         "path-in-bundle": "geo/geoip/steam.mrs"
       }
@@ -387,7 +387,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/tiktok.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/tiktok.mrs",
         "path": "./ruleset/tiktok.mrs",
         "path-in-bundle": "geo/geosite/tiktok.mrs"
       },
@@ -396,7 +396,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "ipcidr",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/tiktok.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geoip/tiktok.mrs",
         "path": "./ruleset/tiktok_ip.mrs",
         "path-in-bundle": "geo/geoip/tiktok.mrs"
       }
@@ -413,7 +413,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/twitter.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/twitter.mrs",
         "path": "./ruleset/twitter.mrs",
         "path-in-bundle": "geo/geosite/twitter.mrs"
       },
@@ -422,7 +422,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "ipcidr",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/twitter.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geoip/twitter.mrs",
         "path": "./ruleset/twitter_ip.mrs",
         "path-in-bundle": "geo/geoip/twitter.mrs"
       }
@@ -439,7 +439,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/meta.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/meta.mrs",
         "path": "./ruleset/meta.mrs",
         "path-in-bundle": "geo/geosite/meta.mrs"
       },
@@ -448,7 +448,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "ipcidr",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geoip/facebook.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geoip/facebook.mrs",
         "path": "./ruleset/facebook_ip.mrs",
         "path-in-bundle": "geo/geoip/facebook.mrs"
       }
@@ -465,7 +465,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/pikpak.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/pikpak.mrs",
         "path": "./ruleset/pikpak.mrs",
         "path-in-bundle": "geo/geosite/pikpak.mrs"
       }
@@ -481,7 +481,7 @@ const retainedServiceDefinitions = {
         "format": "mrs",
         "interval": 86400,
         "behavior": "domain",
-        "url": "https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/ehentai.mrs",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/ehentai.mrs",
         "path": "./ruleset/ehentai.mrs",
         "path-in-bundle": "geo/geosite/ehentai.mrs"
       }
