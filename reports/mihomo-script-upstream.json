@@ -1,5 +1,5 @@
 {
-  "output_sha256": "57aae3b7987ee3d1012789376d484a74b25e009b141d61b4f4ac197a90bc7498",
+  "output_sha256": "d6ef9a5daa7c928bd69045521bb256643c106cb4de8c73537680bcb0c75377d3",
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -180,7 +180,7 @@
     }
   },
   "upstream": {
-    "commit": "e8d54b380b247b9c8d7823e0c37b7d555734b96d",
+    "commit": "b7cb213accca9af87f1b8e425ba940588ffc98fd",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
   },
@@ -286,7 +286,7 @@
     }
   },
   "upstream_matching": {
-    "excludeFilter": "/群|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|电报|无法|说明|使用|提示|访问|支持|教程|关注|更新|作者|加入|超时|收藏|优惠|福利|邀请|好友|失联|选择|剩余|公益|发布|DIZTNA|通路|登录|禁止|定时|渠道|牢记|永久|余额|阁下|本站|刷新|导航|建议|重置|以下|过滤|⚠️|@|t\\.me\\/\\+|\\bexpire\\b|\\bhttps?:\\/\\/|\\.com|\\btraffic\\b/iu",
+    "excludeFilter": "/群|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|电报|无法|说明|提示|访问|支持|教程|关注|更新|作者|加入|超时|收藏|优惠|福利|邀请|好友|失联|选择|剩余|公益|发布|DIZTNA|通路|登录|禁止|定时|渠道|牢记|永久|余额|阁下|本站|刷新|导航|建议|重置|以下|过滤|⚠️|@|t\\.me\\/\\+|\\bexpire\\b|\\bhttps?:\\/\\/|\\.com|\\btraffic\\b/iu",
     "rateRegionDefinitions": [
       {
         "name": "低倍率节点",
