@@ -1106,7 +1106,7 @@ const additionalServiceDefinitions = {
     providers: {
       twitch: {
         ...ruleProviderCommonDomain,
-        url: 'https://fastly.jsdelivr.net/gh/appshubcc/bett-rules@meta/geo/geosite/twitch.mrs',
+        url: 'https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/twitch.mrs',
         path: './ruleset/twitch.mrs',
         'path-in-bundle': 'geo/geosite/twitch.mrs',
       },
