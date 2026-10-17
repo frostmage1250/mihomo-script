@@ -1,5 +1,12 @@
 {
-  "output_sha256": "6ef85ea94d7a2e89e796ca73d97f7cf8c39a9b18ee0e2b0449bf508e78f6d69d",
+  "base_rule_provider_replacements": {
+    "games_cn": {
+      "from": "category-games@cn",
+      "name": "steam_cn",
+      "to": "steam@cn"
+    }
+  },
+  "output_sha256": "e5926c818d4c31b91b377c030df3c0ecf9cfa0a237829ce94d4d37c91f6f8f55",
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -44,7 +51,7 @@
   "retained_base_rule_providers": [
     "private",
     "private_ip",
-    "games_cn",
+    "steam_cn",
     "apple_cn",
     "microsoft_cn",
     "geolocation-cn",
