@@ -3,7 +3,7 @@
  * 作者：AIsouler
  * 源仓库：https://github.com/AIsouler/MyClash
  * 上游脚本：https://raw.githubusercontent.com/AIsouler/MyClash/main/Script/mihomoScript.js
- * 上游提交：decc398cffd432cd1e374cebd964fbc67363cd8a
+ * 上游提交：b550d1cd73fe29df83bed9e49eb7e056dc756363
  * 基于上游 mihomoScript.js 定制：两个机场配置分开使用同一脚本。
  * 友情推荐，非常好用、省电且内存占用低的代理软件：https://github.com/appshubcc/Bettbox
  */
@@ -267,7 +267,7 @@ const retainedServiceDefinitions = {
       "RULE-SET,ai,AI"
     ]
   },
-  "Microsoft": {
+  "GitHub": {
     "providers": {
       "github": {
         "type": "http",
@@ -277,7 +277,14 @@ const retainedServiceDefinitions = {
         "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/github.mrs",
         "path": "./ruleset/github.mrs",
         "path-in-bundle": "geo/geosite/github.mrs"
-      },
+      }
+    },
+    "rules": [
+      "RULE-SET,github,GitHub"
+    ]
+  },
+  "Microsoft": {
+    "providers": {
       "microsoft": {
         "type": "http",
         "format": "mrs",
@@ -298,7 +305,6 @@ const retainedServiceDefinitions = {
       }
     },
     "rules": [
-      "RULE-SET,github,默认代理",
       "RULE-SET,microsoft,Microsoft",
       "RULE-SET,microsoft_ip,Microsoft,no-resolve"
     ]
@@ -498,13 +504,20 @@ const retainedServiceDefinitions = {
 /**
  * 节点匹配缓存，避免重复执行正则
  */
+const invisibleCharsRegex = /[\u00AD\u180E\u200B\u200E\u200F\u202A-\u202E\u2060-\u206F\uFEFF\u115F\u1160\u3164\uFFA0]/g;
+
+function toMatchableName(name) {
+  return typeof name === 'string' ? name.replace(invisibleCharsRegex, '') : name;
+}
+
 const regionMatchCache = new Map();
 function getMatchedRegions(proxyName) {
   if (regionMatchCache.has(proxyName)) {
     return regionMatchCache.get(proxyName);
   }
 
-  const regions = allRegionDefinitions.filter((region) => region.regex.test(proxyName));
+  const matchableName = toMatchableName(proxyName);
+  const regions = allRegionDefinitions.filter((region) => region.regex.test(matchableName));
   regionMatchCache.set(proxyName, regions);
 
   return regions;

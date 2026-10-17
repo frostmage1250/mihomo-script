@@ -1,5 +1,5 @@
 {
-  "output_sha256": "fee851210091c1f379451bab30297a7069a16f0835ed80307facadb16c71ef5d",
+  "output_sha256": "6ef85ea94d7a2e89e796ca73d97f7cf8c39a9b18ee0e2b0449bf508e78f6d69d",
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -81,6 +81,14 @@
         "RULE-SET,ehentai,EHentai"
       ]
     },
+    "GitHub": {
+      "providers": [
+        "github"
+      ],
+      "rules": [
+        "RULE-SET,github,GitHub"
+      ]
+    },
     "Google": {
       "providers": [
         "google",
@@ -103,12 +111,10 @@
     },
     "Microsoft": {
       "providers": [
-        "github",
         "microsoft",
         "microsoft_ip"
       ],
       "rules": [
-        "RULE-SET,github,默认代理",
         "RULE-SET,microsoft,Microsoft",
         "RULE-SET,microsoft_ip,Microsoft,no-resolve"
       ]
@@ -180,7 +186,7 @@
     }
   },
   "upstream": {
-    "commit": "decc398cffd432cd1e374cebd964fbc67363cd8a",
+    "commit": "b550d1cd73fe29df83bed9e49eb7e056dc756363",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
   },
@@ -287,6 +293,11 @@
   },
   "upstream_matching": {
     "excludeFilter": "/群|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|电报|无法|说明|提示|访问|支持|教程|关注|更新|作者|加入|超时|收藏|优惠|福利|邀请|好友|失联|选择|剩余|公益|发布|DIZTNA|通路|登录|禁止|定时|渠道|牢记|永久|余额|阁下|本站|刷新|导航|建议|重置|以下|过滤|⚠️|@|t\\.me\\/\\+|\\bexpire\\b|\\bhttps?:\\/\\/|\\.com|\\btraffic\\b/iu",
+    "functions": {
+      "getMatchedRegions": "function getMatchedRegions(proxyName) {\n  if (regionMatchCache.has(proxyName)) {\n    return regionMatchCache.get(proxyName);\n  }\n\n  const matchableName = toMatchableName(proxyName);\n  const regions = allRegionDefinitions.filter((region) => region.regex.test(matchableName));\n  regionMatchCache.set(proxyName, regions);\n\n  return regions;\n}",
+      "toMatchableName": "function toMatchableName(name) {\n  return typeof name === 'string' ? name.replace(invisibleCharsRegex, '') : name;\n}"
+    },
+    "invisibleCharsRegex": "/[\\u00AD\\u180E\\u200B\\u200E\\u200F\\u202A-\\u202E\\u2060-\\u206F\\uFEFF\\u115F\\u1160\\u3164\\uFFA0]/g",
     "rateRegionDefinitions": [
       {
         "name": "低倍率节点",
@@ -320,6 +331,7 @@
     "YouTube",
     "Google",
     "AI",
+    "GitHub",
     "Microsoft",
     "Apple",
     "Telegram",
@@ -381,6 +393,17 @@
         "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/ehentai.mrs"
       }
     },
+    "GitHub": {
+      "github": {
+        "behavior": "domain",
+        "format": "mrs",
+        "interval": 86400,
+        "path": "./ruleset/github.mrs",
+        "path-in-bundle": "geo/geosite/github.mrs",
+        "type": "http",
+        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/github.mrs"
+      }
+    },
     "Google": {
       "google": {
         "behavior": "domain",
@@ -422,15 +445,6 @@
       }
     },
     "Microsoft": {
-      "github": {
-        "behavior": "domain",
-        "format": "mrs",
-        "interval": 86400,
-        "path": "./ruleset/github.mrs",
-        "path-in-bundle": "geo/geosite/github.mrs",
-        "type": "http",
-        "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/github.mrs"
-      },
       "microsoft": {
         "behavior": "domain",
         "format": "mrs",
