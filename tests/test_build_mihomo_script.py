@@ -12,6 +12,7 @@ from build_mihomo_script import (  # noqa: E402
     BuildError,
     contract_hashes,
     sync_node_matching,
+    sync_matching_helpers,
     validate_contracts,
     detect_service_renames,
     extract_real_ip_domains,
@@ -114,6 +115,85 @@ const policy = 'unchanged';
             sync_node_matching(current + "const excludeFilter = /duplicate/i;\n", contracts)
         with self.assertRaisesRegex(BuildError, "Unsupported upstream matching expression"):
             sync_node_matching(current, {**contracts, "excludeFilter": "not a regex"})
+
+    def test_reviewed_function_sources_reject_changes_and_missing_functions(self) -> None:
+        contracts = {
+            "excludeFilter": "/info/i", "commonDnsList": [], "directProxies": [],
+            "regionDefinitions": [
+                {"name": name, "regex": "/region/i"}
+                for name in ("香港", "日本", "美国", "新加坡")
+            ],
+            "rateRegionDefinitions": [{"name": "低倍率节点", "regex": "/low/i"}],
+            "functions": {"toMatchableName": "reviewed"},
+        }
+        manifest = {
+            "upstream_contract_hashes": {},
+            "upstream_contract_sources": {"function:toMatchableName": "reviewed"},
+        }
+        validate_contracts({"contracts": contracts}, manifest)
+        contracts["functions"]["toMatchableName"] = "unreviewed"
+        with self.assertRaisesRegex(BuildError, "changed: function:toMatchableName"):
+            validate_contracts({"contracts": contracts}, manifest)
+        contracts["functions"].clear()
+        with self.assertRaisesRegex(BuildError, "missing: function:toMatchableName"):
+            validate_contracts({"contracts": contracts}, manifest)
+
+    def test_matching_helpers_are_installed_once_and_fail_on_ambiguous_input(self) -> None:
+        current = """const regionMatchCache = new Map();
+function getMatchedRegions(proxyName) {
+  return [];
+}
+const preserveName = 'H\\u200BK';
+"""
+        contracts = {
+            "invisibleCharsRegex": r"/[\u200B]/g",
+            "functions": {
+                "toMatchableName": """function toMatchableName(name) {
+  return name.replace(invisibleCharsRegex, '');
+}""",
+                "getMatchedRegions": """function getMatchedRegions(proxyName) {
+  return toMatchableName(proxyName);
+}""",
+            },
+        }
+        rendered = sync_matching_helpers(current, contracts)
+        self.assertIn(r"const invisibleCharsRegex = /[\u200B]/g;", rendered)
+        self.assertIn(contracts["functions"]["toMatchableName"], rendered)
+        self.assertIn(contracts["functions"]["getMatchedRegions"], rendered)
+        self.assertIn("const preserveName = 'H\\u200BK';", rendered)
+        self.assertEqual(sync_matching_helpers(rendered, contracts), rendered)
+        with self.assertRaisesRegex(BuildError, "Unsupported upstream invisible-character"):
+            sync_matching_helpers(current, {**contracts, "invisibleCharsRegex": "invalid"})
+        with self.assertRaisesRegex(BuildError, "exactly one local matching helper"):
+            sync_matching_helpers(current + contracts["functions"]["getMatchedRegions"], contracts)
+        with self.assertRaisesRegex(BuildError, "exactly one local region-match cache"):
+            sync_matching_helpers(current.replace("const regionMatchCache = new Map();", ""), contracts)
+
+    def test_github_split_remains_selected_separately_from_microsoft(self) -> None:
+        provider = {
+            "type": "http", "format": "mrs", "interval": 86400,
+            "behavior": "domain", "url": "https://example.com/github.mrs",
+            "path": "./ruleset/github.mrs",
+        }
+        extracted = {
+            "baseRuleProviders": {},
+            "services": [
+                {"name": "GitHub", "providers": {"github": provider},
+                 "rules": ["RULE-SET,github,GitHub"]},
+                {"name": "Microsoft", "providers": {"microsoft": provider},
+                 "rules": ["RULE-SET,microsoft,Microsoft"]},
+            ],
+        }
+        manifest = {
+            "retained_services": ["GitHub", "Microsoft"],
+            "retained_base_rule_providers": [], "reserved_extra_provider_names": [],
+        }
+        _base, services, renames, _order = select_upstream_definitions(
+            extracted, manifest, ["Microsoft"]
+        )
+        self.assertEqual(services["GitHub"]["rules"], ["RULE-SET,github,GitHub"])
+        self.assertEqual(list(services["Microsoft"]["providers"]), ["microsoft"])
+        self.assertEqual(renames, {})
 
     def test_marked_region_is_replaced_once(self) -> None:
         text = "before\n// BEGIN\nold\n// END\nafter\n"

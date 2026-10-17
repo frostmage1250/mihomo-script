@@ -144,6 +144,8 @@ def _extract_with_node(source: str) -> dict[str, Any]:
     export_code = r'''
 const __contractFunctions = {
   filterAndNormalizeProxies,
+  toMatchableName,
+  getMatchedRegions,
   hostSpecificity,
   matchDomainPattern,
   applyHostsToProxies,
@@ -158,6 +160,7 @@ const __payload = {
   services: serviceConfigs.map(({ name, providers, rules }) => ({ name, providers: providers || {}, rules: rules || [] })),
   contracts: {
     excludeFilter: String(excludeFilter),
+    invisibleCharsRegex: String(invisibleCharsRegex),
     commonDnsList,
     directProxies,
     regionDefinitions: regionDefinitions.map(({ name, regex }) => ({ name, regex: String(regex) })),
@@ -216,7 +219,12 @@ def contract_hashes(contracts: Mapping[str, Any]) -> dict[str, str]:
 
 def validate_contracts(extracted: Mapping[str, Any], manifest: Mapping[str, Any]) -> None:
     actual = contract_hashes(extracted["contracts"])
-    expected = manifest["upstream_contract_hashes"]
+    expected = dict(manifest["upstream_contract_hashes"])
+    # Reviewed function sources keep structural changes explicit and auditable.
+    expected.update({
+        name: canonical_hash(source)
+        for name, source in manifest.get("upstream_contract_sources", {}).items()
+    })
     missing = sorted(set(expected) - set(actual))
     changed = sorted(
         name for name in expected
@@ -511,6 +519,42 @@ def sync_node_matching(current: str, contracts: Mapping[str, Any]) -> str:
     return sync_definitions(current, "rateRegionDefinitions", {"低倍率节点": rates["低倍率节点"]})
 
 
+def sync_matching_helpers(current: str, contracts: Mapping[str, Any]) -> str:
+    """Use upstream's reviewed matching helpers without rewriting original names."""
+    regex = contracts.get("invisibleCharsRegex")
+    if not isinstance(regex, str) or not re.fullmatch(JS_REGEX_LITERAL, regex):
+        raise BuildError("Unsupported upstream invisible-character matching expression")
+    declaration = f"const invisibleCharsRegex = {regex};"
+    pattern = r"(?m)^const invisibleCharsRegex\s*=\s*[^\n]+$"
+    declarations = len(re.findall(pattern, current))
+    if declarations == 0:
+        anchor = "const regionMatchCache = new Map();"
+        if current.count(anchor) != 1:
+            raise BuildError("Expected exactly one local region-match cache")
+        current = current.replace(anchor, declaration + "\n\n" + anchor)
+    elif declarations == 1:
+        current = re.sub(pattern, lambda _match: declaration, current)
+    else:
+        raise BuildError("Duplicate local invisible-character matching expression")
+
+    for name in ("toMatchableName", "getMatchedRegions"):
+        source = contracts["functions"].get(name)
+        pattern = rf"(?ms)^function {name}\([^\n]*\) \{{.*?^\}}"
+        if not isinstance(source, str) or not re.fullmatch(pattern, source):
+            raise BuildError(f"Unsupported upstream matching helper: {name}")
+        count = len(re.findall(pattern, current))
+        if count == 0 and name == "toMatchableName":
+            anchor = "const regionMatchCache = new Map();"
+            if current.count(anchor) != 1:
+                raise BuildError("Expected exactly one local region-match cache")
+            current = current.replace(anchor, source + "\n\n" + anchor)
+        elif count == 1:
+            current = re.sub(pattern, lambda _match: source, current)
+        else:
+            raise BuildError(f"Expected exactly one local matching helper: {name}")
+    return current
+
+
 def render_script(
     current: str,
     upstream: str,
@@ -570,6 +614,7 @@ def build(
     )
     applied_domains, excluded_domains = select_real_ip_domains(real_ip_domains)
     current_script = sync_node_matching(current_script, extracted["contracts"])
+    current_script = sync_matching_helpers(current_script, extracted["contracts"])
     script = render_script(current_script, upstream, sha, base, services, service_renames, applied_domains)
     report = {
         "schema_version": 1,
@@ -579,6 +624,11 @@ def build(
             "commit": sha,
         },
         "upstream_matching": {
+            "invisibleCharsRegex": extracted["contracts"]["invisibleCharsRegex"],
+            "functions": {
+                name: extracted["contracts"]["functions"][name]
+                for name in ("toMatchableName", "getMatchedRegions")
+            },
             "excludeFilter": extracted["contracts"]["excludeFilter"],
             "regionDefinitions": [
                 item for item in extracted["contracts"]["regionDefinitions"]

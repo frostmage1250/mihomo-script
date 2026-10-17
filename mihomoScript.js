@@ -530,14 +530,15 @@ function filterProxies(config) {
     const type = String(proxy.type ?? '').toLowerCase();
     if (type === 'direct' || type === 'reject' || type === 'rematch') return false;
 
+    const matchableName = toMatchableName(proxy.name);
     const matchedRegions = getMatchedRegions(proxy.name);
-    if (lowRateRegex?.test(proxy.name)) return false;
+    if (lowRateRegex?.test(matchableName)) return false;
 
     if (!filterNonRegionProxiesEnabled) return true;
 
     const isRegionProxy = matchedRegions.some((region) => regionDefinitions.includes(region));
 
-    return isRegionProxy || !excludeFilter.test(proxy.name);
+    return isRegionProxy || !excludeFilter.test(matchableName);
   });
 
   const filteredProxies = [];
@@ -1135,6 +1136,7 @@ const servicePolicyTargets = {
   YouTube: 'YouTube',
   Google: 'Google',
   AI: 'AI',
+  GitHub: 'GitHub',
   Microsoft: 'Proxy',
   Apple: 'Proxy',
   Telegram: 'Telegram',
@@ -1218,7 +1220,7 @@ function buildRules() {
     'RULE-SET,mcdn屏蔽,REJECT',
     ...serviceRules('Claude'),
     ...serviceRules('AI'),
-    ...serviceRules('Microsoft').filter((rule) => rule.split(',')[1] === 'github'),
+    ...serviceRules('GitHub'),
     ...serviceRules('Telegram'),
     // Media groups by reviewed domain + IP entry counts; retain adjacent IP fallbacks.
     ...serviceRules('AppleTV'),
@@ -1236,7 +1238,7 @@ function buildRules() {
     ...serviceRules('pron'),
     ...serviceRules('Google'),
     ...serviceRules('Apple'),
-    ...serviceRules('Microsoft').filter((rule) => rule.split(',')[1] !== 'github'),
+    ...serviceRules('Microsoft'),
     'RULE-SET,geolocation-!cn,Proxy',
     'RULE-SET,geolocation-cn,Direct',
     'RULE-SET,cn_ip,Direct',

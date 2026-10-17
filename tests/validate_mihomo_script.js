@@ -143,7 +143,7 @@ for (const [serviceName, upstreamProviders] of Object.entries(buildReport.upstre
 }
 
 const matching = new Function(
-  source + "\nreturn { excludeFilter, regionDefinitions, rateRegionDefinitions };"
+  source + "\nreturn { excludeFilter, regionDefinitions, rateRegionDefinitions, invisibleCharsRegex, toMatchableName, getMatchedRegions, filterProxies, ruleOptionsEnable };"
 )();
 assert(String(matching.excludeFilter) === buildReport.upstream_matching.excludeFilter, "node exclusion regex must match upstream");
 for (const kind of ["regionDefinitions", "rateRegionDefinitions"]) {
@@ -152,6 +152,46 @@ for (const kind of ["regionDefinitions", "rateRegionDefinitions"]) {
     assert(actual && String(actual.regex) === item.regex, "node matching regex differs from upstream: " + item.name);
   }
 }
+assert(String(matching.invisibleCharsRegex) === buildReport.upstream_matching.invisibleCharsRegex, "invisible-character regex must match the pinned upstream");
+for (const name of ["toMatchableName", "getMatchedRegions"]) {
+  assert(String(matching[name]) === buildReport.upstream_matching.functions[name], "matching helper differs from pinned upstream: " + name);
+}
+
+const zw = (name) => [...name].join("\u200B");
+const invisibleNames = [
+  zw("HK 01"), "\u3164SG\uFFA0 03", zw("TW 01"),
+  zw("日本 0.3x"), "HK 01", "H\u200CK", "H\u200DK", "❤️ HK 02",
+];
+const invisibleOutput = main({
+  proxies: [
+    ...invisibleNames.map((name) => ss(name)),
+    ss(zw("HK 01"), { server: "duplicate.example.com" }),
+    ss(zw("官网公告")),
+  ],
+  dns: {}, hosts: {},
+});
+const invisibleGroups = new Map(invisibleOutput["proxy-groups"].map((group) => [group.name, group]));
+assert(isDeepStrictEqual(invisibleOutput.proxies.slice(0, invisibleNames.length).map((proxy) => proxy.name), invisibleNames), "invisible characters and all distinct original names must be preserved in source order");
+assert(invisibleOutput.proxies.length === invisibleNames.length + 2, "only exact duplicate names and information nodes may be removed");
+assert(invisibleGroups.get("香港").proxies.includes(zw("HK 01")), "zero-width Hong Kong node must be recognized");
+assert(invisibleGroups.get("新加坡").proxies.includes("\u3164SG\uFFA0 03"), "Hangul filler characters must not interrupt Singapore matching");
+assert(invisibleGroups.get("台湾").proxies.includes(zw("TW 01")), "local Taiwan definition must also match through invisible characters");
+assert(invisibleGroups.get("低倍率节点").proxies.includes(zw("日本 0.3x")), "zero-width low-rate node must be grouped");
+assert(matching.toMatchableName("H\u200CK\u200DJ\uFE0F") === "H\u200CK\u200DJ\uFE0F", "ZWJ, ZWNJ and variation selectors must be retained");
+assert(matching.toMatchableName("\uFEFFH\u202AK\u2060\u2063\u206601\u2069") === "HK01", "BOM and bidirectional/invisible controls must be ignored for matching");
+matching.ruleOptionsEnable.过滤低倍率节点 = true;
+try {
+  const filtered = matching.filterProxies({ proxies: [ss(zw("HK 01")), ss(zw("日本 0.3x"))] });
+  assert(isDeepStrictEqual(filtered.map((proxy) => proxy.name), [zw("HK 01")]), "low-rate filtering must use the matchable name");
+} finally {
+  matching.ruleOptionsEnable.过滤低倍率节点 = false;
+}
+
+assert(isDeepStrictEqual(buildReport.retained_services.GitHub.providers, ["github"]), "GitHub provider must belong to the upstream GitHub service");
+assert(isDeepStrictEqual(buildReport.retained_services.GitHub.rules, ["RULE-SET,github,GitHub"]), "GitHub rule must follow its upstream service");
+assert(!buildReport.retained_services.Microsoft.providers.includes("github"), "GitHub provider must no longer be extracted from Microsoft");
+assert(output.rules.filter((rule) => rule === "RULE-SET,github,GitHub").length === 1, "GitHub rule must occur exactly once");
+
 const bracketRateNames = ["日本【x0】", "日本\t0倍", "日本\u00a0x0 "];
 const bracketRateOutput = main({ proxies: bracketRateNames.map((name) => ss(name)), dns: {}, hosts: {} });
 const bracketRateGroup = bracketRateOutput["proxy-groups"].find((group) => group.name === "低倍率节点");
