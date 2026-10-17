@@ -122,14 +122,14 @@ const baseRuleProviders = {
     "path": "./ruleset/private_ip.mrs",
     "path-in-bundle": "geo/geoip/private.mrs"
   },
-  "games_cn": {
+  "steam_cn": {
     "type": "http",
     "format": "mrs",
     "interval": 86400,
     "behavior": "domain",
-    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/category-games@cn.mrs",
-    "path": "./ruleset/category-games@cn.mrs",
-    "path-in-bundle": "geo/geosite/category-games@cn.mrs"
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/steam@cn.mrs",
+    "path": "./ruleset/steam@cn.mrs",
+    "path-in-bundle": "geo/geosite/steam@cn.mrs"
   },
   "apple_cn": {
     "type": "http",
@@ -1132,7 +1132,7 @@ const additionalServiceDefinitions = {
 const selectedBaseRuleProviderNames = [
   'private',
   'private_ip',
-  'games_cn',
+  'steam_cn',
   'apple_cn',
   'microsoft_cn',
   'geolocation-cn',
@@ -1242,7 +1242,7 @@ function buildRules() {
     ...serviceRules('TikTok'),
     ...serviceRules('YouTube'),
     ...serviceRules("Meta"),
-    'RULE-SET,games_cn,Direct',
+    'RULE-SET,steam_cn,Direct',
     'RULE-SET,apple_cn,Direct',
     'RULE-SET,microsoft_cn,Direct',
     ...serviceRules('Steam'),

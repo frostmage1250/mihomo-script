@@ -391,6 +391,57 @@ policy_groups:
         self.assertNotEqual(base["douyin"], old_provider)
         self.assertEqual(services["Service"]["providers"], extracted["services"][0]["providers"])
 
+    def test_base_ruleset_replacement_inherits_upstream_mirror_and_fields(self) -> None:
+        provider = {
+            "type": "http", "format": "mrs", "interval": 21600, "behavior": "domain",
+            "url": "https://new-cdn.example/gh/appshubcc/bett-rules@meta/geo/geosite/category-games@cn.mrs",
+            "path": "./ruleset/category-games@cn.mrs",
+            "path-in-bundle": "geo/geosite/category-games@cn.mrs",
+            "proxy": "DIRECT",
+        }
+        extracted = {"baseRuleProviders": {"games_cn": provider}, "services": []}
+        manifest = {
+            "retained_services": [], "retained_base_rule_providers": ["games_cn"],
+            "reserved_extra_provider_names": [],
+            "base_rule_provider_replacements": {
+                "games_cn": {"name": "steam_cn", "from": "category-games@cn", "to": "steam@cn"},
+            },
+        }
+        base, _services, _renames, _order = select_upstream_definitions(extracted, manifest)
+        self.assertEqual(list(base), ["steam_cn"])
+        self.assertEqual(base["steam_cn"], {
+            **provider,
+            "url": "https://new-cdn.example/gh/appshubcc/bett-rules@meta/geo/geosite/steam@cn.mrs",
+            "path": "./ruleset/steam@cn.mrs",
+            "path-in-bundle": "geo/geosite/steam@cn.mrs",
+        })
+        self.assertTrue(provider["url"].endswith("/category-games@cn.mrs"))
+
+    def test_base_ruleset_replacement_rejects_source_drift_and_collisions(self) -> None:
+        provider = {
+            "type": "http", "format": "mrs", "interval": 86400, "behavior": "domain",
+            "url": "https://cdn.example/geosite/category-games@cn.mrs",
+            "path": "./ruleset/category-games@cn.mrs",
+            "path-in-bundle": "geo/geosite/category-games@cn.mrs",
+        }
+        manifest = {
+            "retained_services": [], "retained_base_rule_providers": ["games_cn"],
+            "reserved_extra_provider_names": [],
+            "base_rule_provider_replacements": {
+                "games_cn": {"name": "steam_cn", "from": "category-games@cn", "to": "steam@cn"},
+            },
+        }
+        for field in ("url", "path", "path-in-bundle"):
+            with self.subTest(field=field):
+                drifted = {**provider, field: provider[field].replace("category-games@cn", "changed")}
+                with self.assertRaisesRegex(BuildError, "replacement source changed"):
+                    select_upstream_definitions({"baseRuleProviders": {"games_cn": drifted}, "services": []}, manifest)
+        with self.assertRaisesRegex(BuildError, "name collision"):
+            select_upstream_definitions(
+                {"baseRuleProviders": {"games_cn": provider}, "services": []},
+                {**manifest, "reserved_extra_provider_names": ["steam_cn"]},
+            )
+
     def test_ai_provider_uses_converter_url_without_bett_bundle_path(self) -> None:
         provider = {
             "type": "http", "format": "mrs", "interval": 86400,

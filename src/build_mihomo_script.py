@@ -251,6 +251,30 @@ def _validate_provider(name: str, provider: Mapping[str, Any]) -> None:
         raise BuildError(f"Provider {name} changed behavior to {provider['behavior']!r}")
 
 
+def replace_base_ruleset(
+    name: str, provider: Mapping[str, Any], replacement: Mapping[str, str],
+) -> tuple[str, dict[str, Any]]:
+    """Replace only a reviewed ruleset filename, preserving the upstream CDN and fields."""
+    if set(replacement) != {"name", "from", "to"} or any(
+        not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_@.!-]+", value)
+        for value in replacement.values()
+    ):
+        raise BuildError(f"Invalid base ruleset replacement for {name}")
+    target_name = replacement["name"]
+    old_suffix = "/" + replacement["from"] + ".mrs"
+    new_suffix = "/" + replacement["to"] + ".mrs"
+    updated = dict(provider)
+    for field in ("url", "path", "path-in-bundle"):
+        if field == "path-in-bundle" and field not in provider:
+            continue
+        value = provider.get(field)
+        if not isinstance(value, str) or not value.endswith(old_suffix):
+            raise BuildError(f"Base ruleset replacement source changed: {name}.{field}")
+        updated[field] = value[:-len(old_suffix)] + new_suffix
+    _validate_provider(target_name, updated)
+    return target_name, updated
+
+
 def detect_service_renames(previous_order: list[str], current_order: list[str]) -> dict[str, str]:
     """Pair renamed services inside sequence replacement blocks while ignoring pure additions."""
     renames: dict[str, str] = {}
@@ -363,13 +387,22 @@ def select_upstream_definitions(
         raise BuildError("Selected upstream services collide with reserved Bett providers: " + ", ".join(collisions))
 
     upstream_base = extracted["baseRuleProviders"]
+    replacements = manifest.get("base_rule_provider_replacements", {})
+    unknown_replacements = set(replacements) - set(manifest["retained_base_rule_providers"])
+    if unknown_replacements:
+        raise BuildError("Base ruleset replacement names unselected providers: " + ", ".join(sorted(unknown_replacements)))
     selected_base: dict[str, Any] = {}
     for name in manifest["retained_base_rule_providers"]:
         provider = upstream_base.get(name)
         if provider is None:
             raise BuildError(f"Required upstream base provider disappeared: {name}")
         _validate_provider(name, provider)
-        selected_base[name] = provider
+        output_name = name
+        if name in replacements:
+            output_name, provider = replace_base_ruleset(name, provider, replacements[name])
+        if output_name in selected_base or output_name in selected_provider_names or output_name in manifest["reserved_extra_provider_names"]:
+            raise BuildError(f"Base ruleset replacement provider name collision: {output_name}")
+        selected_base[output_name] = provider
     return selected_base, selected_services, reference_renames, current_service_order
 
 
@@ -649,15 +682,16 @@ def build(
             "excluded_domains": excluded_domains,
         },
         # Record unmodified definitions from the pinned upstream revision.
-        # Only explicit custom URL overrides may differ in the final output.
+        # Explicit ruleset replacements and custom URL overrides are recorded below.
         "upstream_base_rule_providers": {
-            name: extracted["baseRuleProviders"][name] for name in base
+            name: extracted["baseRuleProviders"][name] for name in manifest["retained_base_rule_providers"]
         },
         "upstream_service_rule_providers": {
             service["name"]: service["providers"]
             for service in extracted["services"] if service["name"] in services
         },
         "retained_base_rule_providers": list(base),
+        "base_rule_provider_replacements": manifest.get("base_rule_provider_replacements", {}),
         "service_provider_url_overrides": manifest.get("service_provider_url_overrides", {}),
         "upstream_service_order": service_order,
         "retained_services": {

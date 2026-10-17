@@ -125,11 +125,22 @@ function assertUpstreamProvider(name, upstreamProvider, overrideUrl, removeBundl
   if (removeBundlePath) delete expected["path-in-bundle"];
   assert(isDeepStrictEqual(providers[name], expected), `provider differs from pinned upstream/custom override: ${name}`);
 }
+assert(isDeepStrictEqual(buildReport.base_rule_provider_replacements, manifest.base_rule_provider_replacements), "base ruleset replacements differ from manifest");
 for (const [name, provider] of Object.entries(buildReport.upstream_base_rule_providers)) {
+  const replacement = manifest.base_rule_provider_replacements?.[name];
+  const expected = { ...provider };
+  if (replacement) {
+    const oldSuffix = "/" + replacement.from + ".mrs";
+    for (const field of ["url", "path", "path-in-bundle"]) {
+      if (field === "path-in-bundle" && !(field in expected)) continue;
+      assert(expected[field].endsWith(oldSuffix), `upstream replacement source changed: ${name}.${field}`);
+      expected[field] = expected[field].slice(0, -oldSuffix.length) + "/" + replacement.to + ".mrs";
+    }
+  }
   const overrideUrl = name === "geolocation-cn"
     ? "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs"
     : undefined;
-  assertUpstreamProvider(name, provider, overrideUrl);
+  assertUpstreamProvider(replacement?.name || name, expected, overrideUrl);
 }
 for (const [serviceName, upstreamProviders] of Object.entries(buildReport.upstream_service_rule_providers)) {
   const configuredName = manifest.retained_services.find((name) =>
@@ -229,7 +240,7 @@ for (const host of [
 ]) assert(!(host in output.hosts), `permanently excluded host must not remain: ${host}`);
 
 for (const required of [
-  "private", "private_ip", "games_cn", "apple_cn", "microsoft_cn", "geolocation-cn",
+  "private", "private_ip", "steam_cn", "apple_cn", "microsoft_cn", "geolocation-cn",
   "cn_ip", "geolocation-!cn", "fakeip_filter", "cn", "douyin", "google", "google_ip",
   "telegram", "telegram_ip", "steam", "steam_ip", "tiktok", "tiktok_ip",
   "twitter", "twitter_ip", "facebook_ip", "twitch", "appletv", "claude", "bypass_japan",
@@ -253,6 +264,14 @@ for (const rule of output.rules) {
   if (parts[0] === "RULE-SET") assert(parts[1] in providers, `rule references missing provider: ${parts[1]}`);
 }
 assert(!output.rules.some((rule) => /qwen|qbittorrent|cn_additional|googlefcm/i.test(rule)), "unapproved handwritten or removed rules remain");
+assert(!("games_cn" in providers), "broad games_cn provider must be replaced");
+assert(!output.rules.some((rule) => rule.startsWith("RULE-SET,games_cn,")), "broad games_cn rule must be replaced");
+assert(providers.steam_cn.url.endsWith("/geosite/steam@cn.mrs"), "Steam CN must inherit the upstream mirror with the steam@cn ruleset");
+assert(providers.steam_cn.path === "./ruleset/steam@cn.mrs", "Steam CN cache path must use the new ruleset");
+assert(providers.steam_cn["path-in-bundle"] === "geo/geosite/steam@cn.mrs", "Steam CN bundle path must use the new ruleset");
+assert(buildReport.retained_base_rule_providers.includes("steam_cn") && !buildReport.retained_base_rule_providers.includes("games_cn"), "build report must record the effective Steam CN replacement");
+assert(output.rules.filter((rule) => rule === "RULE-SET,steam_cn,Direct").length === 1, "Steam CN direct rule must occur exactly once");
+assert(output.rules.indexOf("RULE-SET,steam_cn,Direct") < output.rules.indexOf("RULE-SET,steam,Proxy"), "Steam CN direct rule must precede Steam proxy routing");
 assert(output.rules.indexOf("RULE-SET,apple_cn,Direct") < output.rules.indexOf("RULE-SET,apple,Proxy"), "Apple CN layering order is wrong");
 assert(providers.apple.format === "mrs" && providers.apple.behavior === "domain", "Apple merge must use domain MRS");
 assert(providers.apple.url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/apple-merged.mrs", "Apple must use the shared merged provider");
@@ -284,7 +303,7 @@ assert(output.rules.includes("RULE-SET,appletv,媒体"), "AppleTV must target th
 const reviewedOrder = [
   "claude", "ai", "github", "telegram", "telegram_ip",
   "appletv", "twitch", "twitter", "twitter_ip", "tiktok", "tiktok_ip", "youtube", "meta", "facebook_ip",
-  "games_cn", "apple_cn", "microsoft_cn", "steam", "steam_ip", "pikpak", "ehentai", "bypass_japan",
+  "steam_cn", "apple_cn", "microsoft_cn", "steam", "steam_ip", "pikpak", "ehentai", "bypass_japan",
   "google", "google_ip", "apple", "apple_ip", "microsoft", "microsoft_ip",
   "geolocation-!cn", "geolocation-cn", "cn_ip",
 ];
