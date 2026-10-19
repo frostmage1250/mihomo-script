@@ -6,7 +6,7 @@
       "to": "steam@cn"
     }
   },
-  "output_sha256": "7ae6d35279eb6ec8c5dc65fecee2e95ca12b876400fbed18ec2e13eb27d4e319",
+  "output_sha256": "b4c66d7872bff36cda7ffe315cae7d4eaf8961a21ba591f7cf62e38657ab30ed",
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -193,7 +193,7 @@
     }
   },
   "upstream": {
-    "commit": "badd718b81a7c541b574e975ba48d8ca7813759c",
+    "commit": "76a53db334a403becb00f0c2156b66340a26acf3",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
   },
@@ -322,7 +322,7 @@
       },
       {
         "name": "美国",
-        "regex": "/🇺🇸|美国|纽约|洛杉矶|旧金山|芝加哥|休斯顿|迈阿密|西雅图|波士顿|华盛顿|拉斯维加斯|圣何塞|圣地亚哥|(?<![A-Za-z])USA?(?![A-Za-z])|america|united\\s*states/i"
+        "regex": "/🇺🇸|美国|纽约|洛杉矶|旧金山|芝加哥|休斯顿|迈阿密|西雅图|波士顿|华盛顿|拉斯维加斯|圣何塞|(?<![A-Za-z])USA?(?![A-Za-z])|america|united\\s*states/i"
       },
       {
         "name": "新加坡",
