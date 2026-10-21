@@ -6,7 +6,7 @@
       "to": "steam@cn"
     }
   },
-  "output_sha256": "b4c66d7872bff36cda7ffe315cae7d4eaf8961a21ba591f7cf62e38657ab30ed",
+  "output_sha256": "0cc55b8f66432206f39c6e42898305d3f11ef90e274a94919e07b185a4ee1462",
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -193,7 +193,7 @@
     }
   },
   "upstream": {
-    "commit": "76a53db334a403becb00f0c2156b66340a26acf3",
+    "commit": "0c7a93ae424aefda5c44d781a05607490ed3dca1",
     "path": "Script/mihomoScript.js",
     "repository": "AIsouler/MyClash"
   },
