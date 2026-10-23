@@ -19,7 +19,7 @@
       "to": "steam@cn"
     }
   },
-  "output_sha256": "a145416a2b0c8aec3c3c902f71fa485c33cd1f8c7c345b98cc48e1ff2b06b761",
+  "output_sha256": "3cb7b283d8b341f76080a4eceeae39f999f85c27b82c4aec4c62d3382aa20485",
   "prefix_rule_policy": {
     "excluded_rules": [
       "DOMAIN,fsend.cn,直连",
