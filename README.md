@@ -58,6 +58,7 @@ tracking; output behavior remains governed by the customization policy.
 - Restore the upstream Google service hosts mapping.
 - Follow upstream SVG icon URLs and names for groups with upstream equivalents.
 - Keep the repository-specific Claude, media, and pron groups without icons.
+- Follow the upstream group test URL for manual latency tests; keep every group as select with interval 0.
 - Keep the ctaiot.com direct suffix and the current service/fallback ordering.
 - Explicitly exclude Epic Games and preserve the existing fsend.cn exclusion.
 - Preserve MCDN REJECT precedence and the selected upstream domain/IP pairs.

@@ -179,6 +179,7 @@ const __contractFunctions = {
   main,
 };
 const __payload = {
+  groupTestUrl: groupBaseOption.url,
   baseRuleProviders,
   prefixRules,
   icons: Object.fromEntries([
@@ -724,6 +725,21 @@ def sync_group_icons(
         current = current.replace(anchor, begin + "\n" + end + "\n\n" + anchor)
     return replace_marked(current, begin, end, render_const("groupIcons", selected)), selected
 
+
+def sync_group_test_url(current: str, extracted: Mapping[str, Any]) -> tuple[str, str]:
+    """Follow the upstream test URL while keeping manual select groups on interval zero."""
+    url = extracted["groupTestUrl"]
+    if not isinstance(url, str) or not url.startswith("https://"):
+        raise BuildError("Upstream group test URL must be HTTPS")
+    begin = "// BEGIN GENERATED: GROUP_TEST_URL"
+    end = "// END GENERATED: GROUP_TEST_URL"
+    if begin not in current and end not in current:
+        anchor = "function buildProxyGroups("
+        if current.count(anchor) != 1:
+            raise BuildError("Expected one proxy-group builder for the test URL")
+        current = current.replace(anchor, begin + "\n" + end + "\n\n" + anchor)
+    return replace_marked(current, begin, end, render_const("groupTestUrl", url)), url
+
 def render_script(
     current: str,
     upstream: str,
@@ -788,6 +804,7 @@ def build(
     script = render_script(current_script, upstream, sha, base, services, service_renames, applied_domains)
     script = sync_prefix_rules(script, prefix_rules, base)
     script, group_icons = sync_group_icons(script, extracted, manifest)
+    script, group_test_url = sync_group_test_url(script, extracted)
     report = {
         "schema_version": 1,
         "upstream": {
@@ -811,6 +828,8 @@ def build(
                 if item["name"] == "低倍率节点"
             ],
         },
+        "upstream_group_test_url": group_test_url,
+        "group_test_interval": 0,
         "upstream_group_icons": extracted["icons"],
         "group_icon_sources": manifest["group_icon_sources"],
         "applied_group_icons": group_icons,

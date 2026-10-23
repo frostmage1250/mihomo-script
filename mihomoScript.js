@@ -1311,6 +1311,10 @@ const groupIcons = {
 };
 // END GENERATED: GROUP_ICONS
 
+// BEGIN GENERATED: GROUP_TEST_URL
+const groupTestUrl = "https://www.apple.com/library/test/success.html";
+// END GENERATED: GROUP_TEST_URL
+
 function buildProxyGroups(regionProxyMap, subscriptionProxies) {
   const regionOrder = ['香港', '台湾', '新加坡', '日本', '美国', '其他节点', '低倍率节点'];
   const sourceRegionName = (name) => (name === '台湾' ? '台湾省' : name);
@@ -1319,6 +1323,8 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     name,
     type: 'select',
     proxies,
+    url: groupTestUrl,
+    interval: 0,
     ...(groupIcons[name] ? { icon: groupIcons[name] } : {}),
     'empty-fallback': 'REJECT',
   });

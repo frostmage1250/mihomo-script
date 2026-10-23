@@ -89,7 +89,7 @@ assert(!groups.has("GLOBAL") && !groups.has("高倍率节点"), "forbidden group
 
 for (const group of groups.values()) {
   assert(group["empty-fallback"] === "REJECT", `empty-fallback missing from ${group.name}`);
-  for (const field of ["url", "interval", "timeout", "lazy", "max-failed-times"]) {
+  for (const field of ["timeout", "lazy", "max-failed-times"]) {
     assert(!(field in group), `unexpected ${field} in ${group.name}`);
   }
 }
@@ -119,6 +119,16 @@ const upstreamSource = fs.readFileSync(path.join(root, "Script", "mihomoScript.j
 assert(require("crypto").createHash("sha256").update(upstreamSource).digest("hex") === buildReport.fork.source_sha256, "source digest must match the complete merged upstream file");
 
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "custom", "customizations.json"), "utf8"));
+
+const upstreamGroupTestUrl = new Function(upstreamSource + "\nreturn groupBaseOption.url;")();
+assert(buildReport.upstream_group_test_url === upstreamGroupTestUrl, "test URL provenance must follow upstream");
+assert(buildReport.group_test_interval === 0, "manual test interval provenance must be zero");
+for (const group of groups.values()) {
+  assert(group.type === "select", "groups must retain manual selection");
+  assert(group.url === upstreamGroupTestUrl, "group test URL must follow upstream for " + group.name);
+  assert(group.interval === 0, "scheduled health checks must stay disabled for " + group.name);
+}
+
 
 for (const [name, upstreamName] of Object.entries(manifest.group_icon_sources)) {
   const icon = buildReport.upstream_group_icons[upstreamName];
