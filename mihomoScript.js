@@ -1139,18 +1139,18 @@ const additionalServiceDefinitions = {
 };
 
 const selectedBaseRuleProviderNames = [
-  'private',
-  'private_ip',
-  'steam_cn',
-  'nvidia_cn',
-  'apple_cn',
-  'microsoft_cn',
-  'geolocation-cn',
-  'cn_ip',
-  'geolocation-!cn',
-  'fakeip_filter',
-  'cn',
-  'douyin',
+  "private",
+  "private_ip",
+  "steam_cn",
+  "nvidia_cn",
+  "apple_cn",
+  "microsoft_cn",
+  "geolocation-cn",
+  "cn_ip",
+  "geolocation-!cn",
+  "fakeip_filter",
+  "cn",
+  "douyin"
 ];
 
 const servicePolicyTargets = {

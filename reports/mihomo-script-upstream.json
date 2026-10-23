@@ -1,4 +1,17 @@
 {
+  "applied_prefix_rules": {
+    "bootstrap": [
+      "DOMAIN,cdn.jsdmirror.com,Direct"
+    ],
+    "direct": [
+      "RULE-SET,steam_cn,Direct",
+      "RULE-SET,nvidia_cn,Direct",
+      "RULE-SET,apple_cn,Direct",
+      "RULE-SET,microsoft_cn,Direct",
+      "DOMAIN,international-gfe.download.nvidia.com,Direct",
+      "DOMAIN-SUFFIX,ctaiot.com,Direct"
+    ]
+  },
   "base_rule_provider_replacements": {
     "games_cn": {
       "from": "category-games@cn",
@@ -6,7 +19,18 @@
       "to": "steam@cn"
     }
   },
-  "output_sha256": "0cc55b8f66432206f39c6e42898305d3f11ef90e274a94919e07b185a4ee1462",
+  "output_sha256": "a145416a2b0c8aec3c3c902f71fa485c33cd1f8c7c345b98cc48e1ff2b06b761",
+  "prefix_rule_policy": {
+    "excluded_rules": [
+      "DOMAIN,fsend.cn,直连",
+      "RULE-SET,epicgames,直连"
+    ],
+    "existing_rule_providers": [
+      "private",
+      "private_ip",
+      "geolocation-cn"
+    ]
+  },
   "real_ip_domains_upstream": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -52,6 +76,7 @@
     "private",
     "private_ip",
     "steam_cn",
+    "nvidia_cn",
     "apple_cn",
     "microsoft_cn",
     "geolocation-cn",
@@ -279,6 +304,15 @@
       "type": "http",
       "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/microsoft@cn.mrs"
     },
+    "nvidia_cn": {
+      "behavior": "domain",
+      "format": "mrs",
+      "interval": 86400,
+      "path": "./ruleset/nvidia@cn.mrs",
+      "path-in-bundle": "geo/geosite/nvidia@cn.mrs",
+      "type": "http",
+      "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/nvidia@cn.mrs"
+    },
     "private": {
       "behavior": "domain",
       "format": "mrs",
@@ -330,6 +364,19 @@
       }
     ]
   },
+  "upstream_prefix_rules": [
+    "DOMAIN,cdn.jsdmirror.com,直连",
+    "RULE-SET,private,直连",
+    "RULE-SET,geolocation-cn,直连",
+    "RULE-SET,games_cn,直连",
+    "RULE-SET,epicgames,直连",
+    "RULE-SET,nvidia_cn,直连",
+    "RULE-SET,apple_cn,直连",
+    "RULE-SET,microsoft_cn,直连",
+    "DOMAIN,fsend.cn,直连",
+    "DOMAIN,international-gfe.download.nvidia.com,直连",
+    "DOMAIN-SUFFIX,ctaiot.com,直连"
+  ],
   "upstream_service_order": [
     "手动选择",
     "自动选择",
