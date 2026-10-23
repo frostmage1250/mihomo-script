@@ -13,8 +13,6 @@ name = "bettbox-script-check"
 version = "0.1.0"
 dependencies = [
  "rquickjs",
- "rquickjs-core",
- "rquickjs-sys",
 ]
 
 [[package]]

@@ -346,7 +346,6 @@
   },
   "client_compatibility": {
     "bettbox_reference": "v1.19.7",
-    "rquickjs": "0.12.2",
     "memory_limit": 134217728,
     "stack_limit": 524288,
     "timeout_seconds": 10

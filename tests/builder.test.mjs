@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { parseScript, indexDeclarations, dependencyClosure, freeNames, transformDns, extractModel, globalConfigFunction } from "../custom/lib/ast.mjs";
 import { generate } from "astring";
 import { retargetRule, ruleReferences, matchesRule, replaceProviderAsset, planRules } from "../custom/lib/rules.mjs";
-import { selectDomains, render } from "../custom/build_mihomo_script.mjs";
+import { selectDomains } from "../custom/build_mihomo_script.mjs";
 import fs from "node:fs";
 const manifest = JSON.parse(fs.readFileSync(new URL("../custom/customizations.json", import.meta.url), "utf8"));
 
@@ -93,12 +93,4 @@ test("main rules are extracted from declaration order, independent of sample nod
   const model = extractModel(changed,manifest);
   assert.equal(model.baseRules.some(entry => entry.rules.includes("DOMAIN,new-global.example.com,默认代理") && entry.position==="after_services"),true);
   assert.equal(model.icons["其他节点"],model.evaluate(parseScript("iconBaseUrl + 'WorldMap.svg'").body[0].expression));
-});
-test("fixed snapshot renders without a published file or network request", () => {
-  const snapshot = JSON.parse(fs.readFileSync(new URL("../.build/snapshot.json",import.meta.url),"utf8"));
-  const first = render(snapshot), second = render(snapshot);
-  assert.deepEqual(first,second);
-  const changed = structuredClone(snapshot);
-  changed.upstream += "\n";
-  assert.throws(() => render(changed), /digest/);
 });

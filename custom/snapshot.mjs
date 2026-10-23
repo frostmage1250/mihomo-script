@@ -31,6 +31,18 @@ export async function capture() {
   const localFiles = {};
   for (const file of sourceFiles) localFiles[file] = sha256(await fs.readFile(path.join(ROOT, file)));
   const validation = JSON.parse(await fs.readFile(path.join(ROOT, ".build/validation.json"), "utf8"));
+  const cargoLock = await fs.readFile(path.join(ROOT, "tests/bettbox-runner/Cargo.lock"), "utf8");
+  const metadata = JSON.parse(execFileSync("cargo", ["metadata", "--offline", "--locked", "--format-version", "1",
+    "--manifest-path", "tests/bettbox-runner/Cargo.toml"], {cwd: ROOT, encoding: "utf8"}));
+  const profile = manifest.client_compatibility;
+  validation.bettbox = {
+    reference: profile.bettbox_reference,
+    rquickjs: metadata.packages.find(item => item.name === "rquickjs").version,
+    cargo_lock_sha256: sha256(cargoLock),
+    memory_limit: profile.memory_limit,
+    stack_limit: profile.stack_limit,
+    timeout_seconds: profile.timeout_seconds,
+  };
   const lock = {
     schema_version: 1,
     upstream: {repository: manifest.upstream.repository, commit: upstreamCommit, file_commit: fileCommit, path: manifest.upstream.path, sha256: sha256(upstream)},

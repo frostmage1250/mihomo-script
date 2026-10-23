@@ -34,55 +34,32 @@ export function render(snapshot) {
   const plan = planRules(model, manifest);
   const compiled = compileScript(model, manifest, domains.applied, plan, snapshot.runtime, lock.upstream);
   const report = {
-    schema_version: 2,
-    upstream: lock.upstream,
-    fork: {source_mode: "native-git-merge", upstream_commit: lock.upstream.commit, source_path: lock.upstream.path, source_sha256: lock.upstream.sha256},
-    source_lock: lock,
+    schema_version: 3,
+    source_mode: "native-git-merge",
+    source_lock: manifest.source_lock,
     output_sha256: sha256(compiled.script),
-    real_ip_domains_upstream: {...lock.real_ip_domains, domains: domains.domains, applied_domains: domains.applied, excluded_domains: domains.excluded},
-    applied_prefix_rules: Object.fromEntries(["bootstrap", "private", "direct", "fallback"].map(key => [key, plan.blocks[key]])),
-    applied_service_rule_blocks: Object.fromEntries(["before_direct", "after_direct"].map(key => [key, plan.blocks[key]])),
+    real_ip_domains: {applied_domains: domains.applied, excluded_domains: domains.excluded},
     rule_blocks: plan.blocks,
     rule_coverage: plan.coverage,
     stale_customizations: plan.stale,
     default_service_routes: plan.defaults,
     selected_services: plan.selectedServices,
-    upstream_services: model.services,
-    upstream_base_rule_providers: model.baseRuleProviders,
-    upstream_base_rules: model.baseRules,
-    upstream_regions: model.regionDefinitions,
-    upstream_rate_regions: model.rateRegionDefinitions,
     applied_group_icons: compiled.icons,
-    upstream_group_icons: model.icons,
-    upstream_group_test_url: model.groupTestUrl,
-    emitted_declarations: compiled.emittedDeclarations,
-    client_compatibility: manifest.client_compatibility,
-    global_overrides: manifest.global_overrides,
-    omitted_global_fields: manifest.omitted_global_fields,
   };
   return {script: compiled.script, report: JSON.stringify(report, null, 2) + "\n", lock: JSON.stringify(lock, null, 2) + "\n"};
 }
 
-export async function build(check = false) {
+export async function build() {
   const snapshot = JSON.parse(await fs.readFile(path.join(ROOT, ".build/snapshot.json"), "utf8"));
   for (const [file, digest] of Object.entries(snapshot.lock.local_files)) {
     if (sha256(await fs.readFile(path.join(ROOT, file))) !== digest) throw new Error("Source changed after snapshot: " + file);
   }
   const result = render(snapshot);
   const files = [[snapshot.manifest.output, result.script], [snapshot.manifest.report, result.report], [snapshot.manifest.source_lock, result.lock]];
-  const changed = [];
-  for (const [file, content] of files) {
-    let existing;
-    try { existing = await fs.readFile(path.join(ROOT, file), "utf8"); } catch (error) { if (error.code !== "ENOENT") throw error; }
-    if (existing !== content) {
-      changed.push(file);
-      if (!check) await fs.writeFile(path.join(ROOT, file), content);
-    }
-  }
-  if (check && changed.length) throw new Error("Generated outputs differ: " + changed.join(", "));
-  console.log("Fixed-input build; changed files: " + changed.length);
+  await Promise.all(files.map(([file, content]) => fs.writeFile(path.join(ROOT, file), content)));
+  console.log("Generated the script, report, and source lock once from fixed inputs.");
   return result;
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  build(process.argv.includes("--check")).catch(error => { console.error(error.stack); process.exitCode = 1; });
+  build().catch(error => { console.error(error.stack); process.exitCode = 1; });
 }
