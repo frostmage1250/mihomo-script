@@ -124,7 +124,7 @@
     "香港": "香港"
   },
   "group_test_interval": 0,
-  "output_sha256": "e55dbee3247b80a2602aab757c2a78b785d703b852629af5523e2b448622fb9c",
+  "output_sha256": "6fb8947491363c6fe5634c2565dac8eb736f0880e5a04f243d22ffe8e69366ac",
   "prefix_rule_policy": {
     "excluded_rules": [
       "DOMAIN,fsend.cn,直连",
@@ -706,6 +706,10 @@
       {
         "name": "新加坡",
         "regex": "/🇸🇬|新加坡|狮城|(?<![A-Za-z])SGP?(?![A-Za-z])|singapore/i"
+      },
+      {
+        "name": "台湾",
+        "regex": "/🇹🇼|台湾|台北|高雄|(?<![A-Za-z])TWN?(?![A-Za-z])|taiwan/i"
       }
     ]
   },

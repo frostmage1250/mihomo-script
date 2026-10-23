@@ -43,27 +43,11 @@ const directProxies = [
 
 // 定义地区策略组
 const regionDefinitions = [
-  {
-    name: '香港',
-    regex: /🇭🇰|香港|(?<![A-Za-z])HKG?(?![A-Za-z])|hong\s*kong/i,
-  },
-  {
-    name: '日本',
-    regex: /🇯🇵|日本|东京|大阪|京都|(?<![A-Za-z])JPN?(?![A-Za-z])|japan/i,
-  },
-  {
-    name: '美国',
-    regex:
-      /🇺🇸|美国|纽约|洛杉矶|旧金山|芝加哥|休斯顿|迈阿密|西雅图|波士顿|华盛顿|拉斯维加斯|圣何塞|(?<![A-Za-z])USA?(?![A-Za-z])|america|united\s*states/i,
-  },
-  {
-    name: '新加坡',
-    regex: /🇸🇬|新加坡|狮城|(?<![A-Za-z])SGP?(?![A-Za-z])|singapore/i,
-  },
-  {
-    name: '台湾',
-    regex: /🇹🇼|台湾|台北|高雄|(?<![A-Za-z])TWN?(?![A-Za-z])|taiwan/i,
-  },
+  { name: "香港", regex: /🇭🇰|香港|(?<![A-Za-z])HKG?(?![A-Za-z])|hong\s*kong/i },
+  { name: "日本", regex: /🇯🇵|日本|东京|大阪|京都|(?<![A-Za-z])JPN?(?![A-Za-z])|japan/i },
+  { name: "美国", regex: /🇺🇸|美国|纽约|洛杉矶|旧金山|芝加哥|休斯顿|迈阿密|西雅图|波士顿|华盛顿|拉斯维加斯|圣何塞|(?<![A-Za-z])USA?(?![A-Za-z])|america|united\s*states/i },
+  { name: "新加坡", regex: /🇸🇬|新加坡|狮城|(?<![A-Za-z])SGP?(?![A-Za-z])|singapore/i },
+  { name: "台湾", regex: /🇹🇼|台湾|台北|高雄|(?<![A-Za-z])TWN?(?![A-Za-z])|taiwan/i },
 ];
 
 // 定义倍率策略组
@@ -1230,6 +1214,11 @@ function buildRules() {
 
 // BEGIN GENERATED: GROUP_ICONS
 const groupIcons = {
+  "香港": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/HongKong.svg",
+  "日本": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Japan.svg",
+  "美国": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/America.svg",
+  "新加坡": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Singapore.svg",
+  "台湾": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Taiwan.svg",
   "Proxy": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Proxy.svg",
   "订阅": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Static.svg",
   "Direct": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/China.svg",
@@ -1240,11 +1229,6 @@ const groupIcons = {
   "Telegram": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Telegram.svg",
   "PikPak": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/PikPak.svg",
   "EHentai": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/EHentai.svg",
-  "香港": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/HongKong.svg",
-  "台湾": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Taiwan.svg",
-  "新加坡": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Singapore.svg",
-  "日本": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Japan.svg",
-  "美国": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/America.svg",
   "其他节点": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/WorldMap.svg",
   "低倍率节点": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Available.svg",
   "Final": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Stack.svg"
