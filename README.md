@@ -19,7 +19,7 @@ https://raw.githubusercontent.com/frostmage1250/mihomo-script/main/mihomoScript.
   retained for existing commit-pinned consumers and recovery.
 - `Script/mihomoScript.js`: the complete upstream source, byte-for-byte.
 - `custom/build_mihomo_script.py`: applies the retained customization boundary.
-- `custom/customizations.json`: retained services, explicit replacements and exclusions.
+- `custom/customizations.json`: routing preferences, explicit provider overrides and exclusions.
 - `custom/upstream.json`: full upstream commit, source digest, secondary DNS source,
   provider definitions, direct-rule provenance, and output digest.
 - `mihomoScript.js`: the standalone subscription artifact.
@@ -41,9 +41,13 @@ source and license; this keeps excluded assets from returning during later merge
 
 The publishing layer continues to apply the existing reviewed customization scope.
 Upstream regexes, DNS/hosts source, TUN stack, retained provider/service definitions,
-and selected direct prefix rules flow into the generated artifact. Reviewed structural
-changes stop publication for review. The Fork relationship provides full commit
-tracking; output behavior remains governed by the customization policy.
+and base prefix/fallback rules flow into the generated artifact. Services and providers
+use their current upstream names; explicit exclusions define the selection boundary.
+New upstream services use Proxy after the configured service blocks. Routing preferences
+control existing local targets and order without requiring historical service names.
+Dependency errors, conflicting definitions, and invalid generated configurations stop
+publication. The generator extracts each source once per build; provenance digests
+record the source and output rather than locking upstream function text.
 
 ## Retained behavior
 
@@ -53,14 +57,15 @@ tracking; output behavior remains governed by the customization policy.
 - Use system DNS for mainland-domain and Direct re-resolution; preserve private DNS handling.
 - Import compatible real-IP domains from [Repcz/Tool](https://github.com/Repcz/Tool/blob/X/Egern/Egern.yaml).
 - Retain the AI, Apple, geolocation-cn, Claude, pron, and MCDN converter sources.
-- Use current upstream service and provider names directly; the retained service selection uses Meta.
+- Use current upstream service/provider names and declared provider types directly, including domain, process, and logical rules.
 - Keep Steam CN, NVIDIA CN, Apple CN, and Microsoft CN direct exceptions.
 - Place CDN, private-domain, private-IP, and MCDN rules at the start of the direct-exception block after media rules.
 - Restore the upstream Google service hosts mapping.
-- Follow upstream SVG icon URLs and names for groups with upstream equivalents.
+- Copy upstream group test URLs and icon URLs directly; omit optional icons when upstream omits them.
 - Keep the repository-specific Claude, media, and pron groups without icons.
 - Follow the upstream group test URL for manual latency tests; keep every group as select with interval 0.
 - Keep the ctaiot.com direct suffix and the current service/fallback ordering.
+- Exclude Android FCM rules, providers, and its DNS filter; retain the complete upstream reference file.
 - Explicitly exclude Epic Games and preserve the existing fsend.cn exclusion.
 - Preserve MCDN REJECT precedence and the selected upstream domain/IP pairs.
 

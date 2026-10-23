@@ -12,21 +12,6 @@
   },
   "output": "mihomoScript.js",
   "report": "custom/upstream.json",
-  "retained_services": [
-    "YouTube",
-    "Google",
-    "AI",
-    "GitHub",
-    "Microsoft",
-    "Apple",
-    "Telegram",
-    "Steam",
-    "TikTok",
-    "Twitter",
-    "Meta",
-    "PikPak",
-    "EHentai"
-  ],
   "service_provider_url_overrides": {
     "AI": {
       "ai": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/ai.mrs"
@@ -34,36 +19,6 @@
     "Apple": {
       "apple": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/apple-merged.mrs"
     }
-  },
-  "retained_base_rule_providers": [
-    "private",
-    "private_ip",
-    "games_cn",
-    "nvidia_cn",
-    "apple_cn",
-    "microsoft_cn",
-    "geolocation-cn",
-    "cn_ip",
-    "geolocation-!cn",
-    "fakeip_filter",
-    "cn",
-    "douyin"
-  ],
-  "reserved_extra_provider_names": [
-    "threads",
-    "facebook",
-    "twitch",
-    "bypass_japan",
-    "mcdn屏蔽",
-    "appletv"
-  ],
-  "upstream_contract_hashes": {
-    "directProxies": "274c2d92801cbf5c5e794cb295f386350375aa5cd172da91e2ba049f73946ab7"
-  },
-  "upstream_contract_sources": {
-    "function:filterAndNormalizeProxies": "function filterAndNormalizeProxies(config) {\n  regionMatchCache.clear();\n\n  const filterLowRateProxiesEnabled = ruleOptionsEnable.过滤低倍率节点;\n  const filterHighRateProxiesEnabled = ruleOptionsEnable.过滤高倍率节点;\n  const filterNonRegionProxiesEnabled = ruleOptionsEnable.过滤非地区节点;\n\n  const lowRateRegex = filterLowRateProxiesEnabled\n    ? rateRegionDefinitions.find((r) => r.name === lowRateRegionName)?.regex\n    : null;\n  const highRateRegex = filterHighRateProxiesEnabled\n    ? rateRegionDefinitions.find((r) => r.name === highRateRegionName)?.regex\n    : null;\n\n  const originalProxies = config.proxies || [];\n\n  const filteredRawProxies = originalProxies.filter((proxy) => {\n    const type = String(proxy.type ?? '').toLowerCase();\n    if (type === 'direct' || type === 'reject' || type === 'rematch') return false;\n\n    const matchableName = toMatchableName(proxy.name);\n\n    if (lowRateRegex?.test(matchableName) || highRateRegex?.test(matchableName)) return false;\n\n    if (!filterNonRegionProxiesEnabled) return true;\n\n    const isRegionProxy = getMatchedRegions(proxy.name).some((region) => regionDefinitions.includes(region));\n\n    return isRegionProxy || !excludeFilter.test(matchableName);\n  });\n\n  const renameMap = new Map();\n  const normalizedProxies = [];\n  const uniqueNames = new Set();\n\n  for (const rawProxy of filteredRawProxies) {\n    const normalized = normalizeProxyName(rawProxy);\n    if (normalized.name !== rawProxy.name) {\n      renameMap.set(rawProxy.name, normalized.name);\n    }\n    if (!uniqueNames.has(normalized.name)) {\n      uniqueNames.add(normalized.name);\n      normalizedProxies.push(normalized);\n    }\n  }\n\n  const normalizedProxyNames = new Set(normalizedProxies.map((p) => p.name));\n\n  const filteredProxies = normalizedProxies.map((proxy) => fixDialerProxy(proxy, renameMap, normalizedProxyNames));\n\n  if (!filteredProxies.length) {\n    throw new Error('配置文件中未找到任何代理节点，请使用机场提供的配置文件进行覆写');\n  }\n\n  const ipVersionPreference = getIpVersionPreference();\n  if (ipVersionPreference) {\n    return filteredProxies.map((proxy) =>\n      proxy['ip-version'] === ipVersionPreference ? proxy : { ...proxy, 'ip-version': ipVersionPreference },\n    );\n  }\n\n  return filteredProxies;\n}",
-    "function:toMatchableName": "function toMatchableName(name) {\n  return typeof name === 'string' ? name.replace(invisibleCharsRegex, '') : name;\n}",
-    "function:getMatchedRegions": "function getMatchedRegions(proxyName) {\n  if (regionMatchCache.has(proxyName)) {\n    return regionMatchCache.get(proxyName);\n  }\n\n  const matchableName = toMatchableName(proxyName);\n  const regions = allRegionDefinitions.filter((region) => region.regex.test(matchableName));\n  regionMatchCache.set(proxyName, regions);\n\n  return regions;\n}"
   },
   "base_rule_provider_replacements": {
     "games_cn": {
@@ -76,11 +31,6 @@
     "excluded_rules": [
       "DOMAIN,fsend.cn,直连",
       "RULE-SET,epicgames,直连"
-    ],
-    "existing_rule_providers": [
-      "private",
-      "private_ip",
-      "geolocation-cn"
     ]
   },
   "group_icon_sources": {
@@ -102,5 +52,138 @@
     "其他节点": "其他节点",
     "低倍率节点": "低倍率节点",
     "Final": "漏网之鱼"
+  },
+  "excluded_services": [
+    "FCM",
+    "Line",
+    "Netflix",
+    "Emby",
+    "Spotify",
+    "Crypto",
+    "PayPal",
+    "Patreon",
+    "AdBlock"
+  ],
+  "excluded_base_rule_providers": [
+    "epicgames",
+    "cn_additional"
+  ],
+  "base_rule_provider_url_overrides": {
+    "geolocation-cn": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs"
+  },
+  "service_routing": {
+    "Claude": {
+      "target": "Claude",
+      "section": "before_direct",
+      "order": 10
+    },
+    "AI": {
+      "target": "AI",
+      "section": "before_direct",
+      "order": 20
+    },
+    "GitHub": {
+      "target": "GitHub",
+      "section": "before_direct",
+      "order": 30
+    },
+    "Telegram": {
+      "target": "Telegram",
+      "section": "before_direct",
+      "order": 40
+    },
+    "AppleTV": {
+      "target": "媒体",
+      "section": "before_direct",
+      "order": 50
+    },
+    "Twitch": {
+      "target": "媒体",
+      "section": "before_direct",
+      "order": 60
+    },
+    "Twitter": {
+      "target": "媒体",
+      "section": "before_direct",
+      "order": 70
+    },
+    "TikTok": {
+      "target": "媒体",
+      "section": "before_direct",
+      "order": 80
+    },
+    "YouTube": {
+      "target": "YouTube",
+      "section": "before_direct",
+      "order": 90
+    },
+    "Meta": {
+      "target": "媒体",
+      "section": "before_direct",
+      "order": 100
+    },
+    "Steam": {
+      "target": "Proxy",
+      "section": "after_direct",
+      "order": 10
+    },
+    "PikPak": {
+      "target": "PikPak",
+      "section": "after_direct",
+      "order": 20
+    },
+    "EHentai": {
+      "target": "EHentai",
+      "section": "after_direct",
+      "order": 30
+    },
+    "pron": {
+      "target": "pron",
+      "section": "after_direct",
+      "order": 40
+    },
+    "Google": {
+      "target": "Google",
+      "section": "after_direct",
+      "order": 50
+    },
+    "Apple": {
+      "target": "Proxy",
+      "section": "after_direct",
+      "order": 60
+    },
+    "Microsoft": {
+      "target": "Proxy",
+      "section": "after_direct",
+      "order": 70
+    }
+  },
+  "default_service_routing": {
+    "target": "Proxy",
+    "section": "after_direct",
+    "order": 1000
+  },
+  "base_rule_routing": {
+    "private": {
+      "section": "private",
+      "order": 10
+    },
+    "private_ip": {
+      "section": "private",
+      "order": 20,
+      "no_resolve": true
+    },
+    "geolocation-cn": {
+      "section": "fallback",
+      "order": 20
+    },
+    "geolocation-!cn": {
+      "section": "fallback",
+      "order": 10
+    },
+    "cn_ip": {
+      "section": "fallback",
+      "order": 30
+    }
   }
 }

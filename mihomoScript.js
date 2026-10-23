@@ -163,9 +163,8 @@ const baseRuleProviders = {
     "format": "mrs",
     "interval": 86400,
     "behavior": "domain",
-    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/geolocation-cn.mrs",
-    "path": "./ruleset/geolocation-cn.mrs",
-    "path-in-bundle": "geo/geosite/geolocation-cn.mrs"
+    "url": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs",
+    "path": "./ruleset/geolocation-cn.mrs"
   },
   "cn_ip": {
     "type": "http",
@@ -975,7 +974,6 @@ function simplifyDomainPolicy(policy) {
  * 2. proxy-server-nameserver 有且仅有一个 DNS 并且该 DNS 包含 127.0.0.1 并且 listen 包含 0.0.0.0
  */
 function buildDnsAndHostsConfig(config, filteredProxies) {
-  const minimalModeEnabled = ruleOptionsEnable.极简模式;
 
   const originalDnsConfig = config.dns || {};
 
@@ -1062,7 +1060,6 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
       'rule-set:private',
       'rule-set:fakeip_filter',
       'rule-set:geolocation-cn',
-      ...(minimalModeEnabled ? [] : ruleOptionsEnable['FCM'] ? ['rule-set:googlefcm'] : []),
       ...proxyFakeIpFilter,
     ],
     'default-nameserver': defaultDNS,
@@ -1140,43 +1137,12 @@ const additionalServiceDefinitions = {
   },
 };
 
-const selectedBaseRuleProviderNames = [
-  "private",
-  "private_ip",
-  "steam_cn",
-  "nvidia_cn",
-  "apple_cn",
-  "microsoft_cn",
-  "geolocation-cn",
-  "cn_ip",
-  "geolocation-!cn",
-  "fakeip_filter",
-  "cn",
-  "douyin"
-];
-
-const servicePolicyTargets = {
-  pron: 'pron',
-  Claude: 'Claude',
-  YouTube: 'YouTube',
-  Google: 'Google',
-  AI: 'AI',
-  GitHub: 'GitHub',
-  Microsoft: 'Proxy',
-  Apple: 'Proxy',
-  Telegram: 'Telegram',
-  Steam: 'Proxy',
-  TikTok: '媒体',
-  Twitter: '媒体',
-  "Meta": '媒体',
-  PikPak: 'PikPak',
-  EHentai: 'EHentai',
-  Twitch: '媒体',
-  AppleTV: '媒体',
-};
-
-const serviceRulePolicyTargets = {
-  github: 'GitHub',
+const additionalRuleProviders = {
+  'mcdn屏蔽': {
+    ...ruleProviderCommonDomain,
+    url: 'https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/mcdn-block.mrs',
+    path: './ruleset/mcdn-block.mrs',
+  },
 };
 
 function allRetainedServiceDefinitions() {
@@ -1184,65 +1150,21 @@ function allRetainedServiceDefinitions() {
 }
 
 function buildRuleProviders() {
-  const providers = Object.fromEntries(
-    selectedBaseRuleProviderNames.map((name) => {
-      const provider = baseRuleProviders[name];
-      if (!provider) throw new Error('缺少上游基础规则集：' + name);
-      return [name, provider];
-    }),
-  );
-
+  const providers = { ...baseRuleProviders };
   for (const service of Object.values(allRetainedServiceDefinitions())) {
-    for (const [name, provider] of Object.entries(service.providers || {})) {
-      if (providers[name] && JSON.stringify(providers[name]) !== JSON.stringify(provider)) {
-        throw new Error('规则集名称冲突且定义不同：' + name);
-      }
-      providers[name] = provider;
-    }
+    Object.assign(providers, service.providers || {});
   }
-
-  if (providers['mcdn屏蔽']) throw new Error('mcdn屏蔽规则集名称冲突');
-  providers['mcdn屏蔽'] = {
-    ...ruleProviderCommonDomain,
-    url: 'https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/mcdn-block.mrs',
-    path: './ruleset/mcdn-block.mrs',
-  };
-
-  providers['geolocation-cn'] = {
-    ...providers['geolocation-cn'],
-    url: 'https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs',
-  };
-  delete providers['geolocation-cn']['path-in-bundle'];
-
-  return providers;
-}
-
-function retargetServiceRule(rule, target) {
-  const parts = rule.split(',');
-  // Bettbox 当前内置的 QuickJS 未提供 Array.prototype.at。
-  const noResolve = parts[parts.length - 1] === 'no-resolve';
-  const policyIndex = noResolve ? parts.length - 2 : parts.length - 1;
-  if (policyIndex < 2 || parts[0] !== 'RULE-SET') {
-    throw new Error('无法安全转换上游服务规则：' + rule);
-  }
-  parts[policyIndex] = target;
-  return parts.join(',');
-}
-
-function serviceRules(name) {
-  const definition = allRetainedServiceDefinitions()[name];
-  const target = servicePolicyTargets[name];
-  if (!definition || !target) throw new Error('缺少保留服务定义或目标策略组：' + name);
-  return (definition.rules || []).map((rule) => {
-    const providerName = rule.split(',')[1];
-    return retargetServiceRule(rule, serviceRulePolicyTargets[providerName] || target);
-  });
+  return { ...providers, ...additionalRuleProviders };
 }
 
 // BEGIN GENERATED: UPSTREAM_PREFIX_RULES
 const upstreamPrefixRules = {
   "bootstrap": [
     "DOMAIN,cdn.jsdmirror.com,Direct"
+  ],
+  "private": [
+    "RULE-SET,private,Direct",
+    "RULE-SET,private_ip,Direct,no-resolve"
   ],
   "direct": [
     "RULE-SET,steam_cn,Direct",
@@ -1251,40 +1173,58 @@ const upstreamPrefixRules = {
     "RULE-SET,microsoft_cn,Direct",
     "DOMAIN,international-gfe.download.nvidia.com,Direct",
     "DOMAIN-SUFFIX,ctaiot.com,Direct"
+  ],
+  "fallback": [
+    "RULE-SET,geolocation-!cn,Proxy",
+    "RULE-SET,geolocation-cn,Direct",
+    "RULE-SET,cn_ip,Direct"
   ]
 };
 // END GENERATED: UPSTREAM_PREFIX_RULES
 
+// BEGIN GENERATED: SERVICE_RULE_BLOCKS
+const serviceRuleBlocks = {
+  "before_direct": [
+    "RULE-SET,claude,Claude",
+    "RULE-SET,ai,AI",
+    "RULE-SET,github,GitHub",
+    "RULE-SET,telegram,Telegram",
+    "RULE-SET,telegram_ip,Telegram,no-resolve",
+    "RULE-SET,appletv,媒体",
+    "RULE-SET,twitch,媒体",
+    "RULE-SET,twitter,媒体",
+    "RULE-SET,twitter_ip,媒体,no-resolve",
+    "RULE-SET,tiktok,媒体",
+    "RULE-SET,tiktok_ip,媒体,no-resolve",
+    "RULE-SET,youtube,YouTube",
+    "RULE-SET,meta,媒体",
+    "RULE-SET,facebook_ip,媒体,no-resolve"
+  ],
+  "after_direct": [
+    "RULE-SET,steam,Proxy",
+    "RULE-SET,steam_ip,Proxy,no-resolve",
+    "RULE-SET,pikpak,PikPak",
+    "RULE-SET,ehentai,EHentai",
+    "RULE-SET,bypass_japan,pron",
+    "RULE-SET,google,Google",
+    "RULE-SET,google_ip,Google,no-resolve",
+    "RULE-SET,apple,Proxy",
+    "RULE-SET,apple_ip,Proxy,no-resolve",
+    "RULE-SET,microsoft,Proxy",
+    "RULE-SET,microsoft_ip,Proxy,no-resolve"
+  ]
+};
+// END GENERATED: SERVICE_RULE_BLOCKS
+
 function buildRules() {
   return [
-    ...serviceRules('Claude'),
-    ...serviceRules('AI'),
-    ...serviceRules('GitHub'),
-    ...serviceRules('Telegram'),
-    // Media groups by reviewed domain + IP entry counts; retain adjacent IP fallbacks.
-    ...serviceRules('AppleTV'),
-    ...serviceRules('Twitch'),
-    ...serviceRules('Twitter'),
-    ...serviceRules('TikTok'),
-    ...serviceRules('YouTube'),
-    ...serviceRules("Meta"),
-    // Direct exceptions: CDN, private network, MCDN, then upstream CN rules.
+    ...serviceRuleBlocks.before_direct,
     ...upstreamPrefixRules.bootstrap,
-    'RULE-SET,private,Direct',
-    'RULE-SET,private_ip,Direct,no-resolve',
+    ...upstreamPrefixRules.private,
     'RULE-SET,mcdn屏蔽,REJECT',
-    ...upstreamPrefixRules.direct.filter((rule) => rule.startsWith('RULE-SET,')),
-    ...upstreamPrefixRules.direct.filter((rule) => !rule.startsWith('RULE-SET,')),
-    ...serviceRules('Steam'),
-    ...serviceRules('PikPak'),
-    ...serviceRules('EHentai'),
-    ...serviceRules('pron'),
-    ...serviceRules('Google'),
-    ...serviceRules('Apple'),
-    ...serviceRules('Microsoft'),
-    'RULE-SET,geolocation-!cn,Proxy',
-    'RULE-SET,geolocation-cn,Direct',
-    'RULE-SET,cn_ip,Direct',
+    ...upstreamPrefixRules.direct,
+    ...serviceRuleBlocks.after_direct,
+    ...upstreamPrefixRules.fallback,
     'MATCH,Final',
   ];
 }
@@ -1324,7 +1264,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     name,
     type: 'select',
     proxies,
-    url: groupTestUrl,
+    ...(groupTestUrl ? { url: groupTestUrl } : {}),
     interval: 0,
     ...(groupIcons[name] ? { icon: groupIcons[name] } : {}),
     'empty-fallback': 'REJECT',

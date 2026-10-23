@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the reviewed Mihomo override from a pinned upstream revision."""
+"""Build the custom Mihomo override from current upstream definitions."""
 
 from __future__ import annotations
 
@@ -32,14 +32,11 @@ EXCLUDED_REAL_IP_DOMAINS = frozenset({"*-update.xoyocdn.com", "*-appboot.netflix
 
 
 
-AUTO_SYNC_MATCHING_CONTRACTS = frozenset({
-    "excludeFilter", "rate:低倍率节点",
-    "region:香港", "region:日本", "region:美国", "region:新加坡",
-})
+SYNC_REGION_NAMES = frozenset({"香港", "日本", "美国", "新加坡"})
 JS_REGEX_LITERAL = r"/(?:\\.|[^/\\\r\n])+/[a-z]*"
 
 class BuildError(RuntimeError):
-    """Raised when upstream cannot be transformed without review."""
+    """Raised for invalid dependencies or unsupported source structures."""
 
 
 def fetch_json(url: str) -> Any:
@@ -162,127 +159,73 @@ def select_real_ip_domains(source_domains: list[str]) -> tuple[list[str], list[s
     return domains, excluded
 
 
-def _extract_with_node(source: str) -> dict[str, Any]:
+def _extract_with_node(source: str, current: str = "") -> dict[str, Any]:
+    """Evaluate each source once and export its current definitions."""
     export_code = r'''
-const __contractFunctions = {
-  filterAndNormalizeProxies,
-  toMatchableName,
-  getMatchedRegions,
-  hostSpecificity,
-  matchDomainPattern,
-  applyHostsToProxies,
-  stripDnsSuffix,
-  isIpAddress,
-  simplifyDomainPolicy,
-  buildDnsAndHostsConfig,
-  main,
-};
+const __sample = (name) => ({
+  name, type: 'ss', server: 'node.example.com', port: 443,
+  cipher: 'aes-128-gcm', password: 'builder-fixture',
+});
+const __generated = main({ proxies: [__sample('日本 builder'), __sample('builder-other')], dns: {}, hosts: {} });
+const __current = __CURRENT__;
+const __custom = __current ? new Function(__current + '\nreturn { services: additionalServiceDefinitions, providers: additionalRuleProviders };')() : {services: {}, providers: {}};
+const __serviceRules = new Set(serviceConfigs.flatMap((service) => service.rules || []));
+const __prefix = new Set(prefixRules);
+const __quic = new Set(typeof blockForeignQuic === 'undefined' ? [] : blockForeignQuic);
 const __payload = {
   groupTestUrl: groupBaseOption.url,
   baseRuleProviders,
   prefixRules,
+  fallbackRules: __generated.rules.filter((rule) => !__prefix.has(rule) && !__serviceRules.has(rule) && !__quic.has(rule)),
   icons: Object.fromEntries([
-    ...serviceConfigs,
-    ...regionDefinitions,
-    ...rateRegionDefinitions,
-    ...buildRegionGroups([{ name: '__icon_other__' }], []),
-    ...(() => {
-      const groups = buildFunctionalGroups([], [], { customProxyNames: [], customGroup: null });
-      return [groups.globalGroup, ...groups.functionalGroups, groups.directGroup];
-    })(),
-  ].filter((group) => group && typeof group.icon === 'string').map(({ name, icon }) => [name, icon])),
-  services: serviceConfigs.map(({ name, providers, rules }) => ({ name, providers: providers || {}, rules: rules || [] })),
+    ...serviceConfigs, ...regionDefinitions, ...rateRegionDefinitions,
+    ...__generated['proxy-groups'],
+  ].filter((group) => group && group.icon !== undefined).map(({name, icon}) => [name, icon])),
+  services: serviceConfigs.map(({name, providers, rules}) => ({name, providers: providers || {}, rules: rules || []})),
+  customServices: __custom.services,
+  customProviders: __custom.providers,
   contracts: {
     excludeFilter: String(excludeFilter),
     invisibleCharsRegex: String(invisibleCharsRegex),
-    commonDnsList,
-    directProxies,
-    regionDefinitions: regionDefinitions.map(({ name, regex }) => ({ name, regex: String(regex) })),
-    rateRegionDefinitions: rateRegionDefinitions.map(({ name, regex }) => ({ name, regex: String(regex) })),
-    functions: Object.fromEntries(Object.entries(__contractFunctions).map(([name, fn]) => [name, String(fn)])),
+    regionDefinitions: regionDefinitions.map(({name, regex}) => ({name, regex: String(regex)})),
+    rateRegionDefinitions: rateRegionDefinitions.map(({name, regex}) => ({name, regex: String(regex)})),
+    functions: {toMatchableName: String(toMatchableName), getMatchedRegions: String(getMatchedRegions)},
   },
 };
 process.stdout.write(JSON.stringify(__payload));
 '''
+    export_code = export_code.replace("__CURRENT__", json.dumps(current, ensure_ascii=False))
     with tempfile.TemporaryDirectory() as temp_dir:
         runner = Path(temp_dir) / "upstream-export.js"
         runner.write_text(source + "\n" + export_code, encoding="utf-8", newline="\n")
         try:
             completed = subprocess.run(
-                [os.environ.get("NODE_BIN", "node"), str(runner)],
-                check=True,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                timeout=60,
+                [os.environ.get("NODE_BIN", "node"), str(runner)], check=True,
+                capture_output=True, text=True, encoding="utf-8", timeout=60,
             )
         except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
-            stderr = getattr(exc, "stderr", "")
-            raise BuildError(f"Unable to evaluate upstream JavaScript with Node: {stderr or exc}") from exc
+            raise BuildError(f"Unable to extract upstream JavaScript: {getattr(exc, 'stderr', '') or exc}") from exc
     try:
         return json.loads(completed.stdout)
     except json.JSONDecodeError as exc:
-        raise BuildError("Upstream JavaScript exporter returned invalid JSON") from exc
-
-
-def canonical_hash(value: Any) -> str:
-    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
-
-
-def contract_hashes(contracts: Mapping[str, Any]) -> dict[str, str]:
-    result = {
-        "excludeFilter": canonical_hash(contracts["excludeFilter"]),
-        "commonDnsList": canonical_hash(contracts["commonDnsList"]),
-        "directProxies": canonical_hash(contracts["directProxies"]),
-    }
-    selected_regions = {item["name"]: item for item in contracts["regionDefinitions"]}
-    selected_rates = {item["name"]: item for item in contracts["rateRegionDefinitions"]}
-    # Taiwan is maintained in the local output, independently of upstream removal.
-    for name in ("香港", "日本", "美国", "新加坡"):
-        if name not in selected_regions:
-            raise BuildError(f"Required upstream region definition disappeared: {name}")
-        result[f"region:{name}"] = canonical_hash(selected_regions[name])
-    if "低倍率节点" not in selected_rates:
-        raise BuildError("Required upstream low-rate definition disappeared")
-    result["rate:低倍率节点"] = canonical_hash(selected_rates["低倍率节点"])
-    for name, source in contracts["functions"].items():
-        result[f"function:{name}"] = canonical_hash(source)
-    return result
-
-
-def validate_contracts(extracted: Mapping[str, Any], manifest: Mapping[str, Any]) -> None:
-    actual = contract_hashes(extracted["contracts"])
-    expected = dict(manifest["upstream_contract_hashes"])
-    # Reviewed function sources keep structural changes explicit and auditable.
-    expected.update({
-        name: canonical_hash(source)
-        for name, source in manifest.get("upstream_contract_sources", {}).items()
-    })
-    missing = sorted(set(expected) - set(actual))
-    changed = sorted(
-        name for name in expected
-        if name not in AUTO_SYNC_MATCHING_CONTRACTS and actual.get(name) != expected[name]
-    )
-    if missing or changed:
-        details = []
-        if missing:
-            details.append("missing: " + ", ".join(missing))
-        if changed:
-            details.append("changed: " + ", ".join(changed))
-        raise BuildError("Reviewed upstream contract changed; manual review required (" + "; ".join(details) + ")")
+        raise BuildError("Upstream exporter returned invalid JSON") from exc
 
 
 def _validate_provider(name: str, provider: Mapping[str, Any]) -> None:
-    required = {"type", "format", "interval", "behavior", "url", "path"}
-    missing = sorted(required - set(provider))
-    if missing:
-        raise BuildError(f"Provider {name} lost required fields: {', '.join(missing)}")
-    if provider["type"] != "http" or provider["format"] != "mrs":
-        raise BuildError(f"Provider {name} changed type/format")
-    expected_behavior = "ipcidr" if name.endswith("_ip") or name in {"cn_ip", "private_ip"} else "domain"
-    if provider["behavior"] != expected_behavior:
-        raise BuildError(f"Provider {name} changed behavior to {provider['behavior']!r}")
+    if not isinstance(provider, dict):
+        raise BuildError(f"Provider {name} must be an object")
+    if provider.get("type") not in {"http", "file", "inline"}:
+        raise BuildError(f"Provider {name} has an unsupported type")
+    if provider.get("behavior") not in {"domain", "ipcidr", "classical"}:
+        raise BuildError(f"Provider {name} has an unsupported behavior")
+    if provider.get("format", "yaml") not in {"mrs", "yaml", "text"}:
+        raise BuildError(f"Provider {name} has an unsupported format")
+    if provider["type"] == "http" and not isinstance(provider.get("url"), str):
+        raise BuildError(f"HTTP provider {name} requires a URL")
+    if provider["type"] == "file" and not isinstance(provider.get("path"), str):
+        raise BuildError(f"File provider {name} requires a path")
+    if provider["type"] == "inline" and not isinstance(provider.get("payload"), list):
+        raise BuildError(f"Inline provider {name} requires a payload")
 
 
 def replace_base_ruleset(
@@ -305,154 +248,184 @@ def replace_base_ruleset(
         if not isinstance(value, str) or not value.endswith(old_suffix):
             raise BuildError(f"Base ruleset replacement source changed: {name}.{field}")
         updated[field] = value[:-len(old_suffix)] + new_suffix
-    _validate_provider(target_name, updated)
     return target_name, updated
 
 
+def _apply_url_override(provider: Mapping[str, Any], url: str | None) -> dict[str, Any]:
+    updated = dict(provider)
+    if url is not None:
+        updated["url"] = url
+        updated.pop("path-in-bundle", None)
+    return updated
+
+
+def selected_base_provider_names(extracted: Mapping[str, Any], manifest: Mapping[str, Any]) -> list[str]:
+    excluded = set(manifest.get("excluded_base_rule_providers", []))
+    return [name for name in extracted["baseRuleProviders"] if name not in excluded]
+
+
 def select_upstream_definitions(
-    extracted: Mapping[str, Any],
-    manifest: Mapping[str, Any],
+    extracted: Mapping[str, Any], manifest: Mapping[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
-    services_by_name: dict[str, Any] = {}
-    current_service_order: list[str] = []
+    """Follow current names; only explicit exclusions and actual collisions restrict selection."""
+    excluded = set(manifest.get("excluded_services", []))
+    services: dict[str, Any] = {}
+    order: list[str] = []
+    overrides = manifest.get("service_provider_url_overrides", {})
     for service in extracted["services"]:
-        name = service.get("name")
-        if name in services_by_name:
-            raise BuildError(f"Duplicate upstream service definition: {name}")
-        services_by_name[name] = service
-        current_service_order.append(name)
-
-    selected_services: dict[str, Any] = {}
-    selected_provider_names: set[str] = set()
-    provider_url_overrides = manifest.get("service_provider_url_overrides", {})
-    unknown_override_services = set(provider_url_overrides) - set(manifest["retained_services"])
-    if unknown_override_services:
-        raise BuildError("Provider URL override names unknown retained services: " + ", ".join(sorted(unknown_override_services)))
-
-    for name in manifest["retained_services"]:
-        if name not in services_by_name:
-            raise BuildError(f"Selected upstream service requires its current upstream name: {name}")
-        if name in selected_services:
-            raise BuildError(f"Duplicate selected upstream service: {name}")
-        service = services_by_name[name]
-        providers = service.get("providers", {})
-        for provider_name, provider in providers.items():
+        name = service["name"]
+        if name in order:
+            raise BuildError(f"Duplicate upstream service: {name}")
+        order.append(name)
+        if name in excluded or not service.get("rules"):
+            continue
+        providers = {}
+        for provider_name, provider in service.get("providers", {}).items():
             _validate_provider(provider_name, provider)
-        rules = service.get("rules", [])
-        if not rules:
-            raise BuildError(f"Upstream service {name} has no rules")
-        referenced: set[str] = set()
-        for rule in rules:
-            parts = rule.split(",")
-            if len(parts) < 3 or parts[0] != "RULE-SET":
-                raise BuildError(f"Unsupported upstream rule in {name}: {rule}")
-            referenced.add(parts[1])
-        if referenced != set(providers):
-            raise BuildError(
-                f"Rule/provider mismatch for {name}: rules use {sorted(referenced)}, providers are {sorted(providers)}"
-            )
-        service_overrides = provider_url_overrides.get(name, {})
-        unknown_providers = set(service_overrides) - set(providers)
-        if unknown_providers:
-            raise BuildError(f"Provider URL override for {name} references missing providers: {sorted(unknown_providers)}")
-        selected_providers: dict[str, Any] = {}
-        for provider_name, provider in providers.items():
-            override_url = service_overrides.get(provider_name)
-            if override_url is not None:
-                if not isinstance(override_url, str) or not override_url.startswith("https://"):
-                    raise BuildError(f"Provider URL override for {name}.{provider_name} must be HTTPS")
-                provider = {**provider, "url": override_url}
-                provider.pop("path-in-bundle", None)
-            selected_providers[provider_name] = provider
-        selected_services[name] = {"providers": selected_providers, "rules": rules}
-        selected_provider_names.update(providers)
-
-    collisions = sorted(set(manifest["reserved_extra_provider_names"]) & selected_provider_names)
-    if collisions:
-        raise BuildError("Selected upstream services collide with reserved Bett providers: " + ", ".join(collisions))
-
-    upstream_base = extracted["baseRuleProviders"]
+            providers[provider_name] = _apply_url_override(provider, overrides.get(name, {}).get(provider_name))
+        services[name] = {"providers": providers, "rules": list(service["rules"])}
+    base = {}
     replacements = manifest.get("base_rule_provider_replacements", {})
-    unknown_replacements = set(replacements) - set(manifest["retained_base_rule_providers"])
-    if unknown_replacements:
-        raise BuildError("Base ruleset replacement names unselected providers: " + ", ".join(sorted(unknown_replacements)))
-    selected_base: dict[str, Any] = {}
     for name in selected_base_provider_names(extracted, manifest):
-        provider = upstream_base.get(name)
-        if provider is None:
-            raise BuildError(f"Required upstream base provider disappeared: {name}")
+        provider = extracted["baseRuleProviders"][name]
         _validate_provider(name, provider)
         output_name = name
         if name in replacements:
             output_name, provider = replace_base_ruleset(name, provider, replacements[name])
-        if output_name in selected_base or output_name in selected_provider_names or output_name in manifest["reserved_extra_provider_names"]:
-            raise BuildError(f"Base ruleset replacement provider name collision: {output_name}")
-        selected_base[output_name] = provider
-    return selected_base, selected_services, current_service_order
+        if output_name in base:
+            raise BuildError(f"Duplicate base provider: {output_name}")
+        base[output_name] = _apply_url_override(provider, manifest.get("base_rule_provider_url_overrides", {}).get(name))
+    all_providers = dict(base)
+    all_services = dict(services)
+    for name, service in extracted.get("customServices", {}).items():
+        if name in all_services:
+            raise BuildError(f"Upstream/custom service name conflict: {name}")
+        all_services[name] = service
+    for service in all_services.values():
+        for name, provider in service.get("providers", {}).items():
+            if name in all_providers and all_providers[name] != provider:
+                raise BuildError(f"Provider name conflict: {name}")
+            all_providers[name] = provider
+    for name, provider in extracted.get("customProviders", {}).items():
+        if name in all_providers and all_providers[name] != provider:
+            raise BuildError(f"Custom provider name conflict: {name}")
+        all_providers[name] = provider
+    for service in all_services.values():
+        for rule in service.get("rules", []):
+            validate_rule_references(rule, all_providers)
+    return base, services, order
 
 
-def selected_base_provider_names(
-    extracted: Mapping[str, Any], manifest: Mapping[str, Any],
-) -> list[str]:
-    """Include direct prefix providers from upstream alongside retained DNS providers."""
-    names = list(manifest["retained_base_rule_providers"])
-    excluded = set(manifest.get("upstream_prefix_rules", {}).get("excluded_rules", []))
-    for rule in extracted.get("prefixRules", []):
-        if rule in excluded:
+def split_rule(rule: str) -> list[str]:
+    """Split rule columns while preserving nested logical expressions."""
+    parts, start, depth = [], 0, 0
+    escaped = False
+    for index, char in enumerate(rule):
+        if escaped:
+            escaped = False
             continue
-        parts = parse_prefix_rule(rule)
-        if parts[0] == "RULE-SET" and parts[1] not in names:
-            names.append(parts[1])
-    return names
-
-
-def parse_prefix_rule(rule: str) -> list[str]:
-    parts = rule.split(",")
-    supported = {"RULE-SET", "DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "IP-CIDR", "IP-CIDR6"}
-    if (
-        len(parts) not in (3, 4) or parts[0] not in supported or not parts[1]
-        or parts[2] != "直连" or (len(parts) == 4 and parts[3] != "no-resolve")
-    ):
-        raise BuildError(f"Upstream prefix rule requires review: {rule}")
+        if char == "\\":
+            escaped = True
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+        elif char == "," and depth == 0:
+            parts.append(rule[start:index])
+            start = index + 1
+    parts.append(rule[start:])
     return parts
 
 
-def select_prefix_rules(
-    extracted: Mapping[str, Any], manifest: Mapping[str, Any],
-) -> dict[str, list[str]]:
-    """Retarget upstream direct rules while retaining local private/fallback placement."""
-    policy = manifest.get("upstream_prefix_rules", {})
-    excluded = set(policy.get("excluded_rules", []))
-    existing = set(policy.get("existing_rule_providers", []))
+def rule_policy_index(parts: list[str]) -> int:
+    index = len(parts) - 1
+    while index > 0 and parts[index] in {"no-resolve", "src", "dst"}:
+        index -= 1
+    if index < 1 or (parts[0] != "MATCH" and index < 2):
+        raise BuildError("Rule is missing its policy: " + ",".join(parts))
+    return index
+
+
+def retarget_rule(rule: str, target: str) -> str:
+    parts = split_rule(rule)
+    parts[rule_policy_index(parts)] = target
+    return ",".join(parts)
+
+
+def validate_rule_references(rule: str, providers: Mapping[str, Any]) -> None:
+    rule_policy_index(split_rule(rule))
+    for name in re.findall(r"(?:^|[,(])RULE-SET,([^,()]+)", rule):
+        if name not in providers:
+            raise BuildError(f"Rule references missing provider {name}: {rule}")
+
+
+def select_prefix_rules(extracted: Mapping[str, Any], manifest: Mapping[str, Any]) -> dict[str, list[str]]:
+    """Place current upstream base rules using explicit local placement preferences."""
+    result = {"bootstrap": [], "private": [], "direct": [], "fallback": []}
+    excluded = set(manifest.get("upstream_prefix_rules", {}).get("excluded_rules", []))
     replacements = manifest.get("base_rule_provider_replacements", {})
-    download_hosts = {
-        urllib.parse.urlsplit(provider["url"]).hostname
-        for name in selected_base_provider_names(extracted, manifest)
-        for provider in [extracted["baseRuleProviders"][name]]
-        if isinstance(provider.get("url"), str)
+    placements = manifest.get("base_rule_routing", {})
+    hosts = {
+        urllib.parse.urlsplit(provider.get("url", "")).hostname
+        for provider in extracted["baseRuleProviders"].values()
     }
-    result: dict[str, list[str]] = {"bootstrap": [], "direct": []}
-    seen: set[str] = set()
-    for rule in extracted["prefixRules"]:
+    entries: dict[str, list[tuple[int, int, str]]] = {key: [] for key in result}
+    seen = set()
+    source_rules = [(rule, "direct") for rule in extracted.get("prefixRules", [])]
+    source_rules += [(rule, "fallback") for rule in extracted.get("fallbackRules", [])]
+    for sequence, (rule, default_section) in enumerate(source_rules):
         if rule in excluded:
             continue
-        parts = parse_prefix_rule(rule)
-        if parts[0] == "RULE-SET":
-            if parts[1] in existing:
-                continue
-            parts[1] = replacements.get(parts[1], {}).get("name", parts[1])
-        parts[2] = "Direct"
-        converted = ",".join(parts)
-        if converted in seen:
+        parts = split_rule(rule)
+        if parts[0] == "MATCH":
             continue
-        seen.add(converted)
-        bucket = "bootstrap" if parts[0] == "DOMAIN" and parts[1] in download_hosts else "direct"
-        result[bucket].append(converted)
+        source_name = parts[1] if parts[0] == "RULE-SET" else None
+        preference = placements.get(source_name, {})
+        section = preference.get("section", default_section)
+        if parts[0] == "DOMAIN" and parts[1] in hosts:
+            section = "bootstrap"
+        if source_name:
+            parts[1] = replacements.get(source_name, {}).get("name", source_name)
+        policy_index = rule_policy_index(parts)
+        original_policy = parts[policy_index]
+        parts[policy_index] = {"直连": "Direct", "DIRECT": "Direct", "默认代理": "Proxy", "漏网之鱼": "Final"}.get(original_policy, original_policy)
+        if preference.get("no_resolve") and "no-resolve" not in parts[policy_index + 1:]:
+            parts.append("no-resolve")
+        value = ",".join(parts)
+        if value in seen:
+            continue
+        seen.add(value)
+        entries[section].append((preference.get("order", sequence + 100), sequence, value))
+    for section in result:
+        result[section] = [rule for _priority, _sequence, rule in sorted(entries[section])]
     return result
 
 
+def render_service_rule_blocks(
+    services: Mapping[str, Any], extracted: Mapping[str, Any], manifest: Mapping[str, Any],
+) -> tuple[dict[str, list[str]], list[dict[str, Any]]]:
+    blocks = {"before_direct": [], "after_direct": []}
+    plan = []
+    combined = {**services, **extracted.get("customServices", {})}
+    default = manifest.get("default_service_routing", {"target": "Proxy", "section": "after_direct", "order": 1000})
+    for sequence, (name, service) in enumerate(combined.items()):
+        route = {**default, **manifest.get("service_routing", {}).get(name, {})}
+        if route["section"] not in blocks:
+            raise BuildError(f"Invalid local routing section for {name}")
+        plan.append({
+            "name": name, "origin": "upstream" if name in services else "custom",
+            "target": route["target"], "section": route["section"],
+            "order": route["order"], "sequence": sequence,
+            "rules": [retarget_rule(rule, route["target"]) for rule in service.get("rules", [])],
+        })
+    plan.sort(key=lambda item: (item["order"], item["sequence"]))
+    for item in plan:
+        blocks[item["section"]].extend(item["rules"])
+    return blocks, plan
+
+
 def sync_prefix_rules(
-    current: str, prefix_rules: Mapping[str, Any], base: Mapping[str, Any],
+    current: str, prefix_rules: Mapping[str, Any],
 ) -> str:
     begin = "// BEGIN GENERATED: UPSTREAM_PREFIX_RULES"
     end = "// END GENERATED: UPSTREAM_PREFIX_RULES"
@@ -464,12 +437,6 @@ def sync_prefix_rules(
     current = replace_marked(
         current, begin, end, render_const("upstreamPrefixRules", prefix_rules),
     )
-    pattern = r"(?ms)^const selectedBaseRuleProviderNames = \[.*?^\];"
-    current, count = re.subn(
-        pattern, lambda _match: render_const("selectedBaseRuleProviderNames", list(base)), current,
-    )
-    if count != 1:
-        raise BuildError("Expected one selected base provider list")
     return current
 
 
@@ -495,11 +462,11 @@ def render_dns_section(upstream: str, real_ip_domains: list[str]) -> str:
     # The local single-subscription group is named Proxy.
     body = body.replace("#默认代理", "#Proxy")
 
-    # FCM is intentionally absent from this streamlined output.
+    # Remove the optional Android FCM filter and its unused minimal-mode variable.
+    body = re.sub(r"(?m)^[ \t]*\.\.\.[^\n]*rule-set:googlefcm[^\n]*\r?\n?", "", body)
     body = re.sub(
-        r"(?m)^[ \t]*\.\.\.\(ruleOptionsEnable\['FCM'\] \? \['rule-set:googlefcm'\] : \[\]\),\r?\n?",
-        "",
-        body,
+        r"(?m)^[ \t]*const minimalModeEnabled = ruleOptionsEnable\.极简模式;\r?\n?",
+        "", body,
     )
 
     # These upstream hosts are permanently excluded from the generated output.
@@ -612,14 +579,17 @@ def sync_node_matching(current: str, contracts: Mapping[str, Any]) -> str:
     regions = {item["name"]: item["regex"] for item in contracts["regionDefinitions"]}
     current = sync_definitions(
         current, "regionDefinitions",
-        {name: regions[name] for name in ("香港", "日本", "美国", "新加坡")},
+        {name: value for name, value in regions.items() if name in SYNC_REGION_NAMES},
     )
     rates = {item["name"]: item["regex"] for item in contracts["rateRegionDefinitions"]}
-    return sync_definitions(current, "rateRegionDefinitions", {"低倍率节点": rates["低倍率节点"]})
+    return sync_definitions(
+        current, "rateRegionDefinitions",
+        {name: value for name, value in rates.items() if name == "低倍率节点"},
+    )
 
 
 def sync_matching_helpers(current: str, contracts: Mapping[str, Any]) -> str:
-    """Use upstream's reviewed matching helpers without rewriting original names."""
+    """Copy current upstream matching helpers while preserving original node names."""
     regex = contracts.get("invisibleCharsRegex")
     if not isinstance(regex, str) or not re.fullmatch(JS_REGEX_LITERAL, regex):
         raise BuildError("Unsupported upstream invisible-character matching expression")
@@ -663,9 +633,8 @@ def sync_group_icons(
     selected: dict[str, str] = {}
     for name, upstream_name in manifest["group_icon_sources"].items():
         icon = source_icons.get(upstream_name)
-        if not isinstance(icon, str) or not icon.startswith("https://") or not icon.endswith(".svg"):
-            raise BuildError(f"Required upstream SVG icon changed: {name} -> {upstream_name}")
-        selected[name] = icon
+        if icon is not None:
+            selected[name] = icon
     begin = "// BEGIN GENERATED: GROUP_ICONS"
     end = "// END GENERATED: GROUP_ICONS"
     if begin not in current and end not in current:
@@ -676,11 +645,9 @@ def sync_group_icons(
     return replace_marked(current, begin, end, render_const("groupIcons", selected)), selected
 
 
-def sync_group_test_url(current: str, extracted: Mapping[str, Any]) -> tuple[str, str]:
+def sync_group_test_url(current: str, extracted: Mapping[str, Any]) -> tuple[str, str | None]:
     """Follow the upstream test URL while keeping manual select groups on interval zero."""
-    url = extracted["groupTestUrl"]
-    if not isinstance(url, str) or not url.startswith("https://"):
-        raise BuildError("Upstream group test URL must be HTTPS")
+    url = extracted.get("groupTestUrl")
     begin = "// BEGIN GENERATED: GROUP_TEST_URL"
     end = "// END GENERATED: GROUP_TEST_URL"
     if begin not in current and end not in current:
@@ -717,7 +684,7 @@ def render_script(
         updated,
         BEGIN_SERVICES,
         END_SERVICES,
-        "// 从锁定上游提取；仓库构建器按服务名重新生成此对象\n"
+        "// 从本轮上游提取；保留当前服务和规则集原名\n"
         + render_const("retainedServiceDefinitions", services),
     )
     return updated.replace("\r\n", "\n").rstrip() + "\n"
@@ -731,15 +698,26 @@ def build(
     real_ip_domains: list[str],
     real_ip_domains_sha: str,
 ) -> tuple[str, str]:
-    extracted = _extract_with_node(upstream)
-    validate_contracts(extracted, manifest)
+    extracted = _extract_with_node(upstream, current_script)
     base, services, service_order = select_upstream_definitions(extracted, manifest)
     prefix_rules = select_prefix_rules(extracted, manifest)
+    service_blocks, routing_plan = render_service_rule_blocks(services, extracted, manifest)
+    available_providers = dict(base)
+    for service in (*services.values(), *extracted.get("customServices", {}).values()):
+        available_providers.update(service.get("providers", {}))
+    available_providers.update(extracted.get("customProviders", {}))
+    for rules in prefix_rules.values():
+        for rule in rules:
+            validate_rule_references(rule, available_providers)
     applied_domains, excluded_domains = select_real_ip_domains(real_ip_domains)
     current_script = sync_node_matching(current_script, extracted["contracts"])
     current_script = sync_matching_helpers(current_script, extracted["contracts"])
     script = render_script(current_script, upstream, sha, base, services, applied_domains)
-    script = sync_prefix_rules(script, prefix_rules, base)
+    script = sync_prefix_rules(script, prefix_rules)
+    script = replace_marked(
+        script, "// BEGIN GENERATED: SERVICE_RULE_BLOCKS", "// END GENERATED: SERVICE_RULE_BLOCKS",
+        render_const("serviceRuleBlocks", service_blocks),
+    )
     script, group_icons = sync_group_icons(script, extracted, manifest)
     script, group_test_url = sync_group_test_url(script, extracted)
     report = {
@@ -758,7 +736,7 @@ def build(
             "excludeFilter": extracted["contracts"]["excludeFilter"],
             "regionDefinitions": [
                 item for item in extracted["contracts"]["regionDefinitions"]
-                if f"region:{item['name']}" in AUTO_SYNC_MATCHING_CONTRACTS
+                if item["name"] in SYNC_REGION_NAMES
             ],
             "rateRegionDefinitions": [
                 item for item in extracted["contracts"]["rateRegionDefinitions"]
@@ -782,6 +760,11 @@ def build(
         # Record unmodified definitions from the pinned upstream revision.
         # Explicit ruleset replacements and custom URL overrides are recorded below.
         "upstream_prefix_rules": extracted["prefixRules"],
+        "upstream_fallback_rules": extracted["fallbackRules"],
+        "service_routing_plan": routing_plan,
+        "applied_service_rule_blocks": service_blocks,
+        "excluded_services": manifest.get("excluded_services", []),
+        "excluded_base_rule_providers": manifest.get("excluded_base_rule_providers", []),
         "prefix_rule_policy": manifest.get("upstream_prefix_rules", {}),
         "applied_prefix_rules": prefix_rules,
         "upstream_base_rule_providers": {
@@ -793,6 +776,7 @@ def build(
         },
         "retained_base_rule_providers": list(base),
         "base_rule_provider_replacements": manifest.get("base_rule_provider_replacements", {}),
+        "base_rule_provider_url_overrides": manifest.get("base_rule_provider_url_overrides", {}),
         "service_provider_url_overrides": manifest.get("service_provider_url_overrides", {}),
         "upstream_service_order": service_order,
         "retained_services": {
@@ -816,15 +800,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--print-contracts", action="store_true")
     args = parser.parse_args()
     try:
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
         sha, upstream_head, upstream = resolve_fork_upstream(manifest)
-        extracted = _extract_with_node(upstream)
-        if args.print_contracts:
-            print(json.dumps(contract_hashes(extracted["contracts"]), ensure_ascii=False, indent=2, sort_keys=True))
-            return 0
         real_ip_domains_sha, _url, real_ip_source = resolve_upstream(manifest, "real_ip_domains_upstream")
         real_ip_domains = extract_real_ip_domains(real_ip_source)
         output_path = ROOT / manifest["output"]
