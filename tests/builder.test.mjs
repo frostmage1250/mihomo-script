@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseScript, indexDeclarations, dependencyClosure, freeNames, transformDns, extractModel, globalConfigFunction } from "../custom/lib/ast.mjs";
 import { generate } from "astring";
-import { retargetRule, ruleReferences, matchesRule, replaceProviderAsset, planRules } from "../custom/lib/rules.mjs";
+import { retargetRule, matchesRule, replaceProviderAsset, planRules } from "../custom/lib/rules.mjs";
 import { selectDomains } from "../custom/build_mihomo_script.mjs";
 import fs from "node:fs";
 const manifest = JSON.parse(fs.readFileSync(new URL("../custom/customizations.json", import.meta.url), "utf8"));
@@ -31,11 +31,9 @@ test("built-in actions and SUB-RULE targets preserve their semantics", () => {
   assert.equal(retargetRule("DOMAIN,example.com,Service", "Proxy"), "DOMAIN,example.com,Proxy");
   assert.equal(retargetRule("RULE-SET,ranges,Service,no-resolve", "Proxy"), "RULE-SET,ranges,Proxy,no-resolve");
 });
-test("logical rule references preserve nested conditions", () => {
+test("logical rule policies preserve nested conditions", () => {
   const rule = "AND,((RULE-SET,ranges),(NOT,((OR,((RULE-SET,domains),(NETWORK,TCP)))))),Service";
-  assert.deepEqual(ruleReferences(rule), ["ranges", "domains"]);
   assert.equal(retargetRule(rule, "Proxy"), rule.slice(0, -"Service".length) + "Proxy");
-  assert.deepEqual(ruleReferences("DOMAIN-REGEX,^RULE-SET.*,Proxy"), []);
 });
 test("structured exclusions survive policy and flag changes", () => {
   assert.equal(matchesRule("RULE-SET,epicgames,New Group,no-resolve", {type:"RULE-SET",value:"epicgames"}), true);
@@ -69,11 +67,10 @@ test("new service names follow the default route and stale preferences are repor
   assert.deepEqual(result.rules, ["PROCESS-NAME,app,Proxy","DOMAIN,ads.example.com,REJECT","MATCH,Final"]);
   assert.deepEqual(result.stale, ["service-routing:OldName"]);
 });
-test("missing references and actual provider conflicts stop publication", () => {
+test("actual provider conflicts stop publication", () => {
   const local = {...manifest, additional_services:{},additional_rule_providers:{},excluded_services:[],
     excluded_base_rule_providers:[], service_provider_url_overrides:{},base_rule_provider_url_overrides:{},
     base_rule_provider_replacements:{},service_routing:{},custom_rules:{final:["MATCH,Final"]}};
-  assert.throws(() => planRules({services:[{name:"New",providers:{},rules:["RULE-SET,missing,New"]}],baseRuleProviders:{},baseRules:[]}, local), /Missing provider/);
   const provider = {type:"http",behavior:"domain",url:"https://one.example/rules"};
   assert.throws(() => planRules({services:[{name:"New",providers:{same:{...provider,url:"https://two.example/rules"}},rules:["RULE-SET,same,New"]}],baseRuleProviders:{same:provider},baseRules:[]}, local), /conflict/);
 });

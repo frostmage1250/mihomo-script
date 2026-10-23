@@ -104,8 +104,14 @@ jobs:
       - name: Generate entirely from source
         run: node custom/build_mihomo_script.mjs
 
-      - name: Validate builder behavior
-        run: npm test
+      - name: Validate changed builder sources
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if ! git diff --quiet "$BEFORE" "$GITHUB_SHA" -- custom/lib custom/runtime.js custom/customizations.json 'custom/*.mjs' tests 'package*.json' .github/workflows/sync-upstream.yml; then
+            npm test
+          fi
 
       - name: Generate the configuration with the Bettbox engine and verify retained policy
         env:

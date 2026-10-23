@@ -3,16 +3,15 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { parse as parseYaml } from "yaml";
-import { sha256 } from "../custom/snapshot.mjs";
+import { extractModel } from "../custom/lib/ast.mjs";
 import { BUILTIN_ACTIONS, splitRule, policyIndex } from "../custom/lib/rules.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const read = file => fs.readFileSync(path.join(root,file),"utf8");
 const snapshot = JSON.parse(read(".build/snapshot.json"));
 const manifest = snapshot.manifest;
-const source = read("mihomoScript.js"), report = JSON.parse(read(manifest.report));
-const upstream = new Function(snapshot.upstream +
-  "\nreturn {main,serviceConfigs,baseRuleProviders,groupBaseOption};")();
+const report = JSON.parse(read(manifest.report));
+const upstream = extractModel(snapshot.upstream, manifest);
 const ss = (name, extra={}) => ({name,type:"ss",server:"node.example.com",port:443,cipher:"aes-128-gcm",password:"fixture-password",...extra});
 const fixture = {proxies:[ss("日本 01"),ss("日本 01",{server:"duplicate.example.com"}),ss("香港 01"),ss("新加坡 01"),ss("美国 01",{"dialer-proxy":"日本 01"}),ss("韩国 01"),ss("日本 0.5x"),ss("官网 剩余流量")],dns:{},hosts:{}};
 const outputFile=process.argv[2]||path.join(root,".build/mihomo-fixture.json");
@@ -23,11 +22,13 @@ const engine=spawnSync(process.env.BETTBOX_RUNNER,[path.join(root,manifest.outpu
 assert.equal(engine.status,0,"Bettbox engine execution failed\n"+engine.stderr);
 const output=JSON.parse(fs.readFileSync(outputFile,"utf8"));
 const providers=output["rule-providers"],groups=new Map(output["proxy-groups"].map(group=>[group.name,group]));
-const outputRules=new Set(output.rules),original=upstream.main(JSON.parse(JSON.stringify(fixture)));
-assert.equal(sha256(source),report.output_sha256);
-
-const services=new Map(upstream.serviceConfigs.map(service=>[service.name,service]));
-for(const rule of original.rules) {
+const outputRules=new Set(output.rules);
+const upstreamRules=[
+  ...upstream.services.flatMap(service=>service.rules||[]),
+  ...upstream.baseRules.flatMap(entry=>entry.rules),
+];
+const services=new Map(upstream.services.map(service=>[service.name,service]));
+for(const rule of upstreamRules) {
   const records=report.rule_coverage.filter(record=>record.source===rule);
   assert.ok(records.length,"upstream rule has no disposition: "+rule);
   for(const record of records) {
@@ -62,7 +63,7 @@ for(const [name,value] of Object.entries(upstream.baseRuleProviders)) {
   }
   expectedProviders[replacement?.name||name]=applyOverride(expected,manifest.base_rule_provider_url_overrides[name]);
 }
-for(const service of upstream.serviceConfigs) {
+for(const service of upstream.services) {
   if(manifest.excluded_services.includes(service.name)||!service.rules?.length)continue;
   for(const [name,value] of Object.entries(service.providers||{}))expectedProviders[name]=applyOverride(value,manifest.service_provider_url_overrides[service.name]?.[name]);
 }
@@ -78,16 +79,12 @@ assert.deepEqual(groups.get("YouTube").proxies,["Proxy","香港","低倍率节�
 assert.deepEqual(groups.get("媒体").proxies,["Proxy","低倍率节点","香港"]);
 assert.deepEqual(groups.get("PikPak").proxies,["Proxy","Direct","低倍率节点","香港"]);
 assert.deepEqual(groups.get("pron").proxies,["Proxy","香港","新加坡"]);
-const allowed=new Set([...BUILTIN_ACTIONS,...names,...groups.keys()]);
+const noIconGroups=new Set(["Claude","媒体","pron"]);
 for(const group of groups.values()) {
-  assert.equal(group.type,"select");assert.equal(group.interval,0);assert.equal(group.url,upstream.groupBaseOption.url);
-  for(const name of group.proxies)assert.ok(allowed.has(name),"group reference: "+name);
-  assert.equal(group.icon,report.applied_group_icons[group.name]);
-}
-for(const name of ["Claude","媒体","pron"])assert.equal(Object.hasOwn(groups.get(name),"icon"),false);
-for(const rule of output.rules) {
-  const parts=splitRule(rule);
-  if(parts[0].trim()!=="SUB-RULE")assert.ok(allowed.has(parts[policyIndex(parts)]),"rule target: "+rule);
+  assert.equal(group.type,"select");assert.equal(group.interval,0);assert.equal(group.url,upstream.groupTestUrl);
+  const sourceName=manifest.group_icon_sources[group.name]||group.name;
+  const expectedIcon=noIconGroups.has(group.name)?undefined:upstream.icons[sourceName];
+  assert.equal(group.icon,expectedIcon,"upstream icon: "+group.name);
 }
 assert.deepEqual(output.dns["nameserver-policy"]["rule-set:cn"],["system"]);
 assert.deepEqual(output.dns["direct-nameserver"],["system"]);

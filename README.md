@@ -15,7 +15,7 @@ branch mirrors upstream main; legacy retains the former repository history.
 - custom/runtime.js: local subscription filtering and functional policy choices.
 - custom/customizations.json: explicit source overrides, routing, exclusions, and retained global differences.
 - custom/lib/ast.mjs: AST extraction, dependencies, and structured DNS/global changes.
-- custom/lib/rules.mjs: rule placement, policy mapping, reference checks, and coverage.
+- custom/lib/rules.mjs: rule placement, policy mapping, conflict checks, and coverage.
 - custom/snapshot.mjs: captures upstream and Repcz commits once per workflow.
 - custom/build_mihomo_script.mjs: builds from the captured sources.
 - mihomoScript.js: generated standalone subscription output.
@@ -24,7 +24,10 @@ branch mirrors upstream main; legacy retains the former repository history.
 
 The generator builds exclusively from independent sources. Acceptance checks use
 the pinned upstream input, the explicit customization policy, and the generated
-configuration. Repcz domain coverage is checked directly against its pinned YAML.
+configuration. Rule and icon definitions are read directly from the fixed upstream
+source, with no upstream configuration constructed. Repcz domain coverage is
+checked directly against its pinned YAML. Mihomo handles configuration syntax and
+reference validation.
 
 ## Retained policy
 
@@ -66,10 +69,11 @@ Every six hours, on relevant pushes, or by manual dispatch, the workflow merges
 upstream history, restores the full source, installs locked build dependencies,
 pins the Mihomo validation release, and captures upstream/Repcz inputs once.
 Generation and acceptance share that snapshot. The workflow generates the script
-once, runs the focused builder unit tests, executes the final script once with
-the Bettbox engine, and validates that configuration with Mihomo. Acceptance
-checks use the captured inputs throughout. Dependency installation uses committed
-locks.
+once, executes the final script once with the Bettbox engine, checks upstream
+coverage and explicit customizations, and validates the configuration with Mihomo.
+Builder unit tests run on pushes that change the builder, runtime, policy, tests,
+dependencies, or this workflow. Scheduled and manually dispatched synchronization
+runs use the output acceptance checks. Dependency installation uses committed locks.
 The validated output, source lock, compact report, and upstream mirror are
 published atomically.
 

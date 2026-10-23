@@ -34,34 +34,6 @@ export function retargetRule(rule, target, preserveActions = true) {
   return parts.join(",");
 }
 
-function unwrap(text) {
-  if (text[0] !== "(" || text[text.length - 1] !== ")") return text;
-  let depth = 0;
-  for (let i = 0; i < text.length - 1; i++) {
-    if (text[i] === "(") depth++;
-    else if (text[i] === ")") depth--;
-    if (depth === 0) return text;
-  }
-  return text.slice(1, -1);
-}
-
-export function ruleReferences(rule) {
-  const refs = new Set();
-  function visit(text) {
-    let value = text.trim(), next = unwrap(value);
-    while (next !== value) { value = next; next = unwrap(value); }
-    const parts = splitRule(value);
-    if (parts[0].trim() === "RULE-SET") { refs.add(parts[1].trim()); return; }
-    if (["AND", "OR", "NOT", "SUB-RULE"].includes(parts[0].trim())) {
-      visit(parts[1]);
-    } else if (parts.every(part => part.trim().startsWith("("))) {
-      for (const part of parts) visit(part);
-    }
-  }
-  visit(rule);
-  return [...refs];
-}
-
 export function matchesRule(rule, selector) {
   const parts = splitRule(rule);
   return parts[0].trim() === selector.type &&
@@ -104,15 +76,6 @@ export function validateProvider(name, provider) {
   if (provider.type === "http" && typeof provider.url !== "string") throw new Error("HTTP provider requires URL: " + name);
   if (provider.type === "file" && typeof provider.path !== "string") throw new Error("File provider requires path: " + name);
   if (provider.type === "inline" && !Array.isArray(provider.payload)) throw new Error("Inline provider requires payload: " + name);
-}
-
-export function validateReferences(rules, providers) {
-  for (const rule of rules) {
-    policyIndex(splitRule(rule));
-    for (const name of ruleReferences(rule)) {
-      if (!Object.hasOwn(providers, name)) throw new Error("Missing provider " + name + " referenced by " + rule);
-    }
-  }
 }
 
 export function planRules(model, manifest) {
@@ -210,7 +173,6 @@ export function planRules(model, manifest) {
   }
   for (const [section, rules] of Object.entries(manifest.custom_rules)) blocks[section].push(...rules);
   const rules = manifest.rule_blocks.flatMap(section => blocks[section]);
-  validateReferences(rules, providers);
   if (new Set(rules).size !== rules.length) throw new Error("Duplicate final routing rules");
   const stale = [];
   for (const name of Object.keys(manifest.base_rule_provider_replacements)) {
