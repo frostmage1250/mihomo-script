@@ -30,6 +30,46 @@
       "RULE-SET,microsoft_cn,Direct",
       "DOMAIN,international-gfe.download.nvidia.com,Direct",
       "DOMAIN-SUFFIX,ctaiot.com,Direct"
+    ],
+    "fallback": [
+      "RULE-SET,geolocation-!cn,Proxy",
+      "RULE-SET,geolocation-cn,Direct",
+      "RULE-SET,cn_ip,Direct"
+    ],
+    "private": [
+      "RULE-SET,private,Direct",
+      "RULE-SET,private_ip,Direct,no-resolve"
+    ]
+  },
+  "applied_service_rule_blocks": {
+    "after_direct": [
+      "RULE-SET,steam,Proxy",
+      "RULE-SET,steam_ip,Proxy,no-resolve",
+      "RULE-SET,pikpak,PikPak",
+      "RULE-SET,ehentai,EHentai",
+      "RULE-SET,bypass_japan,pron",
+      "RULE-SET,google,Google",
+      "RULE-SET,google_ip,Google,no-resolve",
+      "RULE-SET,apple,Proxy",
+      "RULE-SET,apple_ip,Proxy,no-resolve",
+      "RULE-SET,microsoft,Proxy",
+      "RULE-SET,microsoft_ip,Proxy,no-resolve"
+    ],
+    "before_direct": [
+      "RULE-SET,claude,Claude",
+      "RULE-SET,ai,AI",
+      "RULE-SET,github,GitHub",
+      "RULE-SET,telegram,Telegram",
+      "RULE-SET,telegram_ip,Telegram,no-resolve",
+      "RULE-SET,appletv,媒体",
+      "RULE-SET,twitch,媒体",
+      "RULE-SET,twitter,媒体",
+      "RULE-SET,twitter_ip,媒体,no-resolve",
+      "RULE-SET,tiktok,媒体",
+      "RULE-SET,tiktok_ip,媒体,no-resolve",
+      "RULE-SET,youtube,YouTube",
+      "RULE-SET,meta,媒体",
+      "RULE-SET,facebook_ip,媒体,no-resolve"
     ]
   },
   "base_rule_provider_replacements": {
@@ -39,6 +79,24 @@
       "to": "steam@cn"
     }
   },
+  "base_rule_provider_url_overrides": {
+    "geolocation-cn": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs"
+  },
+  "excluded_base_rule_providers": [
+    "epicgames",
+    "cn_additional"
+  ],
+  "excluded_services": [
+    "FCM",
+    "Line",
+    "Netflix",
+    "Emby",
+    "Spotify",
+    "Crypto",
+    "PayPal",
+    "Patreon",
+    "AdBlock"
+  ],
   "fork": {
     "source_mode": "native-git-merge",
     "source_path": "Script/mihomoScript.js",
@@ -66,16 +124,11 @@
     "香港": "香港"
   },
   "group_test_interval": 0,
-  "output_sha256": "af98da94152c7d76c8f489d892e59d768e1b962ba3bf286778d7575e13255d28",
+  "output_sha256": "e55dbee3247b80a2602aab757c2a78b785d703b852629af5523e2b448622fb9c",
   "prefix_rule_policy": {
     "excluded_rules": [
       "DOMAIN,fsend.cn,直连",
       "RULE-SET,epicgames,直连"
-    ],
-    "existing_rule_providers": [
-      "private",
-      "private_ip",
-      "geolocation-cn"
     ]
   },
   "real_ip_domains_upstream": {
@@ -264,6 +317,203 @@
       "apple": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/apple-merged.mrs"
     }
   },
+  "service_routing_plan": [
+    {
+      "name": "Steam",
+      "order": 10,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,steam,Proxy",
+        "RULE-SET,steam_ip,Proxy,no-resolve"
+      ],
+      "section": "after_direct",
+      "sequence": 7,
+      "target": "Proxy"
+    },
+    {
+      "name": "Claude",
+      "order": 10,
+      "origin": "custom",
+      "rules": [
+        "RULE-SET,claude,Claude"
+      ],
+      "section": "before_direct",
+      "sequence": 15,
+      "target": "Claude"
+    },
+    {
+      "name": "AI",
+      "order": 20,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,ai,AI"
+      ],
+      "section": "before_direct",
+      "sequence": 2,
+      "target": "AI"
+    },
+    {
+      "name": "PikPak",
+      "order": 20,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,pikpak,PikPak"
+      ],
+      "section": "after_direct",
+      "sequence": 11,
+      "target": "PikPak"
+    },
+    {
+      "name": "GitHub",
+      "order": 30,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,github,GitHub"
+      ],
+      "section": "before_direct",
+      "sequence": 3,
+      "target": "GitHub"
+    },
+    {
+      "name": "EHentai",
+      "order": 30,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,ehentai,EHentai"
+      ],
+      "section": "after_direct",
+      "sequence": 12,
+      "target": "EHentai"
+    },
+    {
+      "name": "Telegram",
+      "order": 40,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,telegram,Telegram",
+        "RULE-SET,telegram_ip,Telegram,no-resolve"
+      ],
+      "section": "before_direct",
+      "sequence": 6,
+      "target": "Telegram"
+    },
+    {
+      "name": "pron",
+      "order": 40,
+      "origin": "custom",
+      "rules": [
+        "RULE-SET,bypass_japan,pron"
+      ],
+      "section": "after_direct",
+      "sequence": 14,
+      "target": "pron"
+    },
+    {
+      "name": "Google",
+      "order": 50,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,google,Google",
+        "RULE-SET,google_ip,Google,no-resolve"
+      ],
+      "section": "after_direct",
+      "sequence": 1,
+      "target": "Google"
+    },
+    {
+      "name": "AppleTV",
+      "order": 50,
+      "origin": "custom",
+      "rules": [
+        "RULE-SET,appletv,媒体"
+      ],
+      "section": "before_direct",
+      "sequence": 13,
+      "target": "媒体"
+    },
+    {
+      "name": "Apple",
+      "order": 60,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,apple,Proxy",
+        "RULE-SET,apple_ip,Proxy,no-resolve"
+      ],
+      "section": "after_direct",
+      "sequence": 5,
+      "target": "Proxy"
+    },
+    {
+      "name": "Twitch",
+      "order": 60,
+      "origin": "custom",
+      "rules": [
+        "RULE-SET,twitch,媒体"
+      ],
+      "section": "before_direct",
+      "sequence": 16,
+      "target": "媒体"
+    },
+    {
+      "name": "Microsoft",
+      "order": 70,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,microsoft,Proxy",
+        "RULE-SET,microsoft_ip,Proxy,no-resolve"
+      ],
+      "section": "after_direct",
+      "sequence": 4,
+      "target": "Proxy"
+    },
+    {
+      "name": "Twitter",
+      "order": 70,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,twitter,媒体",
+        "RULE-SET,twitter_ip,媒体,no-resolve"
+      ],
+      "section": "before_direct",
+      "sequence": 9,
+      "target": "媒体"
+    },
+    {
+      "name": "TikTok",
+      "order": 80,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,tiktok,媒体",
+        "RULE-SET,tiktok_ip,媒体,no-resolve"
+      ],
+      "section": "before_direct",
+      "sequence": 8,
+      "target": "媒体"
+    },
+    {
+      "name": "YouTube",
+      "order": 90,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,youtube,YouTube"
+      ],
+      "section": "before_direct",
+      "sequence": 0,
+      "target": "YouTube"
+    },
+    {
+      "name": "Meta",
+      "order": 100,
+      "origin": "upstream",
+      "rules": [
+        "RULE-SET,meta,媒体",
+        "RULE-SET,facebook_ip,媒体,no-resolve"
+      ],
+      "section": "before_direct",
+      "sequence": 10,
+      "target": "媒体"
+    }
+  ],
   "upstream": {
     "commit": "0c7a93ae424aefda5c44d781a05607490ed3dca1",
     "path": "Script/mihomoScript.js",
@@ -379,6 +629,12 @@
       "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geoip/private.mrs"
     }
   },
+  "upstream_fallback_rules": [
+    "RULE-SET,geolocation-!cn,默认代理",
+    "RULE-SET,cn_ip,直连",
+    "RULE-SET,private_ip,直连",
+    "MATCH,漏网之鱼"
+  ],
   "upstream_group_icons": {
     "AI": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/OpenAI.svg",
     "AdBlock": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/AdBlock.svg",
@@ -410,6 +666,7 @@
     "手动选择": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Static.svg",
     "新加坡": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Singapore.svg",
     "日本": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Japan.svg",
+    "日本-自动选择": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Auto.svg",
     "漏网之鱼": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Stack.svg",
     "直连": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/China.svg",
     "美国": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/America.svg",

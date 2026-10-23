@@ -216,7 +216,7 @@ const baseRuleProviders = {
 
 // 从当前上游完整提取的保留服务定义；仓库构建器按服务名重新生成此对象
 // BEGIN GENERATED: RETAINED_SERVICES
-// 从锁定上游提取；仓库构建器按服务名重新生成此对象
+// 从本轮上游提取；保留当前服务和规则集原名
 const retainedServiceDefinitions = {
   "YouTube": {
     "providers": {
