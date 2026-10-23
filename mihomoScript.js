@@ -1088,7 +1088,6 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
     // 解决谷歌商店无法下载的问题
     'services.googleapis.cn': 'services.googleapis.com',
 
-
   };
 
   return { dns, hosts, proxies: mappedProxies };
