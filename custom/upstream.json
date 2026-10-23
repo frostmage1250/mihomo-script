@@ -65,7 +65,8 @@
     "订阅": "手动选择",
     "香港": "香港"
   },
-  "output_sha256": "7f8a3ee676d043aaae906371298f18aaa55ae5e26d1bada5b0f9f93daf971124",
+  "group_test_interval": 0,
+  "output_sha256": "9d255599546271bfc5540d437076947574f5aaf6356774c72b0466ef757677a0",
   "prefix_rule_policy": {
     "excluded_rules": [
       "DOMAIN,fsend.cn,直连",
@@ -418,6 +419,7 @@
     "高倍率节点": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Airport.svg",
     "默认代理": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Proxy.svg"
   },
+  "upstream_group_test_url": "https://www.apple.com/library/test/success.html",
   "upstream_matching": {
     "excludeFilter": "/群|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|电报|无法|说明|提示|访问|支持|教程|关注|更新|作者|加入|超时|收藏|优惠|福利|邀请|好友|失联|选择|剩余|公益|发布|DIZTNA|通路|登录|禁止|定时|渠道|牢记|永久|余额|阁下|本站|刷新|导航|建议|重置|以下|过滤|⚠️|@|t\\.me\\/\\+|\\bexpire\\b|\\bhttps?:\\/\\/|\\.com|\\btraffic\\b/iu",
     "functions": {
