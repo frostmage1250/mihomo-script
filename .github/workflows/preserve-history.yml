@@ -1,0 +1,18 @@
+name: Preserve pre-Fork history
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  preserve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Import existing published commit history
+        run: |
+          set -euo pipefail
+          git fetch https://github.com/frostmage1250/mihomo-script.git d2a708bae5407079e2a0765dc22dd12799961477
+          test "$(git rev-parse FETCH_HEAD)" = "d2a708bae5407079e2a0765dc22dd12799961477"
+          git push origin FETCH_HEAD:refs/heads/legacy
