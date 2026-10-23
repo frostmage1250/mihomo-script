@@ -131,6 +131,15 @@ const baseRuleProviders = {
     "path": "./ruleset/steam@cn.mrs",
     "path-in-bundle": "geo/geosite/steam@cn.mrs"
   },
+  "nvidia_cn": {
+    "type": "http",
+    "format": "mrs",
+    "interval": 86400,
+    "behavior": "domain",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/nvidia@cn.mrs",
+    "path": "./ruleset/nvidia@cn.mrs",
+    "path-in-bundle": "geo/geosite/nvidia@cn.mrs"
+  },
   "apple_cn": {
     "type": "http",
     "format": "mrs",
@@ -1133,6 +1142,7 @@ const selectedBaseRuleProviderNames = [
   'private',
   'private_ip',
   'steam_cn',
+  'nvidia_cn',
   'apple_cn',
   'microsoft_cn',
   'geolocation-cn',
@@ -1226,8 +1236,25 @@ function serviceRules(name) {
   });
 }
 
+// BEGIN GENERATED: UPSTREAM_PREFIX_RULES
+const upstreamPrefixRules = {
+  "bootstrap": [
+    "DOMAIN,cdn.jsdmirror.com,Direct"
+  ],
+  "direct": [
+    "RULE-SET,steam_cn,Direct",
+    "RULE-SET,nvidia_cn,Direct",
+    "RULE-SET,apple_cn,Direct",
+    "RULE-SET,microsoft_cn,Direct",
+    "DOMAIN,international-gfe.download.nvidia.com,Direct",
+    "DOMAIN-SUFFIX,ctaiot.com,Direct"
+  ]
+};
+// END GENERATED: UPSTREAM_PREFIX_RULES
+
 function buildRules() {
   return [
+    ...upstreamPrefixRules.bootstrap,
     'RULE-SET,private,Direct',
     'RULE-SET,private_ip,Direct,no-resolve',
     'RULE-SET,mcdn屏蔽,REJECT',
@@ -1242,9 +1269,7 @@ function buildRules() {
     ...serviceRules('TikTok'),
     ...serviceRules('YouTube'),
     ...serviceRules("Meta"),
-    'RULE-SET,steam_cn,Direct',
-    'RULE-SET,apple_cn,Direct',
-    'RULE-SET,microsoft_cn,Direct',
+    ...upstreamPrefixRules.direct,
     ...serviceRules('Steam'),
     ...serviceRules('PikPak'),
     ...serviceRules('EHentai'),

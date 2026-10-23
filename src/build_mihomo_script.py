@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -157,6 +158,7 @@ const __contractFunctions = {
 };
 const __payload = {
   baseRuleProviders,
+  prefixRules,
   services: serviceConfigs.map(({ name, providers, rules }) => ({ name, providers: providers || {}, rules: rules || [] })),
   contracts: {
     excludeFilter: String(excludeFilter),
@@ -392,7 +394,7 @@ def select_upstream_definitions(
     if unknown_replacements:
         raise BuildError("Base ruleset replacement names unselected providers: " + ", ".join(sorted(unknown_replacements)))
     selected_base: dict[str, Any] = {}
-    for name in manifest["retained_base_rule_providers"]:
+    for name in selected_base_provider_names(extracted, manifest):
         provider = upstream_base.get(name)
         if provider is None:
             raise BuildError(f"Required upstream base provider disappeared: {name}")
@@ -406,7 +408,89 @@ def select_upstream_definitions(
     return selected_base, selected_services, reference_renames, current_service_order
 
 
-def render_const(name: str, value: Mapping[str, Any]) -> str:
+def selected_base_provider_names(
+    extracted: Mapping[str, Any], manifest: Mapping[str, Any],
+) -> list[str]:
+    """Include direct prefix providers from upstream alongside retained DNS providers."""
+    names = list(manifest["retained_base_rule_providers"])
+    excluded = set(manifest.get("upstream_prefix_rules", {}).get("excluded_rules", []))
+    for rule in extracted.get("prefixRules", []):
+        if rule in excluded:
+            continue
+        parts = parse_prefix_rule(rule)
+        if parts[0] == "RULE-SET" and parts[1] not in names:
+            names.append(parts[1])
+    return names
+
+
+def parse_prefix_rule(rule: str) -> list[str]:
+    parts = rule.split(",")
+    supported = {"RULE-SET", "DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "IP-CIDR", "IP-CIDR6"}
+    if (
+        len(parts) not in (3, 4) or parts[0] not in supported or not parts[1]
+        or parts[2] != "直连" or (len(parts) == 4 and parts[3] != "no-resolve")
+    ):
+        raise BuildError(f"Upstream prefix rule requires review: {rule}")
+    return parts
+
+
+def select_prefix_rules(
+    extracted: Mapping[str, Any], manifest: Mapping[str, Any],
+) -> dict[str, list[str]]:
+    """Retarget upstream direct rules while retaining local private/fallback placement."""
+    policy = manifest.get("upstream_prefix_rules", {})
+    excluded = set(policy.get("excluded_rules", []))
+    existing = set(policy.get("existing_rule_providers", []))
+    replacements = manifest.get("base_rule_provider_replacements", {})
+    download_hosts = {
+        urllib.parse.urlsplit(provider["url"]).hostname
+        for name in selected_base_provider_names(extracted, manifest)
+        for provider in [extracted["baseRuleProviders"][name]]
+        if isinstance(provider.get("url"), str)
+    }
+    result: dict[str, list[str]] = {"bootstrap": [], "direct": []}
+    seen: set[str] = set()
+    for rule in extracted["prefixRules"]:
+        if rule in excluded:
+            continue
+        parts = parse_prefix_rule(rule)
+        if parts[0] == "RULE-SET":
+            if parts[1] in existing:
+                continue
+            parts[1] = replacements.get(parts[1], {}).get("name", parts[1])
+        parts[2] = "Direct"
+        converted = ",".join(parts)
+        if converted in seen:
+            continue
+        seen.add(converted)
+        bucket = "bootstrap" if parts[0] == "DOMAIN" and parts[1] in download_hosts else "direct"
+        result[bucket].append(converted)
+    return result
+
+
+def sync_prefix_rules(
+    current: str, prefix_rules: Mapping[str, Any], base: Mapping[str, Any],
+) -> str:
+    begin = "// BEGIN GENERATED: UPSTREAM_PREFIX_RULES"
+    end = "// END GENERATED: UPSTREAM_PREFIX_RULES"
+    if begin not in current and end not in current:
+        anchor = "function buildRules() {"
+        if current.count(anchor) != 1:
+            raise BuildError("Expected one routing function for prefix rules")
+        current = current.replace(anchor, begin + "\n" + end + "\n\n" + anchor)
+    current = replace_marked(
+        current, begin, end, render_const("upstreamPrefixRules", prefix_rules),
+    )
+    pattern = r"(?ms)^const selectedBaseRuleProviderNames = \[.*?^\];"
+    current, count = re.subn(
+        pattern, lambda _match: render_const("selectedBaseRuleProviderNames", list(base)), current,
+    )
+    if count != 1:
+        raise BuildError("Expected one selected base provider list")
+    return current
+
+
+def render_const(name: str, value: Any) -> str:
     return f"const {name} = " + json.dumps(value, ensure_ascii=False, indent=2) + ";"
 
 
@@ -645,10 +729,12 @@ def build(
     base, services, service_renames, service_order = select_upstream_definitions(
         extracted, manifest, previous_service_order
     )
+    prefix_rules = select_prefix_rules(extracted, manifest)
     applied_domains, excluded_domains = select_real_ip_domains(real_ip_domains)
     current_script = sync_node_matching(current_script, extracted["contracts"])
     current_script = sync_matching_helpers(current_script, extracted["contracts"])
     script = render_script(current_script, upstream, sha, base, services, service_renames, applied_domains)
+    script = sync_prefix_rules(script, prefix_rules, base)
     report = {
         "schema_version": 1,
         "upstream": {
@@ -683,8 +769,11 @@ def build(
         },
         # Record unmodified definitions from the pinned upstream revision.
         # Explicit ruleset replacements and custom URL overrides are recorded below.
+        "upstream_prefix_rules": extracted["prefixRules"],
+        "prefix_rule_policy": manifest.get("upstream_prefix_rules", {}),
+        "applied_prefix_rules": prefix_rules,
         "upstream_base_rule_providers": {
-            name: extracted["baseRuleProviders"][name] for name in manifest["retained_base_rule_providers"]
+            name: extracted["baseRuleProviders"][name] for name in selected_base_provider_names(extracted, manifest)
         },
         "upstream_service_rule_providers": {
             service["name"]: service["providers"]

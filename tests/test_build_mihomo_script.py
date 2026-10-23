@@ -21,6 +21,9 @@ from build_mihomo_script import (  # noqa: E402
     render_dns_section,
     render_script,
     select_upstream_definitions,
+    selected_base_provider_names,
+    select_prefix_rules,
+    sync_prefix_rules,
 )
 
 
@@ -441,6 +444,100 @@ policy_groups:
                 {"baseRuleProviders": {"games_cn": provider}, "services": []},
                 {**manifest, "reserved_extra_provider_names": ["steam_cn"]},
             )
+
+    def test_prefix_rules_follow_upstream_with_explicit_exclusions_and_replacements(self) -> None:
+        extracted = {
+            "baseRuleProviders": {
+                name: {"url": "https://mirror.example/" + name + ".mrs"}
+                for name in ("private", "games_cn", "nvidia_cn", "future_cn", "geolocation-cn")
+            },
+            "prefixRules": [
+                "DOMAIN,mirror.example,直连",
+                "RULE-SET,private,直连",
+                "RULE-SET,geolocation-cn,直连",
+                "RULE-SET,games_cn,直连",
+                "RULE-SET,epicgames,直连",
+                "RULE-SET,nvidia_cn,直连",
+                "DOMAIN,international-gfe.download.nvidia.com,直连",
+                "DOMAIN-SUFFIX,ctaiot.com,直连",
+                "DOMAIN,fsend.cn,直连",
+                "RULE-SET,future_cn,直连",
+                "IP-CIDR,192.0.2.0/24,直连,no-resolve",
+                "DOMAIN-SUFFIX,ctaiot.com,直连",
+            ],
+        }
+        manifest = {
+            "retained_base_rule_providers": ["private", "games_cn", "nvidia_cn", "geolocation-cn"],
+            "base_rule_provider_replacements": {"games_cn": {"name": "steam_cn"}},
+            "upstream_prefix_rules": {
+                "excluded_rules": ["DOMAIN,fsend.cn,直连", "RULE-SET,epicgames,直连"],
+                "existing_rule_providers": ["private", "geolocation-cn"],
+            },
+        }
+        selected = select_prefix_rules(extracted, manifest)
+        self.assertEqual(selected, {
+            "bootstrap": ["DOMAIN,mirror.example,Direct"],
+            "direct": [
+                "RULE-SET,steam_cn,Direct", "RULE-SET,nvidia_cn,Direct",
+                "DOMAIN,international-gfe.download.nvidia.com,Direct",
+                "DOMAIN-SUFFIX,ctaiot.com,Direct", "RULE-SET,future_cn,Direct",
+                "IP-CIDR,192.0.2.0/24,Direct,no-resolve",
+            ],
+        })
+        self.assertEqual(selected_base_provider_names(extracted, manifest), [
+            "private", "games_cn", "nvidia_cn", "geolocation-cn", "future_cn",
+        ])
+        changed = {**extracted, "prefixRules": [
+            "DOMAIN,next-mirror.example,直连", "DOMAIN-SUFFIX,new.example,直连",
+        ], "baseRuleProviders": {
+            name: {"url": "https://next-mirror.example/" + name + ".mrs"}
+            for name in extracted["baseRuleProviders"]
+        }}
+        self.assertEqual(select_prefix_rules(changed, manifest), {
+            "bootstrap": ["DOMAIN,next-mirror.example,Direct"],
+            "direct": ["DOMAIN-SUFFIX,new.example,Direct"],
+        })
+        for rule in ("DOMAIN-SUFFIX,example.com,Proxy", "MATCH,直连", "RULE-SET,a,直连,invalid"):
+            with self.subTest(rule=rule), self.assertRaisesRegex(BuildError, "requires review"):
+                select_prefix_rules({**extracted, "prefixRules": [rule]}, manifest)
+
+    def test_new_prefix_provider_inherits_complete_upstream_definition(self) -> None:
+        provider = {
+            "type": "http", "format": "mrs", "interval": 21600, "behavior": "domain",
+            "url": "https://new-mirror.example/new.mrs", "path": "./ruleset/new.mrs",
+            "path-in-bundle": "geo/geosite/new.mrs", "proxy": "DIRECT",
+        }
+        extracted = {
+            "baseRuleProviders": {"new_cn": provider}, "services": [],
+            "prefixRules": ["RULE-SET,new_cn,直连"],
+        }
+        manifest = {
+            "retained_services": [], "retained_base_rule_providers": [],
+            "reserved_extra_provider_names": [],
+        }
+        base, _services, _renames, _order = select_upstream_definitions(extracted, manifest)
+        self.assertEqual(base, {"new_cn": provider})
+        with self.assertRaisesRegex(BuildError, "disappeared: new_cn"):
+            select_upstream_definitions({**extracted, "baseRuleProviders": {}}, manifest)
+
+    def test_prefix_rendering_replaces_removed_rules_and_provider_selection(self) -> None:
+        template = """const selectedBaseRuleProviderNames = [
+  'old',
+];
+function buildRules() {
+  return [...upstreamPrefixRules.bootstrap, ...upstreamPrefixRules.direct, 'MATCH,Final'];
+}
+"""
+        rules = {"bootstrap": ["DOMAIN,mirror.example,Direct"], "direct": ["RULE-SET,new_cn,Direct"]}
+        first = sync_prefix_rules(template, rules, {"new_cn": {}})
+        self.assertEqual(sync_prefix_rules(first, rules, {"new_cn": {}}), first)
+        self.assertIn('"RULE-SET,new_cn,Direct"', first)
+        self.assertIn('"new_cn"', first)
+        self.assertNotIn("'old'", first)
+        second = sync_prefix_rules(first, {"bootstrap": [], "direct": []}, {})
+        self.assertNotIn('"RULE-SET,new_cn,Direct"', second)
+        with self.assertRaisesRegex(BuildError, "Expected one selected base"):
+            sync_prefix_rules(first.replace("const selectedBaseRuleProviderNames", "const otherNames"), rules, {})
 
     def test_ai_provider_uses_converter_url_without_bett_bundle_path(self) -> None:
         provider = {

@@ -44,6 +44,7 @@
     "private",
     "private_ip",
     "games_cn",
+    "nvidia_cn",
     "apple_cn",
     "microsoft_cn",
     "geolocation-cn",
@@ -75,5 +76,16 @@
       "from": "category-games@cn",
       "to": "steam@cn"
     }
+  },
+  "upstream_prefix_rules": {
+    "excluded_rules": [
+      "DOMAIN,fsend.cn,直连",
+      "RULE-SET,epicgames,直连"
+    ],
+    "existing_rule_providers": [
+      "private",
+      "private_ip",
+      "geolocation-cn"
+    ]
   }
 }

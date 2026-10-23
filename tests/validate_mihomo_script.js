@@ -114,7 +114,12 @@ const buildReport = JSON.parse(fs.readFileSync(path.join(root, "reports", "mihom
 
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "config", "mihomo-script-customizations.json"), "utf8"));
 assert(isDeepStrictEqual(buildReport.service_provider_url_overrides, manifest.service_provider_url_overrides), "custom provider overrides differ from manifest");
-assert(isDeepStrictEqual(Object.keys(buildReport.upstream_base_rule_providers).sort(), [...manifest.retained_base_rule_providers].sort()), "upstream base provider snapshot is incomplete");
+const excludedPrefixRules = new Set(manifest.upstream_prefix_rules.excluded_rules);
+const prefixProviderNames = buildReport.upstream_prefix_rules
+  .filter((rule) => !excludedPrefixRules.has(rule) && rule.startsWith("RULE-SET,"))
+  .map((rule) => rule.split(",")[1]);
+const expectedBaseNames = [...new Set([...manifest.retained_base_rule_providers, ...prefixProviderNames])];
+assert(isDeepStrictEqual(Object.keys(buildReport.upstream_base_rule_providers).sort(), expectedBaseNames.sort()), "upstream base provider snapshot is incomplete");
 assert(isDeepStrictEqual(Object.keys(buildReport.upstream_service_rule_providers).sort(), Object.keys(buildReport.retained_services).sort()), "upstream service provider snapshot is incomplete");
 
 // Compare ordinary providers with this build's pinned upstream definitions.
@@ -292,7 +297,8 @@ assert(providers["mcdn屏蔽"].url === "https://raw.githubusercontent.com/frostm
 assert(providers["mcdn屏蔽"].path === "./ruleset/mcdn-block.mrs", "MCDN provider cache path changed");
 assert(!("path-in-bundle" in providers["mcdn屏蔽"]), "MCDN provider cannot reference the Bett bundle");
 assert(
-  JSON.stringify(output.rules.slice(0, 3)) === JSON.stringify([
+  JSON.stringify(output.rules.slice(0, buildReport.applied_prefix_rules.bootstrap.length + 3)) === JSON.stringify([
+    ...buildReport.applied_prefix_rules.bootstrap,
     "RULE-SET,private,Direct", "RULE-SET,private_ip,Direct,no-resolve", "RULE-SET,mcdn屏蔽,REJECT",
   ]),
   "Private domains and IPs must precede MCDN rejection",
@@ -300,10 +306,50 @@ assert(
 assert(providers.appletv.format === "mrs" && providers.appletv.behavior === "domain", "AppleTV must use domain MRS");
 assert(providers.appletv.url === "https://raw.githubusercontent.com/appshubcc/bett-rules/meta/geo/geosite/apple-tvplus.mrs", "AppleTV must use the full Bett provider");
 assert(output.rules.includes("RULE-SET,appletv,媒体"), "AppleTV must target the media group");
+
+assert(isDeepStrictEqual(buildReport.prefix_rule_policy, manifest.upstream_prefix_rules), "prefix policy must match the manifest");
+const prefixPlacement = new Function(source + "\nreturn upstreamPrefixRules;")();
+assert(isDeepStrictEqual(prefixPlacement, buildReport.applied_prefix_rules), "prefix rules must match build provenance");
+assert(prefixPlacement.bootstrap.length > 0 && output.rules[0] === prefixPlacement.bootstrap[0], "ruleset download domain must bootstrap before every ruleset");
+for (const rule of [
+  "DOMAIN,international-gfe.download.nvidia.com,Direct",
+  "RULE-SET,nvidia_cn,Direct",
+  "DOMAIN-SUFFIX,ctaiot.com,Direct",
+]) {
+  const index = output.rules.indexOf(rule);
+  assert(index > output.rules.indexOf("RULE-SET,mcdn屏蔽,REJECT"), "MCDN must retain priority over " + rule);
+  assert(index < output.rules.indexOf("RULE-SET,steam,Proxy"), "direct exceptions must precede Steam and broad proxy routing: " + rule);
+  assert(output.rules.filter((value) => value === rule).length === 1, "direct rule must occur once: " + rule);
+}
+assert(!("epicgames" in providers), "Epic Games provider is explicitly excluded");
+assert(!output.rules.some((rule) => rule.startsWith("RULE-SET,epicgames,")), "Epic Games routing is explicitly excluded");
+assert(!output.rules.includes("DOMAIN,fsend.cn,Direct"), "existing fsend exclusion must be retained");
+assert(providers.nvidia_cn.behavior === "domain" && providers.nvidia_cn.format === "mrs", "NVIDIA CN must use upstream domain MRS");
+assert(providers.nvidia_cn.url.endsWith("/geosite/nvidia@cn.mrs"), "NVIDIA CN must use the upstream ruleset");
+const expectedPrefixPlacement = { bootstrap: [], direct: [] };
+const sourceDownloadHosts = new Set(Object.values(buildReport.upstream_base_rule_providers).map((provider) => new URL(provider.url).hostname));
+const existingPrefixProviders = new Set(manifest.upstream_prefix_rules.existing_rule_providers);
+for (const rule of buildReport.upstream_prefix_rules) {
+  if (excludedPrefixRules.has(rule)) continue;
+  const parts = rule.split(",");
+  if (parts[0] === "RULE-SET") {
+    if (existingPrefixProviders.has(parts[1])) continue;
+    parts[1] = manifest.base_rule_provider_replacements?.[parts[1]]?.name || parts[1];
+  }
+  parts[2] = "Direct";
+  const value = parts.join(",");
+  const bucket = parts[0] === "DOMAIN" && sourceDownloadHosts.has(parts[1]) ? "bootstrap" : "direct";
+  if (!expectedPrefixPlacement[bucket].includes(value)) expectedPrefixPlacement[bucket].push(value);
+}
+assert(isDeepStrictEqual(prefixPlacement, expectedPrefixPlacement), "every selected upstream prefix rule must be incorporated");
+for (const bucket of Object.values(prefixPlacement)) {
+  for (const rule of bucket) assert(output.rules.filter((value) => value === rule).length === 1, "upstream prefix rule must occur once: " + rule);
+}
+
 const reviewedOrder = [
   "claude", "ai", "github", "telegram", "telegram_ip",
   "appletv", "twitch", "twitter", "twitter_ip", "tiktok", "tiktok_ip", "youtube", "meta", "facebook_ip",
-  "steam_cn", "apple_cn", "microsoft_cn", "steam", "steam_ip", "pikpak", "ehentai", "bypass_japan",
+  "steam_cn", "nvidia_cn", "apple_cn", "microsoft_cn", "steam", "steam_ip", "pikpak", "ehentai", "bypass_japan",
   "google", "google_ip", "apple", "apple_ip", "microsoft", "microsoft_ip",
   "geolocation-!cn", "geolocation-cn", "cn_ip",
 ];

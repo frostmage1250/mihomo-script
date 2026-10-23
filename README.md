@@ -43,6 +43,16 @@ missing required definitions or an unsupported local definition layout still sto
 the build. These expressions are copied into the static artifact and recorded in
 the provenance report, without requiring a new reviewed hash for each regex change.
 
+Upstream direct prefix rules are extracted and retargeted to `Direct` on every build.
+Download-host domain rules run first, before any ruleset lookup. Other selected
+prefix rules retain upstream order in the direct-exception block before Steam
+and broad foreign routing; private routing, MCDN priority, and the late
+geolocation-cn fallback retain their existing placement. Newly referenced prefix
+providers inherit their complete upstream definitions automatically. The manifest
+explicitly excludes Epic Games and preserves the existing fsend.cn exclusion.
+NVIDIA CN and its international download hostname are included. The build report
+records the original prefix rules, placement policy, and effective rules.
+
 ## Local customizations
 
 - Preserve original airport node names and deduplicate exact names only.
