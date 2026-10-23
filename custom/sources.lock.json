@@ -9,13 +9,13 @@
   },
   "real_ip_domains": {
     "repository": "Repcz/Tool",
-    "commit": "2464c27eccc5ccad999a4f0395cc397ae444e3ce",
+    "commit": "14096d214d0f870ee11f8172b2f8be94e93d0663",
     "path": "Egern/Egern.yaml",
     "sha256": "96a61d19e9590923dec9a0f65c22f02244f199ac4bbef3204c0ea103611456ac"
   },
   "local_files": {
     "custom/build_mihomo_script.mjs": "3cbae3d80ac315183d676fc06b92dbdd446e1feee0f4a9966a093dbaf51cc745",
-    "custom/snapshot.mjs": "796d5e8a9d6b14f171af3986bead60d9ba3164498d5a22a6bbe4560d64d04aa7",
+    "custom/snapshot.mjs": "d1846cdf70ec035890477a0cf3d625f8aa1f641d722e5dc9e6e2fc822873e4b3",
     "custom/lib/ast.mjs": "dc9bbdf849792a323f02a2a19efd50ec39de1b5a8df90aa62d43d38c7b36de92",
     "custom/lib/rules.mjs": "ad88a8f5cc14f88a64f940d27dfaadec3e6116a95b22556eed344f06d3ee9a72",
     "custom/runtime.js": "92f2935e77883b85d381c46a8a086bd357746b0b07e164f1d3f490d3b69f7712",
