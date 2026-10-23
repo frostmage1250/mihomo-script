@@ -14,7 +14,6 @@ import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
-from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -310,52 +309,10 @@ def replace_base_ruleset(
     return target_name, updated
 
 
-def detect_service_renames(previous_order: list[str], current_order: list[str]) -> dict[str, str]:
-    """Pair renamed services inside sequence replacement blocks while ignoring pure additions."""
-    renames: dict[str, str] = {}
-    matcher = SequenceMatcher(a=previous_order, b=current_order, autojunk=False)
-    for tag, old_start, old_end, new_start, new_end in matcher.get_opcodes():
-        if tag != "replace":
-            continue
-        removed = previous_order[old_start:old_end]
-        added = current_order[new_start:new_end]
-        for old_name, new_name in zip(removed, added):
-            renames[old_name] = new_name
-    return renames
-
-
-def _resolve_service_name(
-    configured_name: str,
-    services_by_name: Mapping[str, Any],
-    aliases: Mapping[str, Any],
-    detected_renames: Mapping[str, str],
-) -> tuple[str | None, list[str]]:
-    queue = [configured_name]
-    visited: list[str] = []
-    seen: set[str] = set()
-    while queue:
-        candidate = queue.pop(0)
-        if candidate in seen:
-            continue
-        seen.add(candidate)
-        visited.append(candidate)
-        if candidate in services_by_name:
-            return candidate, visited
-        configured_aliases = aliases.get(candidate, [])
-        if isinstance(configured_aliases, str):
-            configured_aliases = [configured_aliases]
-        queue.extend(str(alias) for alias in configured_aliases)
-        detected = detected_renames.get(candidate)
-        if detected:
-            queue.append(detected)
-    return None, visited
-
-
 def select_upstream_definitions(
     extracted: Mapping[str, Any],
     manifest: Mapping[str, Any],
-    previous_service_order: list[str] | None = None,
-) -> tuple[dict[str, Any], dict[str, Any], dict[str, str], list[str]]:
+) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
     services_by_name: dict[str, Any] = {}
     current_service_order: list[str] = []
     for service in extracted["services"]:
@@ -365,25 +322,18 @@ def select_upstream_definitions(
         services_by_name[name] = service
         current_service_order.append(name)
 
-    detected_renames = detect_service_renames(previous_service_order or [], current_service_order)
-    aliases = manifest.get("retained_service_aliases", {})
     selected_services: dict[str, Any] = {}
-    reference_renames: dict[str, str] = {}
     selected_provider_names: set[str] = set()
     provider_url_overrides = manifest.get("service_provider_url_overrides", {})
     unknown_override_services = set(provider_url_overrides) - set(manifest["retained_services"])
     if unknown_override_services:
         raise BuildError("Provider URL override names unknown retained services: " + ", ".join(sorted(unknown_override_services)))
 
-    for configured_name in manifest["retained_services"]:
-        name, visited = _resolve_service_name(configured_name, services_by_name, aliases, detected_renames)
-        if name is None:
-            raise BuildError(f"Required upstream service disappeared without a detectable replacement: {configured_name}")
+    for name in manifest["retained_services"]:
+        if name not in services_by_name:
+            raise BuildError(f"Selected upstream service requires its current upstream name: {name}")
         if name in selected_services:
-            raise BuildError(f"Multiple retained services resolved to the same upstream service: {name}")
-        for previous_name in visited:
-            if previous_name != name:
-                reference_renames[previous_name] = name
+            raise BuildError(f"Duplicate selected upstream service: {name}")
         service = services_by_name[name]
         providers = service.get("providers", {})
         for provider_name, provider in providers.items():
@@ -401,16 +351,16 @@ def select_upstream_definitions(
             raise BuildError(
                 f"Rule/provider mismatch for {name}: rules use {sorted(referenced)}, providers are {sorted(providers)}"
             )
-        service_overrides = provider_url_overrides.get(configured_name, {})
+        service_overrides = provider_url_overrides.get(name, {})
         unknown_providers = set(service_overrides) - set(providers)
         if unknown_providers:
-            raise BuildError(f"Provider URL override for {configured_name} references missing providers: {sorted(unknown_providers)}")
+            raise BuildError(f"Provider URL override for {name} references missing providers: {sorted(unknown_providers)}")
         selected_providers: dict[str, Any] = {}
         for provider_name, provider in providers.items():
             override_url = service_overrides.get(provider_name)
             if override_url is not None:
                 if not isinstance(override_url, str) or not override_url.startswith("https://"):
-                    raise BuildError(f"Provider URL override for {configured_name}.{provider_name} must be HTTPS")
+                    raise BuildError(f"Provider URL override for {name}.{provider_name} must be HTTPS")
                 provider = {**provider, "url": override_url}
                 provider.pop("path-in-bundle", None)
             selected_providers[provider_name] = provider
@@ -438,7 +388,7 @@ def select_upstream_definitions(
         if output_name in selected_base or output_name in selected_provider_names or output_name in manifest["reserved_extra_provider_names"]:
             raise BuildError(f"Base ruleset replacement provider name collision: {output_name}")
         selected_base[output_name] = provider
-    return selected_base, selected_services, reference_renames, current_service_order
+    return selected_base, selected_services, current_service_order
 
 
 def selected_base_provider_names(
@@ -746,7 +696,6 @@ def render_script(
     sha: str,
     base: Mapping[str, Any],
     services: Mapping[str, Any],
-    service_renames: Mapping[str, str],
     real_ip_domains: list[str],
 ) -> str:
     updated, count = re.subn(
@@ -756,15 +705,6 @@ def render_script(
     )
     if count != 1:
         raise BuildError("Generated script must contain exactly one upstream commit header")
-    for old_name, new_name in service_renames.items():
-        property_pattern = rf"(?m)^(?P<indent>\s*){re.escape(old_name)}:"
-        updated = re.sub(
-            property_pattern,
-            lambda match: f"{match.group('indent')}{json.dumps(new_name, ensure_ascii=False)}:",
-            updated,
-        )
-        call_pattern = rf"serviceRules\((['\"]){re.escape(old_name)}\1\)"
-        updated = re.sub(call_pattern, f"serviceRules({json.dumps(new_name, ensure_ascii=False)})", updated)
     updated = replace_marked(updated, BEGIN_DNS, END_DNS, render_dns_section(upstream, real_ip_domains))
     updated = sync_tun_stack(updated, upstream)
     updated = replace_marked(
@@ -790,18 +730,15 @@ def build(
     sha: str,
     real_ip_domains: list[str],
     real_ip_domains_sha: str,
-    previous_service_order: list[str] | None = None,
 ) -> tuple[str, str]:
     extracted = _extract_with_node(upstream)
     validate_contracts(extracted, manifest)
-    base, services, service_renames, service_order = select_upstream_definitions(
-        extracted, manifest, previous_service_order
-    )
+    base, services, service_order = select_upstream_definitions(extracted, manifest)
     prefix_rules = select_prefix_rules(extracted, manifest)
     applied_domains, excluded_domains = select_real_ip_domains(real_ip_domains)
     current_script = sync_node_matching(current_script, extracted["contracts"])
     current_script = sync_matching_helpers(current_script, extracted["contracts"])
-    script = render_script(current_script, upstream, sha, base, services, service_renames, applied_domains)
+    script = render_script(current_script, upstream, sha, base, services, applied_domains)
     script = sync_prefix_rules(script, prefix_rules, base)
     script, group_icons = sync_group_icons(script, extracted, manifest)
     script, group_test_url = sync_group_test_url(script, extracted)
@@ -892,13 +829,9 @@ def main() -> int:
         real_ip_domains = extract_real_ip_domains(real_ip_source)
         output_path = ROOT / manifest["output"]
         report_path = ROOT / manifest["report"]
-        previous_service_order: list[str] = []
-        if report_path.exists():
-            previous_report = json.loads(report_path.read_text(encoding="utf-8"))
-            previous_service_order = previous_report.get("upstream_service_order", [])
         current = output_path.read_text(encoding="utf-8")
         script, report = build(
-            manifest, current, upstream, sha, real_ip_domains, real_ip_domains_sha, previous_service_order
+            manifest, current, upstream, sha, real_ip_domains, real_ip_domains_sha
         )
         report_data = json.loads(report)
         report_data["fork"] = {

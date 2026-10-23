@@ -53,6 +53,7 @@ tracking; output behavior remains governed by the customization policy.
 - Use system DNS for mainland-domain and Direct re-resolution; preserve private DNS handling.
 - Import compatible real-IP domains from [Repcz/Tool](https://github.com/Repcz/Tool/blob/X/Egern/Egern.yaml).
 - Retain the AI, Apple, geolocation-cn, Claude, pron, and MCDN converter sources.
+- Use current upstream service and provider names directly; the retained service selection uses Meta.
 - Keep Steam CN, NVIDIA CN, Apple CN, and Microsoft CN direct exceptions.
 - Place CDN, private-domain, private-IP, and MCDN rules at the start of the direct-exception block after media rules.
 - Restore the upstream Google service hosts mapping.

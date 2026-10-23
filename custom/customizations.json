@@ -23,7 +23,7 @@
     "Steam",
     "TikTok",
     "Twitter",
-    "Instagram",
+    "Meta",
     "PikPak",
     "EHentai"
   ],
@@ -34,11 +34,6 @@
     "Apple": {
       "apple": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/apple-merged.mrs"
     }
-  },
-  "retained_service_aliases": {
-    "Instagram": [
-      "Meta"
-    ]
   },
   "retained_base_rule_providers": [
     "private",

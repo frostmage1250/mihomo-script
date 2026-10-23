@@ -182,10 +182,8 @@ for (const [name, provider] of Object.entries(buildReport.upstream_base_rule_pro
   assertUpstreamProvider(replacement?.name || name, expected, overrideUrl, overrideUrl !== undefined);
 }
 for (const [serviceName, upstreamProviders] of Object.entries(buildReport.upstream_service_rule_providers)) {
-  const configuredName = manifest.retained_services.find((name) =>
-    name === serviceName || (manifest.retained_service_aliases?.[name] || []).includes(serviceName)
-  );
-  const overrides = manifest.service_provider_url_overrides?.[configuredName || serviceName] || {};
+  assert(manifest.retained_services.includes(serviceName), "retained service name must match current upstream: " + serviceName);
+  const overrides = manifest.service_provider_url_overrides?.[serviceName] || {};
   assert(isDeepStrictEqual(Object.keys(upstreamProviders).sort(), [...buildReport.retained_services[serviceName].providers].sort()), `upstream provider snapshot is incomplete: ${serviceName}`);
   for (const [name, provider] of Object.entries(upstreamProviders)) {
     assertUpstreamProvider(name, provider, overrides[name], overrides[name] !== undefined);

@@ -17,7 +17,6 @@ from build_mihomo_script import (  # noqa: E402
     sync_node_matching,
     sync_matching_helpers,
     validate_contracts,
-    detect_service_renames,
     extract_real_ip_domains,
     select_real_ip_domains,
     replace_marked,
@@ -213,12 +212,9 @@ const preserveName = 'H\\u200BK';
             "retained_services": ["GitHub", "Microsoft"],
             "retained_base_rule_providers": [], "reserved_extra_provider_names": [],
         }
-        _base, services, renames, _order = select_upstream_definitions(
-            extracted, manifest, ["Microsoft"]
-        )
+        _base, services, _order = select_upstream_definitions(extracted, manifest)
         self.assertEqual(services["GitHub"]["rules"], ["RULE-SET,github,GitHub"])
         self.assertEqual(list(services["Microsoft"]["providers"]), ["microsoft"])
-        self.assertEqual(renames, {})
 
     def test_marked_region_is_replaced_once(self) -> None:
         text = "before\n// BEGIN\nold\n// END\nafter\n"
@@ -269,8 +265,8 @@ newConfig['tun'] = {
 };
 """
         sha = "1" * 40
-        first = render_script(template, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}}, {}, ["example.com"])
-        second = render_script(first, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}}, {}, ["example.com"])
+        first = render_script(template, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}}, ["example.com"])
+        second = render_script(first, upstream, sha, {"a": {"x": 1}}, {"S": {"providers": {}, "rules": []}}, ["example.com"])
         self.assertEqual(first, second)
         self.assertIn(f"上游提交：{sha}", first)
         self.assertIn("stack: 'mips'", first)
@@ -377,7 +373,7 @@ policy_groups:
             "reserved_extra_provider_names": [],
         }
 
-        _base, services, _renames, _order = select_upstream_definitions(extracted, manifest)
+        _base, services, _order = select_upstream_definitions(extracted, manifest)
 
         self.assertEqual(list(services["Service"]["providers"]), ["service", "service_ip"])
 
@@ -411,7 +407,7 @@ policy_groups:
             "retained_base_rule_providers": ["douyin"],
             "reserved_extra_provider_names": [],
         }
-        base, services, _renames, _order = select_upstream_definitions(extracted, manifest)
+        base, services, _order = select_upstream_definitions(extracted, manifest)
         self.assertEqual(base["douyin"], upstream_provider)
         self.assertNotEqual(base["douyin"], old_provider)
         self.assertEqual(services["Service"]["providers"], extracted["services"][0]["providers"])
@@ -432,7 +428,7 @@ policy_groups:
                 "games_cn": {"name": "steam_cn", "from": "category-games@cn", "to": "steam@cn"},
             },
         }
-        base, _services, _renames, _order = select_upstream_definitions(extracted, manifest)
+        base, _services, _order = select_upstream_definitions(extracted, manifest)
         self.assertEqual(list(base), ["steam_cn"])
         self.assertEqual(base["steam_cn"], {
             **provider,
@@ -537,7 +533,7 @@ policy_groups:
             "retained_services": [], "retained_base_rule_providers": [],
             "reserved_extra_provider_names": [],
         }
-        base, _services, _renames, _order = select_upstream_definitions(extracted, manifest)
+        base, _services, _order = select_upstream_definitions(extracted, manifest)
         self.assertEqual(base, {"new_cn": provider})
         with self.assertRaisesRegex(BuildError, "disappeared: new_cn"):
             select_upstream_definitions({**extracted, "baseRuleProviders": {}}, manifest)
@@ -580,19 +576,33 @@ function buildRules() {
                 "AI": {"ai": "https://raw.githubusercontent.com/example/ai.mrs"}
             },
         }
-        _base, services, _renames, _order = select_upstream_definitions(extracted, manifest)
+        _base, services, _order = select_upstream_definitions(extracted, manifest)
         self.assertEqual(services["AI"]["providers"]["ai"]["url"], manifest["service_provider_url_overrides"]["AI"]["ai"])
         self.assertNotIn("path-in-bundle", services["AI"]["providers"]["ai"])
         self.assertEqual(provider["url"], "https://bett.example/ai.mrs")
 
-    def test_service_rename_is_detected_without_treating_new_additions_as_renames(self) -> None:
-        self.assertEqual(
-            detect_service_renames(
-                ["Twitter", "Instagram", "PikPak"],
-                ["Twitter", "Meta", "Line", "PikPak"],
-            ),
-            {"Instagram": "Meta"},
-        )
+    def test_selected_service_and_provider_names_follow_current_upstream(self) -> None:
+        provider = {
+            "type": "http", "format": "mrs", "interval": 86400,
+            "behavior": "domain", "url": "https://example.com/meta.mrs",
+            "path": "./ruleset/meta.mrs",
+        }
+        extracted = {
+            "baseRuleProviders": {},
+            "services": [
+                {"name": "Meta", "providers": {"meta": provider},
+                 "rules": ["RULE-SET,meta,Meta"]},
+            ],
+        }
+        manifest = {
+            "retained_services": ["Meta"],
+            "retained_base_rule_providers": [], "reserved_extra_provider_names": [],
+        }
+        _base, services, order = select_upstream_definitions(extracted, manifest)
+        self.assertEqual(list(services), ["Meta"])
+        self.assertEqual(list(services["Meta"]["providers"]), ["meta"])
+        self.assertEqual(services["Meta"]["rules"], ["RULE-SET,meta,Meta"])
+        self.assertEqual(order, ["Meta"])
 
 if __name__ == "__main__":
     unittest.main()
