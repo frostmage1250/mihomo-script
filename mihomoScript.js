@@ -1212,6 +1212,7 @@ function buildRuleProviders() {
     ...providers['geolocation-cn'],
     url: 'https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs',
   };
+  delete providers['geolocation-cn']['path-in-bundle'];
 
   return providers;
 }

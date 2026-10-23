@@ -179,7 +179,7 @@ for (const [name, provider] of Object.entries(buildReport.upstream_base_rule_pro
   const overrideUrl = name === "geolocation-cn"
     ? "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs"
     : undefined;
-  assertUpstreamProvider(replacement?.name || name, expected, overrideUrl);
+  assertUpstreamProvider(replacement?.name || name, expected, overrideUrl, overrideUrl !== undefined);
 }
 for (const [serviceName, upstreamProviders] of Object.entries(buildReport.upstream_service_rule_providers)) {
   const configuredName = manifest.retained_services.find((name) =>
