@@ -310,6 +310,6 @@ export function compileScript(model, manifest, domains, plan, runtime, provenanc
     " * Source: https://github.com/AIsouler/MyClash\n * Upstream commit: " + provenance.commit +
     "\n * Generated from upstream AST and custom sources. MIT license retained.\n */\n";
   const program = {type: "Program", sourceType: "script", body: [...selected.map(entry => entry.node), ...runtimeAst.body]};
-  const script = header + generate(program, {indent: "  "}) + "\n";
+  const script = header + generate(program, {indent: "  "}).trimEnd() + "\n";
   return {script, icons, emittedDeclarations: selected.map(entry => entry.name)};
 }
