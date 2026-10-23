@@ -95,16 +95,6 @@ for (const group of groups.values()) {
 }
 
 
-for (const [name, upstreamName] of Object.entries(manifest.group_icon_sources)) {
-  const icon = buildReport.upstream_group_icons[upstreamName];
-  assert(typeof icon === "string" && icon.endsWith(".svg"), "upstream SVG icon missing for " + name);
-  assert(buildReport.applied_group_icons[name] === icon, "icon provenance differs for " + name);
-  if (groups.has(name)) assert(groups.get(name).icon === icon, "group icon differs from upstream for " + name);
-}
-for (const group of groups.values()) {
-  assert(typeof group.icon === "string" && group.icon.endsWith(".svg"), "SVG icon missing for " + group.name);
-}
-
 assert(Array.isArray(output.dns["proxy-server-nameserver"]) && output.dns["proxy-server-nameserver"].length > 0, "proxy server DNS must follow upstream DNS configuration");
 assert(Array.isArray(output.dns["default-nameserver"]) && output.dns["default-nameserver"].length > 0, "default DNS must follow upstream DNS configuration");
 assert(JSON.stringify(output.dns["nameserver-policy"]["rule-set:cn"]) === JSON.stringify(["system"]), "CN domains must use system DNS");
@@ -129,6 +119,16 @@ const upstreamSource = fs.readFileSync(path.join(root, "Script", "mihomoScript.j
 assert(require("crypto").createHash("sha256").update(upstreamSource).digest("hex") === buildReport.fork.source_sha256, "source digest must match the complete merged upstream file");
 
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "custom", "customizations.json"), "utf8"));
+
+for (const [name, upstreamName] of Object.entries(manifest.group_icon_sources)) {
+  const icon = buildReport.upstream_group_icons[upstreamName];
+  assert(typeof icon === "string" && icon.endsWith(".svg"), "upstream SVG icon missing for " + name);
+  assert(buildReport.applied_group_icons[name] === icon, "icon provenance differs for " + name);
+  if (groups.has(name)) assert(groups.get(name).icon === icon, "group icon differs from upstream for " + name);
+}
+for (const group of groups.values()) {
+  assert(typeof group.icon === "string" && group.icon.endsWith(".svg"), "SVG icon missing for " + group.name);
+}
 assert(isDeepStrictEqual(buildReport.service_provider_url_overrides, manifest.service_provider_url_overrides), "custom provider overrides differ from manifest");
 const excludedPrefixRules = new Set(manifest.upstream_prefix_rules.excluded_rules);
 const prefixProviderNames = buildReport.upstream_prefix_rules
