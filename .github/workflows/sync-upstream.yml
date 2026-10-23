@@ -1,0 +1,116 @@
+name: Sync upstream and publish Mihomo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - "custom/**"
+      - "tests/**"
+      - "Script/mihomoScript.js"
+      - "mihomoScript.js"
+  schedule:
+    - cron: "0 5,11,17,23 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream-mihomo
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the publishing branch with full history
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge upstream history and restore retained upstream files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/AIsouler/MyClash.git
+          git fetch --no-tags upstream main
+          git merge --no-commit --no-ff --strategy=ours refs/remotes/upstream/main
+          git restore --source=refs/remotes/upstream/main --staged --worktree -- Script/mihomoScript.js LICENSE
+          git diff --exit-code refs/remotes/upstream/main -- Script/mihomoScript.js LICENSE
+          git branch -f upstream refs/remotes/upstream/main
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install latest stable Mihomo
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_json="$(gh api repos/MetaCubeX/mihomo/releases/latest)"
+          mihomo_version="$(jq --raw-output '.tag_name' <<< "${release_json}")"
+          asset="mihomo-linux-amd64-compatible-${mihomo_version}.gz"
+          asset_json="$(jq --compact-output --arg name "${asset}" '.assets[] | select(.name == $name)' <<< "${release_json}")"
+          download_url="$(jq --raw-output '.browser_download_url' <<< "${asset_json}")"
+          digest="$(jq --raw-output '.digest' <<< "${asset_json}")"
+          if [[ -z "${asset_json}" || "${digest}" != sha256:* ]]; then
+            echo "Latest stable Mihomo is missing ${asset} or its SHA-256 digest." >&2
+            exit 1
+          fi
+          archive="${RUNNER_TEMP}/${asset}"
+          curl --fail --location --silent --show-error "${download_url}" --output "${archive}"
+          echo "${digest#sha256:}  ${archive}" | sha256sum --check
+          gzip --decompress --stdout "${archive}" > "${RUNNER_TEMP}/mihomo"
+          chmod +x "${RUNNER_TEMP}/mihomo"
+          echo "${RUNNER_TEMP}" >> "${GITHUB_PATH}"
+          "${RUNNER_TEMP}/mihomo" -v
+
+      - name: Generate from the complete merged upstream source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python custom/build_mihomo_script.py
+
+      - name: Run customization builder tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Validate generated JavaScript and behavior
+        run: |
+          node --check Script/mihomoScript.js
+          node --check mihomoScript.js
+          node tests/validate_mihomo_script.js "$RUNNER_TEMP/mihomo-script-fixture.json"
+
+      - name: Validate generated Mihomo configuration
+        run: mihomo -t -f "$RUNNER_TEMP/mihomo-script-fixture.json"
+
+      - name: Verify deterministic regeneration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python custom/build_mihomo_script.py --check
+          git diff --check
+          git diff --cached --check
+
+      - name: Publish validated merge and upstream mirror together
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -- Script/mihomoScript.js LICENSE mihomoScript.js custom/upstream.json
+          if test -f "$(git rev-parse --git-path MERGE_HEAD)" || ! git diff --cached --quiet; then
+            git commit -m "chore: merge upstream and publish validated Mihomo script"
+          fi
+          git merge-base --is-ancestor refs/remotes/upstream/main HEAD
+          git push --atomic origin HEAD:refs/heads/main refs/heads/upstream:refs/heads/upstream
+
+      - name: Remove downloaded Mihomo files
+        if: always()
+        shell: bash
+        run: rm -f "${RUNNER_TEMP}"/mihomo "${RUNNER_TEMP}"/mihomo-*.gz "${RUNNER_TEMP}"/mihomo-script-fixture.json
+

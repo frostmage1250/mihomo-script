@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "upstream": {
+    "repository": "AIsouler/MyClash",
+    "branch": "main",
+    "path": "Script/mihomoScript.js"
+  },
+  "real_ip_domains_upstream": {
+    "repository": "Repcz/Tool",
+    "branch": "X",
+    "path": "Egern/Egern.yaml"
+  },
+  "output": "mihomoScript.js",
+  "report": "custom/upstream.json",
+  "retained_services": [
+    "YouTube",
+    "Google",
+    "AI",
+    "GitHub",
+    "Microsoft",
+    "Apple",
+    "Telegram",
+    "Steam",
+    "TikTok",
+    "Twitter",
+    "Instagram",
+    "PikPak",
+    "EHentai"
+  ],
+  "service_provider_url_overrides": {
+    "AI": {
+      "ai": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/ai.mrs"
+    },
+    "Apple": {
+      "apple": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/apple-merged.mrs"
+    }
+  },
+  "retained_service_aliases": {
+    "Instagram": [
+      "Meta"
+    ]
+  },
+  "retained_base_rule_providers": [
+    "private",
+    "private_ip",
+    "games_cn",
+    "nvidia_cn",
+    "apple_cn",
+    "microsoft_cn",
+    "geolocation-cn",
+    "cn_ip",
+    "geolocation-!cn",
+    "fakeip_filter",
+    "cn",
+    "douyin"
+  ],
+  "reserved_extra_provider_names": [
+    "threads",
+    "facebook",
+    "twitch",
+    "bypass_japan",
+    "mcdn屏蔽",
+    "appletv"
+  ],
+  "upstream_contract_hashes": {
+    "directProxies": "274c2d92801cbf5c5e794cb295f386350375aa5cd172da91e2ba049f73946ab7"
+  },
+  "upstream_contract_sources": {
+    "function:filterAndNormalizeProxies": "function filterAndNormalizeProxies(config) {\n  regionMatchCache.clear();\n\n  const filterLowRateProxiesEnabled = ruleOptionsEnable.过滤低倍率节点;\n  const filterHighRateProxiesEnabled = ruleOptionsEnable.过滤高倍率节点;\n  const filterNonRegionProxiesEnabled = ruleOptionsEnable.过滤非地区节点;\n\n  const lowRateRegex = filterLowRateProxiesEnabled\n    ? rateRegionDefinitions.find((r) => r.name === lowRateRegionName)?.regex\n    : null;\n  const highRateRegex = filterHighRateProxiesEnabled\n    ? rateRegionDefinitions.find((r) => r.name === highRateRegionName)?.regex\n    : null;\n\n  const originalProxies = config.proxies || [];\n\n  const filteredRawProxies = originalProxies.filter((proxy) => {\n    const type = String(proxy.type ?? '').toLowerCase();\n    if (type === 'direct' || type === 'reject' || type === 'rematch') return false;\n\n    const matchableName = toMatchableName(proxy.name);\n\n    if (lowRateRegex?.test(matchableName) || highRateRegex?.test(matchableName)) return false;\n\n    if (!filterNonRegionProxiesEnabled) return true;\n\n    const isRegionProxy = getMatchedRegions(proxy.name).some((region) => regionDefinitions.includes(region));\n\n    return isRegionProxy || !excludeFilter.test(matchableName);\n  });\n\n  const renameMap = new Map();\n  const normalizedProxies = [];\n  const uniqueNames = new Set();\n\n  for (const rawProxy of filteredRawProxies) {\n    const normalized = normalizeProxyName(rawProxy);\n    if (normalized.name !== rawProxy.name) {\n      renameMap.set(rawProxy.name, normalized.name);\n    }\n    if (!uniqueNames.has(normalized.name)) {\n      uniqueNames.add(normalized.name);\n      normalizedProxies.push(normalized);\n    }\n  }\n\n  const normalizedProxyNames = new Set(normalizedProxies.map((p) => p.name));\n\n  const filteredProxies = normalizedProxies.map((proxy) => fixDialerProxy(proxy, renameMap, normalizedProxyNames));\n\n  if (!filteredProxies.length) {\n    throw new Error('配置文件中未找到任何代理节点，请使用机场提供的配置文件进行覆写');\n  }\n\n  const ipVersionPreference = getIpVersionPreference();\n  if (ipVersionPreference) {\n    return filteredProxies.map((proxy) =>\n      proxy['ip-version'] === ipVersionPreference ? proxy : { ...proxy, 'ip-version': ipVersionPreference },\n    );\n  }\n\n  return filteredProxies;\n}",
+    "function:toMatchableName": "function toMatchableName(name) {\n  return typeof name === 'string' ? name.replace(invisibleCharsRegex, '') : name;\n}",
+    "function:getMatchedRegions": "function getMatchedRegions(proxyName) {\n  if (regionMatchCache.has(proxyName)) {\n    return regionMatchCache.get(proxyName);\n  }\n\n  const matchableName = toMatchableName(proxyName);\n  const regions = allRegionDefinitions.filter((region) => region.regex.test(matchableName));\n  regionMatchCache.set(proxyName, regions);\n\n  return regions;\n}"
+  },
+  "base_rule_provider_replacements": {
+    "games_cn": {
+      "name": "steam_cn",
+      "from": "category-games@cn",
+      "to": "steam@cn"
+    }
+  },
+  "upstream_prefix_rules": {
+    "excluded_rules": [
+      "DOMAIN,fsend.cn,直连",
+      "RULE-SET,epicgames,直连"
+    ],
+    "existing_rule_providers": [
+      "private",
+      "private_ip",
+      "geolocation-cn"
+    ]
+  }
+}
