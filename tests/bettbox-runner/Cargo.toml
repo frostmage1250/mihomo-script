@@ -1,0 +1,10 @@
+[package]
+name = "bettbox-script-check"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+rquickjs = { version = "=0.12.2", default-features = false }
+rquickjs-core = { version = "=0.12.2", default-features = false }
+rquickjs-sys = { version = "=0.12.2", default-features = false }
