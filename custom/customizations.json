@@ -271,17 +271,17 @@
     },
     "pron": {
       "providers": {
-        "bypass_japan": {
+        "porn": {
           "type": "http",
           "format": "mrs",
           "interval": 86400,
           "behavior": "domain",
-          "url": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/bypass-japan.mrs",
-          "path": "./ruleset/bypass-japan.mrs"
+          "url": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/porn.mrs",
+          "path": "./ruleset/porn.mrs"
         }
       },
       "rules": [
-        "RULE-SET,bypass_japan,pron"
+        "RULE-SET,porn,pron"
       ]
     },
     "Claude": {

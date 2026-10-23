@@ -71,6 +71,33 @@ for(const service of Object.values(manifest.additional_services))Object.assign(e
 Object.assign(expectedProviders,manifest.additional_rule_providers);
 assert.deepEqual(providers,expectedProviders,"provider definitions differ from upstream and explicit custom sources");
 
+// Ordinary rule data must remain on Bett; only these reviewed providers use
+// converter output. The source script itself is inherited from AIsouler/MyClash.
+const customProviderAssets = {
+  "geolocation-cn": "geolocation-cn.mrs", ai: "ai.mrs", apple: "apple-merged.mrs",
+  porn: "porn.mrs", claude: "claude.yaml", "mcdn屏蔽": "mcdn-block.mrs",
+};
+let bettProviderCount = 0;
+for (const [name, provider] of Object.entries(providers)) {
+  const url = new URL(provider.url);
+  if (Object.hasOwn(customProviderAssets, name)) {
+    assert.equal(provider.url,
+      "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/" + customProviderAssets[name]);
+  } else {
+    assert.ok(
+      (url.hostname === "raw.githubusercontent.com" && url.pathname.startsWith("/appshubcc/bett-rules/meta/")) ||
+      url.pathname.startsWith("/gh/appshubcc/bett-rules@meta/"),
+      "ordinary provider no longer comes from Bett: " + name + " " + provider.url
+    );
+    bettProviderCount++;
+  }
+}
+assert.ok(!Object.hasOwn(providers, "bypass_japan"));
+assert.ok(!Object.values(providers).some(provider => provider.url.includes("steam-cn-download")));
+assert.ok(output.rules.includes("RULE-SET,porn,pron"));
+console.log("Rule provenance verified: " + bettProviderCount + " Bett providers and " +
+  Object.keys(customProviderAssets).length + " reviewed converter providers.");
+
 const names=output.proxies.map(proxy=>proxy.name);
 assert.deepEqual(names,["日本 01","香港 01","新加坡 01","美国 01","韩国 01","日本 0.5x","IPv4优先","IPv6优先"]);
 assert.ok(output.proxies.every(proxy=>!("dialer-proxy" in proxy)));

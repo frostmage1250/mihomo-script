@@ -83,3 +83,14 @@ real-IP domain selections, and stale preferences. Full upstream definitions stay
 in Script/mihomoScript.js; source provenance stays in the source lock.
 
 Upstream attribution and the MIT license are retained.
+
+## Rule data provenance
+
+Ordinary provider data comes from appshubcc/bett-rules on meta. The six reviewed
+converter providers are AI, Claude, Apple merge, geolocation-cn, porn, and MCDN.
+Bettbox is the execution/compatibility client, while the script's upstream source
+is AIsouler/MyClash. Acceptance validates every provider URL against this boundary.
+
+The porn rule-set uses provider key `porn` and `dist/mihomo/porn.mrs`; its
+existing policy group remains `pron`. Steam CN continues to use Bett `steam@cn`.
+The retired 11-rule steam-cn-download provider is not referenced by this script.
