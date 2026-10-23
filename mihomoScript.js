@@ -60,9 +60,8 @@ const regionDefinitions = [
     name: '新加坡',
     regex: /🇸🇬|新加坡|狮城|(?<![A-Za-z])SGP?(?![A-Za-z])|singapore/i,
   },
-  // 本地保留的台湾区域定义；不随上游删除。
   {
-    name: '台湾省',
+    name: '台湾',
     regex: /🇹🇼|台湾|台北|高雄|(?<![A-Za-z])TWN?(?![A-Za-z])|taiwan/i,
   },
 ];
@@ -1257,9 +1256,8 @@ const groupTestUrl = "https://www.apple.com/library/test/success.html";
 // END GENERATED: GROUP_TEST_URL
 
 function buildProxyGroups(regionProxyMap, subscriptionProxies) {
-  const regionOrder = ['香港', '台湾', '新加坡', '日本', '美国', '其他节点', '低倍率节点'];
-  const sourceRegionName = (name) => (name === '台湾' ? '台湾省' : name);
-  const availableRegions = regionOrder.filter((name) => regionProxyMap.has(sourceRegionName(name)));
+  const regionOrder = [...regionDefinitions.map(({ name }) => name), '其他节点', lowRateRegionName];
+  const availableRegions = regionOrder.filter((name) => regionProxyMap.has(name));
   const simpleSelect = (name, proxies) => ({
     name,
     type: 'select',
@@ -1269,7 +1267,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     ...(groupIcons[name] ? { icon: groupIcons[name] } : {}),
     'empty-fallback': 'REJECT',
   });
-  const optional = (...names) => names.filter((name) => regionProxyMap.has(sourceRegionName(name)));
+  const optional = (...names) => names.filter((name) => regionProxyMap.has(name));
 
   return [
     simpleSelect('Proxy', ['订阅', ...availableRegions, ...subscriptionProxies.map((proxy) => proxy.name)]),
@@ -1285,7 +1283,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     simpleSelect('Telegram', ['Proxy', ...optional('低倍率节点', '香港')]),
     simpleSelect('PikPak', ['Proxy', 'Direct', ...optional('低倍率节点', '香港')]),
     simpleSelect('EHentai', ['Proxy']),
-    ...availableRegions.map((name) => simpleSelect(name, regionProxyMap.get(sourceRegionName(name)))),
+    ...availableRegions.map((name) => simpleSelect(name, regionProxyMap.get(name))),
     simpleSelect('Final', ['Proxy', 'Direct']),
   ];
 }

@@ -43,6 +43,8 @@ function ss(name, extra = {}) {
   };
 }
 
+const upstream = new Function(upstreamSource + "\nreturn {main, groupBaseOption, serviceConfigs, baseRuleProviders, prefixRules, blockForeignQuic, regionDefinitions, rateRegionDefinitions, excludeFilter, invisibleCharsRegex, toMatchableName, getMatchedRegions};")();
+
 const fixture = {
   proxies: [
     ss("日本 01"),
@@ -69,7 +71,9 @@ same(output.proxies.find(proxy => proxy.name === "日本 01").server, "node.exam
 assert(output.proxies.every(proxy => !("dialer-proxy" in proxy)), "dialer-proxy cleanup failed");
 const expectedChoices = {
   "订阅": subscriptionNames,
-  Proxy: ["订阅", "香港", "新加坡", "日本", "美国", "其他节点", "低倍率节点", ...subscriptionNames],
+  Proxy: ["订阅", ...upstream.regionDefinitions.filter(region =>
+    subscriptionNames.some(node => region.regex.test(upstream.toMatchableName(node)))
+  ).map(region => region.name), "其他节点", "低倍率节点", ...subscriptionNames],
   Direct: ["DIRECT", "IPv4优先", "IPv6优先"],
   GitHub: ["Proxy", "订阅", "AI"],
   Claude: ["Proxy", "订阅", "日本", "其他节点"],
@@ -89,7 +93,6 @@ for (const [name, choices] of Object.entries(expectedChoices)) {
 }
 assert(!groups.has("GLOBAL") && !groups.has("高倍率节点"), "local group selection changed");
 
-const upstream = new Function(upstreamSource + "\nreturn {main, groupBaseOption, serviceConfigs, baseRuleProviders, prefixRules, blockForeignQuic, regionDefinitions, rateRegionDefinitions, excludeFilter, invisibleCharsRegex, toMatchableName, getMatchedRegions};")();
 const nativeOutput = upstream.main({proxies: [ss("日本 fixture"), ss("fixture-other")], dns: {}, hosts: {}});
 const upstreamIcons = Object.fromEntries([
   ...upstream.serviceConfigs, ...upstream.regionDefinitions, ...upstream.rateRegionDefinitions,
@@ -197,7 +200,8 @@ for (const [name, group] of groups) {
     assert(!Object.hasOwn(group, field), "unexpected local group setting: " + name + "." + field);
   }
   same(group.url, upstream.groupBaseOption.url, "test URL differs from upstream: " + name);
-  const upstreamName = manifest.group_icon_sources[name];
+  const upstreamName = manifest.group_icon_sources[name] ||
+    (upstream.regionDefinitions.some(region => region.name === name) ? name : undefined);
   same(group.icon, upstreamName ? upstreamIcons[upstreamName] : undefined, "icon differs from upstream selection: " + name);
 }
 same(report.upstream_group_test_url, upstream.groupBaseOption.url, "test URL provenance differs");
@@ -211,6 +215,11 @@ same(String(runtime.invisibleCharsRegex), String(upstream.invisibleCharsRegex), 
 for (const name of ["toMatchableName", "getMatchedRegions"]) {
   same(String(runtime[name]), String(upstream[name]), "matching helper differs from current upstream: " + name);
 }
+same(
+  runtime.regionDefinitions.map(({name, regex}) => ({name, regex: String(regex)})),
+  upstream.regionDefinitions.map(({name, regex}) => ({name, regex: String(regex)})),
+  "complete region definitions must follow current upstream names, order, and matching",
+);
 for (const kind of ["regionDefinitions", "rateRegionDefinitions"]) {
   for (const definition of report.upstream_matching[kind]) {
     same(String(runtime[kind].find(item => item.name === definition.name)?.regex), definition.regex, "region expression differs: " + definition.name);
@@ -228,7 +237,9 @@ same(invisibleOutput.proxies.slice(0, invisibleNames.length).map(proxy => proxy.
 same(invisibleOutput.proxies.length, invisibleNames.length + 2, "node deduplication/filtering changed");
 assert(invisibleGroups.get("香港").proxies.includes(zw("HK 01")), "Hong Kong match through invisible characters failed");
 assert(invisibleGroups.get("新加坡").proxies.includes("\u3164SG\uFFA0 03"), "Singapore match through fillers failed");
-assert(invisibleGroups.get("台湾").proxies.includes(zw("TW 01")), "local Taiwan match through invisible characters failed");
+if (upstream.regionDefinitions.some(region => region.name === "台湾")) {
+  assert(invisibleGroups.get("台湾").proxies.includes(zw("TW 01")), "upstream Taiwan match through invisible characters failed");
+}
 assert(invisibleGroups.get("低倍率节点").proxies.includes(zw("日本 0.3x")), "low-rate matching failed");
 runtime.ruleOptionsEnable.过滤低倍率节点 = true;
 try {
@@ -241,10 +252,15 @@ try {
 const taiwanNames = ["🇹🇼 01", "台湾 01", "台北 01", "高雄 01", "TW 01", "TWN 01", "Taiwan 01", "台湾 备用 01"];
 const taiwanOutput = runtime.main({proxies: [...taiwanNames.map(name => ss(name)), ss("韩国 01")], dns: {}, hosts: {}});
 const taiwanGroups = new Map(taiwanOutput["proxy-groups"].map(group => [group.name, group]));
-same(taiwanGroups.get("台湾").proxies, taiwanNames, "local Taiwan matching changed");
-same(taiwanGroups.get("其他节点").proxies, ["韩国 01"], "local region classification changed");
-for (const name of ["Proxy", "AI", "Claude"]) {
-  assert(taiwanGroups.get(name).proxies.includes("台湾"), "Taiwan choice missing: " + name);
+const nativeTaiwan = upstream.regionDefinitions.find(region => region.name === "台湾");
+if (nativeTaiwan) {
+  same(taiwanGroups.get("台湾").proxies, taiwanNames, "upstream Taiwan matching changed");
+  same(taiwanGroups.get("其他节点").proxies, ["韩国 01"], "region classification changed");
+  for (const name of ["Proxy", "AI", "Claude"]) {
+    assert(taiwanGroups.get(name).proxies.includes("台湾"), "Taiwan choice missing: " + name);
+  }
+} else {
+  assert(!taiwanGroups.has("台湾"), "removed upstream Taiwan region should stay omitted");
 }
 
 same(output.dns["nameserver-policy"]["rule-set:cn"], ["system"], "mainland DNS policy changed");

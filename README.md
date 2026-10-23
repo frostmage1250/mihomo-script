@@ -53,7 +53,8 @@ record the source and output rather than locking upstream function text.
 
 - Preserve original node names, remove exact duplicate names and dialer-proxy fields.
 - Keep the current region, subscription, media, AI, Claude, GitHub, and Final groups.
-- Keep the local Taiwan matching definition and existing group choices.
+- Follow the complete upstream region definitions, names, matching expressions, and order; upstream additions and removals flow through automatically.
+- Retain the existing functional policy group choices, with regional choices offered when their upstream regions exist.
 - Use system DNS for mainland-domain and Direct re-resolution; preserve private DNS handling.
 - Import compatible real-IP domains from [Repcz/Tool](https://github.com/Repcz/Tool/blob/X/Egern/Egern.yaml).
 - Retain the AI, Apple, geolocation-cn, Claude, pron, and MCDN converter sources.

@@ -32,7 +32,6 @@ EXCLUDED_REAL_IP_DOMAINS = frozenset({"*-update.xoyocdn.com", "*-appboot.netflix
 
 
 
-SYNC_REGION_NAMES = frozenset({"香港", "日本", "美国", "新加坡"})
 JS_REGEX_LITERAL = r"/(?:\\.|[^/\\\r\n])+/[a-z]*"
 
 class BuildError(RuntimeError):
@@ -539,7 +538,7 @@ def sync_tun_stack(current: str, upstream: str) -> str:
 
 
 def sync_node_matching(current: str, contracts: Mapping[str, Any]) -> str:
-    """Follow upstream regex changes while preserving local group definitions."""
+    """Generate current upstream regions, including additions, renames, and removals."""
     def replace_regex(text: str, prefix: str, value: str, label: str) -> str:
         if not isinstance(value, str) or not re.fullmatch(JS_REGEX_LITERAL, value):
             raise BuildError(f"Unsupported upstream matching expression: {label}")
@@ -576,11 +575,22 @@ def sync_node_matching(current: str, contracts: Mapping[str, Any]) -> str:
             raise BuildError(f"Expected exactly one local definition block: {declaration}")
         return updated
 
-    regions = {item["name"]: item["regex"] for item in contracts["regionDefinitions"]}
-    current = sync_definitions(
-        current, "regionDefinitions",
-        {name: value for name, value in regions.items() if name in SYNC_REGION_NAMES},
+    entries = []
+    for region in contracts["regionDefinitions"]:
+        regex = region["regex"]
+        if not isinstance(regex, str) or not re.fullmatch(JS_REGEX_LITERAL, regex):
+            raise BuildError(f"Unsupported upstream region expression: {region['name']}")
+        entries.append(
+            "  { name: " + json.dumps(region["name"], ensure_ascii=False)
+            + ", regex: " + regex + " },"
+        )
+    declaration = "const regionDefinitions = [\n" + "\n".join(entries) + "\n];"
+    current, count = re.subn(
+        r"(?ms)^const regionDefinitions = \[.*?^\];",
+        lambda _match: declaration, current,
     )
+    if count != 1:
+        raise BuildError("Expected one generated region definition block")
     rates = {item["name"]: item["regex"] for item in contracts["rateRegionDefinitions"]}
     return sync_definitions(
         current, "rateRegionDefinitions",
@@ -631,7 +641,12 @@ def sync_group_icons(
     """Read icon URLs from upstream group definitions, including renamed local groups."""
     source_icons = extracted["icons"]
     selected: dict[str, str] = {}
-    for name, upstream_name in manifest["group_icon_sources"].items():
+    icon_sources = {
+        region["name"]: region["name"]
+        for region in extracted.get("contracts", {}).get("regionDefinitions", [])
+    }
+    icon_sources.update(manifest["group_icon_sources"])
+    for name, upstream_name in icon_sources.items():
         icon = source_icons.get(upstream_name)
         if icon is not None:
             selected[name] = icon
@@ -736,7 +751,6 @@ def build(
             "excludeFilter": extracted["contracts"]["excludeFilter"],
             "regionDefinitions": [
                 item for item in extracted["contracts"]["regionDefinitions"]
-                if item["name"] in SYNC_REGION_NAMES
             ],
             "rateRegionDefinitions": [
                 item for item in extracted["contracts"]["rateRegionDefinitions"]

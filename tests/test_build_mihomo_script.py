@@ -251,9 +251,19 @@ const rateRegionDefinitions = [
         ], "rateRegionDefinitions": []}
         actual = sync_node_matching(template, contracts)
         self.assertIn("/new-hk/i", actual)
-        self.assertIn("/local-taiwan/i", actual)
+        self.assertIn("/upstream-tw/i", actual)
+        self.assertNotIn("台湾省", actual)
+        self.assertNotIn("/local-taiwan/i", actual)
         self.assertIn("/local-rate/i", actual)
         self.assertEqual(sync_node_matching(actual, contracts), actual)
+        changed = {**contracts, "regionDefinitions": [
+            {"name": "香港", "regex": "/new-hk/i"}, {"name": "New Region", "regex": "/new-region/i"},
+        ]}
+        actual = sync_node_matching(actual, changed)
+        self.assertIn('"New Region"', actual)
+        self.assertIn("/new-region/i", actual)
+        self.assertNotIn("台湾", actual)
+        self.assertNotIn("/upstream-tw/i", actual)
 
     def test_current_matching_function_source_is_copied_without_hash_lock(self):
         template = """const regionMatchCache = new Map();
