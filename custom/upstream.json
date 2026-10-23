@@ -1,7 +1,6 @@
 {
   "applied_group_icons": {
     "AI": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/OpenAI.svg",
-    "Claude": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/OpenAI.svg",
     "Direct": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/China.svg",
     "EHentai": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/EHentai.svg",
     "Final": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Stack.svg",
@@ -11,11 +10,9 @@
     "Proxy": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Proxy.svg",
     "Telegram": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Telegram.svg",
     "YouTube": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/YouTube.svg",
-    "pron": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/EHentai.svg",
     "低倍率节点": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Available.svg",
     "其他节点": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/WorldMap.svg",
     "台湾": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Taiwan.svg",
-    "媒体": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/YouTube.svg",
     "新加坡": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Singapore.svg",
     "日本": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Japan.svg",
     "美国": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/America.svg",
@@ -50,7 +47,6 @@
   },
   "group_icon_sources": {
     "AI": "AI",
-    "Claude": "AI",
     "Direct": "直连",
     "EHentai": "EHentai",
     "Final": "漏网之鱼",
@@ -60,18 +56,16 @@
     "Proxy": "默认代理",
     "Telegram": "Telegram",
     "YouTube": "YouTube",
-    "pron": "EHentai",
     "低倍率节点": "低倍率节点",
     "其他节点": "其他节点",
     "台湾": "台湾",
-    "媒体": "YouTube",
     "新加坡": "新加坡",
     "日本": "日本",
     "美国": "美国",
     "订阅": "手动选择",
     "香港": "香港"
   },
-  "output_sha256": "71d22c0182c3395197b00e11f7e6a2c4a16be9c4e8c87f9b2e7b1719aa333236",
+  "output_sha256": "7f8a3ee676d043aaae906371298f18aaa55ae5e26d1bada5b0f9f93daf971124",
   "prefix_rule_policy": {
     "excluded_rules": [
       "DOMAIN,fsend.cn,直连",
