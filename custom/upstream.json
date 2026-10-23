@@ -19,6 +19,12 @@
       "to": "steam@cn"
     }
   },
+  "fork": {
+    "source_mode": "native-git-merge",
+    "source_path": "Script/mihomoScript.js",
+    "source_sha256": "959445423f8f058e036f608e7f1d195cc4efc8295dcded3047ac5bbff844bea0",
+    "upstream_commit": "c1de5acd1dfe7d29eb5af00084e8d93e3b9610c4"
+  },
   "output_sha256": "3cb7b283d8b341f76080a4eceeae39f999f85c27b82c4aec4c62d3382aa20485",
   "prefix_rule_policy": {
     "excluded_rules": [
