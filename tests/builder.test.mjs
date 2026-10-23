@@ -92,6 +92,7 @@ test("main rules are extracted from declaration order, independent of sample nod
   const changed = source.replace(marker, "'DOMAIN,new-global.example.com,默认代理',\n" + marker);
   const model = extractModel(changed,manifest);
   assert.equal(model.baseRules.some(entry => entry.rules.includes("DOMAIN,new-global.example.com,默认代理") && entry.position==="after_services"),true);
+  assert.equal(model.icons["其他节点"],model.evaluate(parseScript("iconBaseUrl + 'WorldMap.svg'").body[0].expression));
 });
 test("fixed snapshot renders without a published file or network request", () => {
   const snapshot = JSON.parse(fs.readFileSync(new URL("../.build/snapshot.json",import.meta.url),"utf8"));

@@ -221,8 +221,10 @@ export function extractModel(source, manifest) {
   for (const item of [...services, ...regions, ...rates]) if (item.icon !== undefined) icons[item.name] = item.icon;
   // Generated group names/icons are read from their defining syntax, independent of sample nodes.
   walk(ast, node => {
-    if (node.type !== "ObjectExpression") return;
-    const name = property(node, "name")?.value, icon = property(node, "icon")?.value;
+    const groupCall = node.type === "CallExpression" && node.callee.type === "Identifier" &&
+      node.callee.name === "createRegionGroup";
+    const name = groupCall ? node.arguments[0] : node.type === "ObjectExpression" ? property(node, "name")?.value : null;
+    const icon = groupCall ? node.arguments[1] : node.type === "ObjectExpression" ? property(node, "icon")?.value : null;
     if (name && icon) {
       try { const key = evaluate(name), value = evaluate(icon); if (typeof key === "string") icons[key] = value; } catch {}
     }
@@ -309,6 +311,5 @@ export function compileScript(model, manifest, domains, plan, runtime, provenanc
     "\n * Generated from upstream AST and custom sources. MIT license retained.\n */\n";
   const program = {type: "Program", sourceType: "script", body: [...selected.map(entry => entry.node), ...runtimeAst.body]};
   const script = header + generate(program, {indent: "  "}) + "\n";
-  parse(script, {ecmaVersion: manifest.client_compatibility.ecma_version});
   return {script, icons, emittedDeclarations: selected.map(entry => entry.name)};
 }

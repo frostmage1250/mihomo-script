@@ -50,15 +50,13 @@ checks without a domain-count ceiling.
 ## Bettbox compatibility
 
 Build tools use Node.js 22 exclusively in GitHub Actions. The generated subscription
-targets the established ES2020 syntax profile and contains no Node imports.
-Validation runs the script with rquickjs/core/sys 0.12.2, matching the dependency
-lock of Bettbox v1.19.7. The runner uses the client's 128 MiB memory, 512 KiB stack,
-and 10-second execution limits. Cases cover normal imports, invisible names,
-optional low-rate filtering, private DNS, and hosts rewriting. Results are compared
-with Node and the previous published behavior. API compatibility is also checked
-with Array.prototype.at, Object.hasOwn, and structuredClone unavailable.
-These automated checks describe the public client engine profile; on-device
-Bettbox integration remains a separate runtime environment.
+contains no Node imports. One normal subscription fixture is passed directly to
+rquickjs/core/sys 0.12.2, matching the dependency lock of Bettbox v1.19.7.
+The runner uses the client's 128 MiB memory, 512 KiB stack, and 10-second execution
+limits. Its generated configuration is checked against the retained policy and
+previous published behavior, then passed directly to Mihomo for configuration
+validation. This single execution replaces a separate compatibility test matrix.
+The reference engine version is recorded in the fixed source lock.
 
 Reference: https://github.com/appshubcc/Bettbox/tree/v1.19.7/plugins/code_forge/rust
 

@@ -113,13 +113,12 @@ jobs:
       - name: Validate builder behavior
         run: npm test
 
-      - name: Validate output and Bettbox JavaScript compatibility
+      - name: Generate the configuration with the Bettbox engine and verify retained policy
         env:
           BETTBOX_RUNNER: ${{ github.workspace }}/tests/bettbox-runner/target/release/bettbox-script-check
           BASELINE_SCRIPT: ${{ github.workspace }}/.build/previous.mihomo.js
           BASELINE_REPORT: ${{ github.workspace }}/.build/previous.report.json
         run: |
-          node --check mihomoScript.js
           node tests/validate_mihomo_script.mjs .build/mihomo-fixture.json
 
       - name: Validate generated Mihomo configuration

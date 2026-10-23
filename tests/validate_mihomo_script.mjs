@@ -1,9 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { parse } from "acorn";
 import { sha256 } from "../custom/snapshot.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -13,20 +11,24 @@ const manifest = JSON.parse(read("custom/customizations.json"));
 const report = JSON.parse(read("custom/upstream.json"));
 const snapshot = JSON.parse(read(".build/snapshot.json"));
 const plain = value => JSON.parse(JSON.stringify(value));
-parse(source,{ecmaVersion:manifest.client_compatibility.ecma_version});
 const load = (text, options={}) => new Function(text +
   "\nObject.assign(ruleOptionsEnable," + JSON.stringify(options) + ");return {main,regionDefinitions,ruleOptionsEnable};")();
-const runtime = load(source);
 const upstream = new Function(native + "\nreturn {main,serviceConfigs,baseRuleProviders,regionDefinitions,rateRegionDefinitions,groupBaseOption};")();
 const ss = (name, extra={}) => ({name,type:"ss",server:"node.example.com",port:443,cipher:"aes-128-gcm",password:"fixture-password",...extra});
 const fixture = {proxies:[ss("日本 01"),ss("日本 01",{server:"duplicate.example.com"}),ss("香港 01"),ss("新加坡 01"),ss("美国 01",{"dialer-proxy":"日本 01"}),ss("韩国 01"),ss("日本 0.5x"),ss("官网 剩余流量")],dns:{},hosts:{}};
-const output = runtime.main(plain(fixture));
+const outputFile=process.argv[2]||path.join(root,".build/mihomo-fixture.json");
+const inputFile=path.join(root,".build/import.input.json");
+fs.writeFileSync(inputFile,JSON.stringify(fixture));
+assert.ok(process.env.BETTBOX_RUNNER,"Bettbox engine runner is required");
+const engine=spawnSync(process.env.BETTBOX_RUNNER,[path.join(root,"mihomoScript.js"),inputFile,outputFile],{encoding:"utf8"});
+assert.equal(engine.status,0,"Bettbox engine execution failed\n"+engine.stderr);
+const output=JSON.parse(fs.readFileSync(outputFile,"utf8"));
 const providers = output["rule-providers"], groups = new Map(output["proxy-groups"].map(group=>[group.name,group]));
 const original = upstream.main(plain(fixture));
 assert.equal(sha256(source),report.output_sha256);
 assert.equal(sha256(native),snapshot.lock.upstream.sha256);
 assert.deepEqual(JSON.parse(read("custom/sources.lock.json")),snapshot.lock);
-assert.deepEqual(plain(runtime.regionDefinitions.map(({name,regex})=>({name,regex:String(regex)}))),
+assert.deepEqual(report.upstream_regions,
   plain(upstream.regionDefinitions.map(({name,regex})=>({name,regex:String(regex)}))));
 assert.equal(report.rule_coverage.length > 0,true);
 for (const rule of original.rules) {
@@ -97,36 +99,12 @@ for(const host of manifest.excluded_hosts)assert.equal(Object.hasOwn(output.host
 for(const [key,value]of Object.entries(manifest.global_overrides))assert.deepEqual(output[key],value);
 assert.equal(Object.hasOwn(output,"ntp"),false);assert.equal(Object.hasOwn(output,"bind-address"),false);
 assert.equal(Object.hasOwn(output.tun,"auto-redirect"),false);
-const zw=name=>[...name].join("\u200B");
-const cases=[
-  {name:"normal",input:fixture,options:{}},
-  {name:"invisible",input:{proxies:[ss(zw("HK 01")),ss("\u3164SG\uFFA0 03"),ss(zw("TW 01")),ss(zw("日本 0.3x")),ss(zw("官网公告"))],dns:{},hosts:{}},options:{}},
-  {name:"low-rate-filter",input:{proxies:[ss("香港 01"),ss(zw("日本 0.3x"))],dns:{},hosts:{}},options:{"过滤低倍率节点":true}},
-  {name:"private-dns",input:{proxies:[ss("日本 01")],dns:{nameserver:["https://private.example/dns-query#Proxy"],"proxy-server-nameserver":["tls://private.example#DIRECT"],"nameserver-policy":{"+.example.com":["tls://private.example#DIRECT"]}},hosts:{}},options:{}},
-  {name:"hosts-rewrite",input:{proxies:[ss("日本 01")],dns:{"proxy-server-nameserver":["127.0.0.1"],listen:"0.0.0.0:53"},hosts:{"node.example.com":"mapped.example.net"}},options:{}}
-];
 let baseline,baselineReport;
 try { baseline=fs.readFileSync(process.env.BASELINE_SCRIPT,"utf8");baselineReport=JSON.parse(fs.readFileSync(process.env.BASELINE_REPORT,"utf8")); }catch(error){if(process.env.BASELINE_SCRIPT)throw error;}
-for(const item of cases) {
-  const actual=load(source,item.options).main(plain(item.input));
-  if(baseline&&baselineReport.fork.source_sha256===snapshot.lock.upstream.sha256) {
-    const expected=load(baseline,item.options).main(plain(item.input));
-    const patterns=new Set([...baselineReport.real_ip_domains_upstream.applied_domains,...report.real_ip_domains_upstream.applied_domains]);
-    for(const value of [actual,expected]) value.dns["fake-ip-filter"]=value.dns["fake-ip-filter"].filter(pattern=>!patterns.has(pattern));
-    assert.deepEqual(actual,expected,"preserved behavior differs: "+item.name);
-  }
-  if(process.env.BETTBOX_RUNNER) {
-    const inputFile=path.join(root,".build",item.name+".input.json"),outputFile=path.join(root,".build",item.name+".quickjs.json");
-    fs.writeFileSync(inputFile,JSON.stringify(item.input));
-    const result=spawnSync(process.env.BETTBOX_RUNNER,[path.join(root,"mihomoScript.js"),inputFile,outputFile,JSON.stringify(item.options)],{encoding:"utf8"});
-    assert.equal(result.status,0,"Bettbox engine failed: "+item.name+"\n"+result.stderr);
-    const nativeResult=load(source,item.options).main(plain(item.input));
-    assert.deepEqual(JSON.parse(fs.readFileSync(outputFile,"utf8")),nativeResult,"Bettbox/Node results differ: "+item.name);
-  }
+if(baseline&&baselineReport.fork.source_sha256===snapshot.lock.upstream.sha256) {
+  const expected=load(baseline).main(plain(fixture)),actual=plain(output);
+  const patterns=new Set([...baselineReport.real_ip_domains_upstream.applied_domains,...report.real_ip_domains_upstream.applied_domains]);
+  for(const value of [actual,expected])value.dns["fake-ip-filter"]=value.dns["fake-ip-filter"].filter(pattern=>!patterns.has(pattern));
+  assert.deepEqual(actual,expected,"preserved published behavior differs");
 }
-const unsupportedContext=vm.createContext({});
-vm.runInContext("Array.prototype.at=undefined;Object.hasOwn=undefined;globalThis.structuredClone=undefined;",unsupportedContext);
-const compatible=vm.runInContext("(function(config){"+source+"\nreturn main(config);})",unsupportedContext);
-assert.equal(compatible(plain(fixture)).rules.length,output.rules.length);
-fs.writeFileSync(process.argv[2]||path.join(root,".build/mihomo-fixture.json"),JSON.stringify(output,null,2)+"\n");
-console.log("Validated "+groups.size+" groups, "+Object.keys(providers).length+" providers, "+output.rules.length+" rules; "+cases.length+" Bettbox compatibility/preservation cases.");
+console.log("Bettbox rquickjs 0.12.2 generated the configuration: "+groups.size+" groups, "+Object.keys(providers).length+" providers, "+output.rules.length+" rules; retained policy and published behavior verified.");

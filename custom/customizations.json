@@ -345,7 +345,6 @@
     ]
   },
   "client_compatibility": {
-    "ecma_version": 2020,
     "bettbox_reference": "v1.19.7",
     "rquickjs": "0.12.2",
     "memory_limit": 134217728,
