@@ -1254,7 +1254,6 @@ const upstreamPrefixRules = {
 
 function buildRules() {
   return [
-    ...upstreamPrefixRules.bootstrap,
     'RULE-SET,private,Direct',
     'RULE-SET,private_ip,Direct,no-resolve',
     'RULE-SET,mcdn屏蔽,REJECT',
@@ -1269,7 +1268,9 @@ function buildRules() {
     ...serviceRules('TikTok'),
     ...serviceRules('YouTube'),
     ...serviceRules("Meta"),
-    ...upstreamPrefixRules.direct,
+    ...upstreamPrefixRules.direct.filter((rule) => rule.startsWith('RULE-SET,')),
+    ...upstreamPrefixRules.bootstrap,
+    ...upstreamPrefixRules.direct.filter((rule) => !rule.startsWith('RULE-SET,')),
     ...serviceRules('Steam'),
     ...serviceRules('PikPak'),
     ...serviceRules('EHentai'),

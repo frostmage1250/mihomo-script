@@ -44,10 +44,12 @@ the build. These expressions are copied into the static artifact and recorded in
 the provenance report, without requiring a new reviewed hash for each regex change.
 
 Upstream direct prefix rules are extracted and retargeted to `Direct` on every build.
-Download-host domain rules run first, before any ruleset lookup. Other selected
-prefix rules retain upstream order in the direct-exception block before Steam
-and broad foreign routing; private routing, MCDN priority, and the late
-geolocation-cn fallback retain their existing placement. Newly referenced prefix
+Selected direct prefix rules are placed before Steam and broad foreign routing.
+Direct rulesets come first, followed by download-host domain rules and then other
+direct domain exceptions. The CDN domain sits immediately before the NVIDIA
+international download hostname. Upstream order is retained within each section;
+private routing, MCDN priority, and the late geolocation-cn fallback retain their
+existing placement. Newly referenced prefix
 providers inherit their complete upstream definitions automatically. The manifest
 explicitly excludes Epic Games and preserves the existing fsend.cn exclusion.
 NVIDIA CN and its international download hostname are included. The build report

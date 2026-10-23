@@ -297,8 +297,7 @@ assert(providers["mcdn屏蔽"].url === "https://raw.githubusercontent.com/frostm
 assert(providers["mcdn屏蔽"].path === "./ruleset/mcdn-block.mrs", "MCDN provider cache path changed");
 assert(!("path-in-bundle" in providers["mcdn屏蔽"]), "MCDN provider cannot reference the Bett bundle");
 assert(
-  JSON.stringify(output.rules.slice(0, buildReport.applied_prefix_rules.bootstrap.length + 3)) === JSON.stringify([
-    ...buildReport.applied_prefix_rules.bootstrap,
+  JSON.stringify(output.rules.slice(0, 3)) === JSON.stringify([
     "RULE-SET,private,Direct", "RULE-SET,private_ip,Direct,no-resolve", "RULE-SET,mcdn屏蔽,REJECT",
   ]),
   "Private domains and IPs must precede MCDN rejection",
@@ -310,7 +309,18 @@ assert(output.rules.includes("RULE-SET,appletv,媒体"), "AppleTV must target th
 assert(isDeepStrictEqual(buildReport.prefix_rule_policy, manifest.upstream_prefix_rules), "prefix policy must match the manifest");
 const prefixPlacement = new Function(source + "\nreturn upstreamPrefixRules;")();
 assert(isDeepStrictEqual(prefixPlacement, buildReport.applied_prefix_rules), "prefix rules must match build provenance");
-assert(prefixPlacement.bootstrap.length > 0 && output.rules[0] === prefixPlacement.bootstrap[0], "ruleset download domain must bootstrap before every ruleset");
+const cdnRule = "DOMAIN,cdn.jsdmirror.com,Direct";
+const nvidiaDownloadRule = "DOMAIN,international-gfe.download.nvidia.com,Direct";
+const directRuleSetPrefix = prefixPlacement.direct.filter((rule) => rule.startsWith("RULE-SET,"));
+const directDomainSuffix = prefixPlacement.direct.filter((rule) => !rule.startsWith("RULE-SET,"));
+const expectedDirectBlock = [...directRuleSetPrefix, ...prefixPlacement.bootstrap, ...directDomainSuffix];
+const directBlockStart = output.rules.indexOf(expectedDirectBlock[0]);
+assert(directBlockStart >= 0 && isDeepStrictEqual(
+  output.rules.slice(directBlockStart, directBlockStart + expectedDirectBlock.length),
+  expectedDirectBlock,
+), "direct rulesets must precede download hosts and direct domain exceptions");
+assert(output.rules.indexOf(cdnRule) === output.rules.indexOf(nvidiaDownloadRule) - 1, "CDN rule must immediately precede the NVIDIA download rule");
+assert(output.rules.indexOf(cdnRule) > output.rules.indexOf("RULE-SET,microsoft_cn,Direct"), "CDN rule must follow the existing CN direct rulesets");
 for (const rule of [
   "DOMAIN,international-gfe.download.nvidia.com,Direct",
   "RULE-SET,nvidia_cn,Direct",
