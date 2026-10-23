@@ -14,12 +14,12 @@
     "sha256": "96a61d19e9590923dec9a0f65c22f02244f199ac4bbef3204c0ea103611456ac"
   },
   "local_files": {
-    "custom/build_mihomo_script.mjs": "d9b8ef21324c45339c7ae8c13c0c43a55c16621b58efdfd1f877033183b17b75",
-    "custom/snapshot.mjs": "5ab43986d809eeac83df740cc356ddcc5bfdba3b4755ab9eccfff50ce381d215",
+    "custom/build_mihomo_script.mjs": "3cbae3d80ac315183d676fc06b92dbdd446e1feee0f4a9966a093dbaf51cc745",
+    "custom/snapshot.mjs": "796d5e8a9d6b14f171af3986bead60d9ba3164498d5a22a6bbe4560d64d04aa7",
     "custom/lib/ast.mjs": "dc9bbdf849792a323f02a2a19efd50ec39de1b5a8df90aa62d43d38c7b36de92",
     "custom/lib/rules.mjs": "337113d16ec45da9afcdf2019037afda05b465531c63871e5594630d7973790b",
     "custom/runtime.js": "92f2935e77883b85d381c46a8a086bd357746b0b07e164f1d3f490d3b69f7712",
-    "custom/customizations.json": "511b8c950aca0da32e3f845130caca646a2c4d29d97fc70e0683e1bf049d0919"
+    "custom/customizations.json": "7b00f950907ddde42a75e65b7bafea497da03d6bb54ab90bdc5066d9dab5820f"
   },
   "dependency_lock_sha256": "74f5b47f256dc76ea45409c6f31c0066e7823f8a5b9a514c95cd12b2811d0003",
   "validation": {
@@ -30,7 +30,10 @@
     "bettbox": {
       "reference": "v1.19.7",
       "rquickjs": "0.12.2",
-      "cargo_lock_sha256": "22db92d113663487a40f5cb52335b4cc7cb2c5250c901650cfc919f2a8a6c039"
+      "cargo_lock_sha256": "d71f1f2617e5049face3787454739dfdb59e955b265da6429d95f3fac20e2244",
+      "memory_limit": 134217728,
+      "stack_limit": 524288,
+      "timeout_seconds": 10
     }
   }
 }
