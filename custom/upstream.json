@@ -2,7 +2,7 @@
   "schema_version": 3,
   "source_mode": "native-git-merge",
   "source_lock": "custom/sources.lock.json",
-  "output_sha256": "d2e41c0bdd9f8fb9ed3619d21fac408c2cc20f2fc7fceb680383d643a99793d4",
+  "output_sha256": "c6d43343e6d668936dd1a5b0bc89da3feb2220525ac62a6ab0acb1d5ae1a6e6e",
   "real_ip_domains": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -64,7 +64,7 @@
       "RULE-SET,steam_ip,Proxy,no-resolve",
       "RULE-SET,pikpak,PikPak",
       "RULE-SET,ehentai,EHentai",
-      "RULE-SET,bypass_japan,pron",
+      "RULE-SET,porn,pron",
       "RULE-SET,google,Google",
       "RULE-SET,google_ip,Google,no-resolve",
       "RULE-SET,apple,Proxy",

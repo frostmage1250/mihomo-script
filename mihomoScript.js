@@ -597,13 +597,13 @@ const finalRuleProviders = {
     "path": "./ruleset/appletv.mrs",
     "path-in-bundle": "geo/geosite/apple-tvplus.mrs"
   },
-  "bypass_japan": {
+  "porn": {
     "type": "http",
     "format": "mrs",
     "interval": 86400,
     "behavior": "domain",
-    "url": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/bypass-japan.mrs",
-    "path": "./ruleset/bypass-japan.mrs"
+    "url": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/porn.mrs",
+    "path": "./ruleset/porn.mrs"
   },
   "claude": {
     "type": "http",
@@ -631,7 +631,7 @@ const finalRuleProviders = {
     "path": "./ruleset/mcdn-block.mrs"
   }
 };
-const finalRules = ["RULE-SET,claude,Claude", "RULE-SET,ai,AI", "RULE-SET,github,GitHub", "RULE-SET,telegram,Telegram", "RULE-SET,telegram_ip,Telegram,no-resolve", "RULE-SET,appletv,媒体", "RULE-SET,twitch,媒体", "RULE-SET,twitter,媒体", "RULE-SET,twitter_ip,媒体,no-resolve", "RULE-SET,tiktok,媒体", "RULE-SET,tiktok_ip,媒体,no-resolve", "RULE-SET,youtube,YouTube", "RULE-SET,meta,媒体", "RULE-SET,facebook_ip,媒体,no-resolve", "DOMAIN,cdn.jsdmirror.com,Direct", "RULE-SET,private,Direct", "RULE-SET,private_ip,Direct,no-resolve", "RULE-SET,mcdn屏蔽,REJECT", "RULE-SET,steam_cn,Direct", "RULE-SET,nvidia_cn,Direct", "RULE-SET,apple_cn,Direct", "RULE-SET,microsoft_cn,Direct", "DOMAIN,international-gfe.download.nvidia.com,Direct", "DOMAIN-SUFFIX,ctaiot.com,Direct", "RULE-SET,steam,Proxy", "RULE-SET,steam_ip,Proxy,no-resolve", "RULE-SET,pikpak,PikPak", "RULE-SET,ehentai,EHentai", "RULE-SET,bypass_japan,pron", "RULE-SET,google,Google", "RULE-SET,google_ip,Google,no-resolve", "RULE-SET,apple,Proxy", "RULE-SET,apple_ip,Proxy,no-resolve", "RULE-SET,microsoft,Proxy", "RULE-SET,microsoft_ip,Proxy,no-resolve", "RULE-SET,geolocation-!cn,Proxy", "RULE-SET,geolocation-cn,Direct", "RULE-SET,cn_ip,Direct", "MATCH,Final"];
+const finalRules = ["RULE-SET,claude,Claude", "RULE-SET,ai,AI", "RULE-SET,github,GitHub", "RULE-SET,telegram,Telegram", "RULE-SET,telegram_ip,Telegram,no-resolve", "RULE-SET,appletv,媒体", "RULE-SET,twitch,媒体", "RULE-SET,twitter,媒体", "RULE-SET,twitter_ip,媒体,no-resolve", "RULE-SET,tiktok,媒体", "RULE-SET,tiktok_ip,媒体,no-resolve", "RULE-SET,youtube,YouTube", "RULE-SET,meta,媒体", "RULE-SET,facebook_ip,媒体,no-resolve", "DOMAIN,cdn.jsdmirror.com,Direct", "RULE-SET,private,Direct", "RULE-SET,private_ip,Direct,no-resolve", "RULE-SET,mcdn屏蔽,REJECT", "RULE-SET,steam_cn,Direct", "RULE-SET,nvidia_cn,Direct", "RULE-SET,apple_cn,Direct", "RULE-SET,microsoft_cn,Direct", "DOMAIN,international-gfe.download.nvidia.com,Direct", "DOMAIN-SUFFIX,ctaiot.com,Direct", "RULE-SET,steam,Proxy", "RULE-SET,steam_ip,Proxy,no-resolve", "RULE-SET,pikpak,PikPak", "RULE-SET,ehentai,EHentai", "RULE-SET,porn,pron", "RULE-SET,google,Google", "RULE-SET,google_ip,Google,no-resolve", "RULE-SET,apple,Proxy", "RULE-SET,apple_ip,Proxy,no-resolve", "RULE-SET,microsoft,Proxy", "RULE-SET,microsoft_ip,Proxy,no-resolve", "RULE-SET,geolocation-!cn,Proxy", "RULE-SET,geolocation-cn,Direct", "RULE-SET,cn_ip,Direct", "MATCH,Final"];
 const groupTestUrl = "https://www.apple.com/library/test/success.html";
 const groupIcons = {
   "香港": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/HongKong.svg",
