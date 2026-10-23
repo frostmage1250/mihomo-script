@@ -23,7 +23,9 @@ export async function capture() {
   const restored = execFileSync("git", ["show", upstreamCommit + ":" + manifest.upstream.path], {cwd: ROOT, encoding: "utf8"});
   if (upstream !== restored) throw new Error("Retained source differs from fixed upstream commit");
   const repcz = manifest.real_ip_domains_upstream;
-  const commit = JSON.parse(await fetchText("https://api.github.com/repos/" + repcz.repository + "/commits/" + encodeURIComponent(repcz.branch))).sha;
+  const query = new URLSearchParams({sha: repcz.branch, path: repcz.path, per_page: "1"});
+  const [lastChange] = JSON.parse(await fetchText("https://api.github.com/repos/" + repcz.repository + "/commits?" + query));
+  const commit = lastChange.sha;
   const repczSource = await fetchText("https://raw.githubusercontent.com/" + repcz.repository + "/" + commit + "/" + repcz.path);
   const runtime = await fs.readFile(path.join(ROOT, manifest.runtime), "utf8");
   const packageLock = await fs.readFile(path.join(ROOT, "package-lock.json"), "utf8");

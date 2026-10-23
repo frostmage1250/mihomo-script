@@ -50,6 +50,7 @@ jobs:
           node-version: "22"
 
       - name: Cache the Bettbox engine build
+        id: bettbox_cache
         uses: actions/cache@v6
         with:
           path: |
@@ -59,9 +60,15 @@ jobs:
           key: ${{ runner.os }}-${{ runner.arch }}-bettbox-${{ hashFiles('tests/bettbox-runner/Cargo.lock', 'tests/bettbox-runner/Cargo.toml', 'tests/bettbox-runner/src/**') }}
 
       - name: Install locked build dependencies and prepare the engine
+        env:
+          ENGINE_CACHE_HIT: ${{ steps.bettbox_cache.outputs.cache-hit }}
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
-          cargo build --release --locked --manifest-path tests/bettbox-runner/Cargo.toml
+          if [[ "$ENGINE_CACHE_HIT" == "true" && -x tests/bettbox-runner/target/release/bettbox-script-check ]]; then
+            echo "Using the cached Bettbox engine executable."
+          else
+            cargo build --release --locked --manifest-path tests/bettbox-runner/Cargo.toml
+          fi
 
       - name: Pin and install the Mihomo validation release
         shell: bash
