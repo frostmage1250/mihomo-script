@@ -1294,11 +1294,8 @@ const groupIcons = {
   "订阅": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Static.svg",
   "Direct": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/China.svg",
   "GitHub": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/GitHub.svg",
-  "Claude": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/OpenAI.svg",
   "AI": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/OpenAI.svg",
-  "pron": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/EHentai.svg",
   "Google": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Google.svg",
-  "媒体": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/YouTube.svg",
   "YouTube": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/YouTube.svg",
   "Telegram": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Telegram.svg",
   "PikPak": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/PikPak.svg",
@@ -1322,7 +1319,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     name,
     type: 'select',
     proxies,
-    icon: groupIcons[name],
+    ...(groupIcons[name] ? { icon: groupIcons[name] } : {}),
     'empty-fallback': 'REJECT',
   });
   const optional = (...names) => names.filter((name) => regionProxyMap.has(sourceRegionName(name)));

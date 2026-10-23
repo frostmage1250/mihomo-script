@@ -56,7 +56,8 @@ tracking; output behavior remains governed by the customization policy.
 - Keep Steam CN, NVIDIA CN, Apple CN, and Microsoft CN direct exceptions.
 - Place CDN, private-domain, private-IP, and MCDN rules at the start of the direct-exception block after media rules.
 - Restore the upstream Google service hosts mapping.
-- Follow upstream SVG icon URLs and names for every group through explicit local-to-upstream aliases.
+- Follow upstream SVG icon URLs and names for groups with upstream equivalents.
+- Keep the repository-specific Claude, media, and pron groups without icons.
 - Keep the ctaiot.com direct suffix and the current service/fallback ordering.
 - Explicitly exclude Epic Games and preserve the existing fsend.cn exclusion.
 - Preserve MCDN REJECT precedence and the selected upstream domain/IP pairs.

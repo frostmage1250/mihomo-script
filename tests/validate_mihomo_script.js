@@ -127,7 +127,15 @@ for (const [name, upstreamName] of Object.entries(manifest.group_icon_sources)) 
   if (groups.has(name)) assert(groups.get(name).icon === icon, "group icon differs from upstream for " + name);
 }
 for (const group of groups.values()) {
-  assert(typeof group.icon === "string" && group.icon.endsWith(".svg"), "SVG icon missing for " + group.name);
+  if (Object.hasOwn(manifest.group_icon_sources, group.name)) {
+    assert(typeof group.icon === "string" && group.icon.endsWith(".svg"), "SVG icon missing for " + group.name);
+  } else {
+    assert(!Object.hasOwn(group, "icon"), "custom group must omit its icon: " + group.name);
+  }
+}
+for (const name of ["Claude", "媒体", "pron"]) {
+  assert(!Object.hasOwn(manifest.group_icon_sources, name), "custom group has an upstream icon alias: " + name);
+  assert(!Object.hasOwn(buildReport.applied_group_icons, name), "custom group has icon provenance: " + name);
 }
 assert(isDeepStrictEqual(buildReport.service_provider_url_overrides, manifest.service_provider_url_overrides), "custom provider overrides differ from manifest");
 const excludedPrefixRules = new Set(manifest.upstream_prefix_rules.excluded_rules);
