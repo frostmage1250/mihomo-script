@@ -181,6 +181,16 @@ const __contractFunctions = {
 const __payload = {
   baseRuleProviders,
   prefixRules,
+  icons: Object.fromEntries([
+    ...serviceConfigs,
+    ...regionDefinitions,
+    ...rateRegionDefinitions,
+    ...buildRegionGroups([{ name: '__icon_other__' }], []),
+    ...(() => {
+      const groups = buildFunctionalGroups([], [], { customProxyNames: [], customGroup: null });
+      return [groups.globalGroup, ...groups.functionalGroups, groups.directGroup];
+    })(),
+  ].filter((group) => group && typeof group.icon === 'string').map(({ name, icon }) => [name, icon])),
   services: serviceConfigs.map(({ name, providers, rules }) => ({ name, providers: providers || {}, rules: rules || [] })),
   contracts: {
     excludeFilter: String(excludeFilter),
@@ -543,7 +553,6 @@ def render_dns_section(upstream: str, real_ip_domains: list[str]) -> str:
 
     # These upstream hosts are permanently excluded from the generated output.
     forbidden_hosts = (
-        "services.googleapis.cn",
         "+.mcdn.bilivideo.com",
         "+.mcdn.bilivideo.cn",
         "+.edge.mountaintoys.cn",
@@ -556,7 +565,7 @@ def render_dns_section(upstream: str, real_ip_domains: list[str]) -> str:
             body,
         )
     body = re.sub(
-        r"(?m)^[ \t]*// (?:解决谷歌商店无法下载的问题|屏蔽哔哩哔哩PCDN，解决访问视频/直播卡顿问题)\r?\n?",
+        r"(?m)^[ \t]*// 屏蔽哔哩哔哩PCDN，解决访问视频/直播卡顿问题\r?\n?",
         "",
         body,
     )
@@ -694,6 +703,27 @@ def sync_matching_helpers(current: str, contracts: Mapping[str, Any]) -> str:
     return current
 
 
+
+def sync_group_icons(
+    current: str, extracted: Mapping[str, Any], manifest: Mapping[str, Any],
+) -> tuple[str, dict[str, str]]:
+    """Read icon URLs from upstream group definitions, including renamed local groups."""
+    source_icons = extracted["icons"]
+    selected: dict[str, str] = {}
+    for name, upstream_name in manifest["group_icon_sources"].items():
+        icon = source_icons.get(upstream_name)
+        if not isinstance(icon, str) or not icon.startswith("https://") or not icon.endswith(".svg"):
+            raise BuildError(f"Required upstream SVG icon changed: {name} -> {upstream_name}")
+        selected[name] = icon
+    begin = "// BEGIN GENERATED: GROUP_ICONS"
+    end = "// END GENERATED: GROUP_ICONS"
+    if begin not in current and end not in current:
+        anchor = "function buildProxyGroups("
+        if current.count(anchor) != 1:
+            raise BuildError("Expected one proxy-group builder for SVG icons")
+        current = current.replace(anchor, begin + "\n" + end + "\n\n" + anchor)
+    return replace_marked(current, begin, end, render_const("groupIcons", selected)), selected
+
 def render_script(
     current: str,
     upstream: str,
@@ -757,6 +787,7 @@ def build(
     current_script = sync_matching_helpers(current_script, extracted["contracts"])
     script = render_script(current_script, upstream, sha, base, services, service_renames, applied_domains)
     script = sync_prefix_rules(script, prefix_rules, base)
+    script, group_icons = sync_group_icons(script, extracted, manifest)
     report = {
         "schema_version": 1,
         "upstream": {
@@ -780,6 +811,9 @@ def build(
                 if item["name"] == "低倍率节点"
             ],
         },
+        "upstream_group_icons": extracted["icons"],
+        "group_icon_sources": manifest["group_icon_sources"],
+        "applied_group_icons": group_icons,
         "output_sha256": hashlib.sha256(script.encode("utf-8")).hexdigest(),
         "real_ip_domains_upstream": {
             "repository": manifest["real_ip_domains_upstream"]["repository"],

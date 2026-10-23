@@ -1085,6 +1085,9 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
     'cloudflare-dns.com': ['1.1.1.1', '1.0.0.1'],
     'dns.google': ['8.8.8.8', '8.8.4.4'],
 
+    // 解决谷歌商店无法下载的问题
+    'services.googleapis.cn': 'services.googleapis.com',
+
 
   };
 
@@ -1254,9 +1257,6 @@ const upstreamPrefixRules = {
 
 function buildRules() {
   return [
-    'RULE-SET,private,Direct',
-    'RULE-SET,private_ip,Direct,no-resolve',
-    'RULE-SET,mcdn屏蔽,REJECT',
     ...serviceRules('Claude'),
     ...serviceRules('AI'),
     ...serviceRules('GitHub'),
@@ -1268,8 +1268,12 @@ function buildRules() {
     ...serviceRules('TikTok'),
     ...serviceRules('YouTube'),
     ...serviceRules("Meta"),
-    ...upstreamPrefixRules.direct.filter((rule) => rule.startsWith('RULE-SET,')),
+    // Direct exceptions: CDN, private network, MCDN, then upstream CN rules.
     ...upstreamPrefixRules.bootstrap,
+    'RULE-SET,private,Direct',
+    'RULE-SET,private_ip,Direct,no-resolve',
+    'RULE-SET,mcdn屏蔽,REJECT',
+    ...upstreamPrefixRules.direct.filter((rule) => rule.startsWith('RULE-SET,')),
     ...upstreamPrefixRules.direct.filter((rule) => !rule.startsWith('RULE-SET,')),
     ...serviceRules('Steam'),
     ...serviceRules('PikPak'),
@@ -1285,6 +1289,32 @@ function buildRules() {
   ];
 }
 
+// BEGIN GENERATED: GROUP_ICONS
+const groupIcons = {
+  "Proxy": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Proxy.svg",
+  "订阅": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Static.svg",
+  "Direct": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/China.svg",
+  "GitHub": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/GitHub.svg",
+  "Claude": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/OpenAI.svg",
+  "AI": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/OpenAI.svg",
+  "pron": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/EHentai.svg",
+  "Google": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Google.svg",
+  "媒体": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/YouTube.svg",
+  "YouTube": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/YouTube.svg",
+  "Telegram": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Telegram.svg",
+  "PikPak": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/PikPak.svg",
+  "EHentai": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/EHentai.svg",
+  "香港": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/HongKong.svg",
+  "台湾": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Taiwan.svg",
+  "新加坡": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Singapore.svg",
+  "日本": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Japan.svg",
+  "美国": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/America.svg",
+  "其他节点": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/WorldMap.svg",
+  "低倍率节点": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Available.svg",
+  "Final": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Stack.svg"
+};
+// END GENERATED: GROUP_ICONS
+
 function buildProxyGroups(regionProxyMap, subscriptionProxies) {
   const regionOrder = ['香港', '台湾', '新加坡', '日本', '美国', '其他节点', '低倍率节点'];
   const sourceRegionName = (name) => (name === '台湾' ? '台湾省' : name);
@@ -1293,6 +1323,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     name,
     type: 'select',
     proxies,
+    icon: groupIcons[name],
     'empty-fallback': 'REJECT',
   });
   const optional = (...names) => names.filter((name) => regionProxyMap.has(sourceRegionName(name)));

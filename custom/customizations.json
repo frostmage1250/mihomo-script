@@ -87,5 +87,28 @@
       "private_ip",
       "geolocation-cn"
     ]
+  },
+  "group_icon_sources": {
+    "Proxy": "默认代理",
+    "订阅": "手动选择",
+    "Direct": "直连",
+    "GitHub": "GitHub",
+    "Claude": "AI",
+    "AI": "AI",
+    "pron": "EHentai",
+    "Google": "Google",
+    "媒体": "YouTube",
+    "YouTube": "YouTube",
+    "Telegram": "Telegram",
+    "PikPak": "PikPak",
+    "EHentai": "EHentai",
+    "香港": "香港",
+    "台湾": "台湾",
+    "新加坡": "新加坡",
+    "日本": "日本",
+    "美国": "美国",
+    "其他节点": "其他节点",
+    "低倍率节点": "低倍率节点",
+    "Final": "漏网之鱼"
   }
 }

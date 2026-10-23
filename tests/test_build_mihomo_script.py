@@ -300,7 +300,7 @@ const hosts = {
 """
         rendered = render_dns_section(upstream, ["example.com", "*.xboxlive.com"])
         self.assertIn("'dns.apple'", rendered)
-        self.assertNotIn("services.googleapis.cn", rendered)
+        self.assertIn("'services.googleapis.cn': 'services.googleapis.com'", rendered)
         self.assertNotIn("mcdn.bilivideo.com", rendered)
         self.assertIn("#Proxy", rendered)
         self.assertIn("'rule-set:private': 'system'", rendered)

@@ -89,9 +89,20 @@ assert(!groups.has("GLOBAL") && !groups.has("高倍率节点"), "forbidden group
 
 for (const group of groups.values()) {
   assert(group["empty-fallback"] === "REJECT", `empty-fallback missing from ${group.name}`);
-  for (const field of ["url", "interval", "timeout", "lazy", "max-failed-times", "icon"]) {
+  for (const field of ["url", "interval", "timeout", "lazy", "max-failed-times"]) {
     assert(!(field in group), `unexpected ${field} in ${group.name}`);
   }
+}
+
+
+for (const [name, upstreamName] of Object.entries(manifest.group_icon_sources)) {
+  const icon = buildReport.upstream_group_icons[upstreamName];
+  assert(typeof icon === "string" && icon.endsWith(".svg"), "upstream SVG icon missing for " + name);
+  assert(buildReport.applied_group_icons[name] === icon, "icon provenance differs for " + name);
+  if (groups.has(name)) assert(groups.get(name).icon === icon, "group icon differs from upstream for " + name);
+}
+for (const group of groups.values()) {
+  assert(typeof group.icon === "string" && group.icon.endsWith(".svg"), "SVG icon missing for " + group.name);
 }
 
 assert(Array.isArray(output.dns["proxy-server-nameserver"]) && output.dns["proxy-server-nameserver"].length > 0, "proxy server DNS must follow upstream DNS configuration");
@@ -241,8 +252,9 @@ for (const domain of repczSource.excluded_domains) {
 assert(!("repcz_real_ip_domains" in providers), "obsolete Repcz regex provider remains");
 assert(!output.dns["fake-ip-filter"].some((pattern) => pattern.includes("DOMAIN-REGEX")), "regex rule remains in fake-IP filter");
 
+assert(output.hosts["services.googleapis.cn"] === "services.googleapis.com", "Google service host mapping must follow upstream");
+
 for (const host of [
-  "services.googleapis.cn",
   "+.mcdn.bilivideo.com",
   "+.mcdn.bilivideo.cn",
   "+.edge.mountaintoys.cn",
@@ -301,12 +313,6 @@ assert(providers["mcdn屏蔽"].type === "http" && providers["mcdn屏蔽"].format
 assert(providers["mcdn屏蔽"].url === "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/mcdn-block.mrs", "MCDN block must use converter MRS");
 assert(providers["mcdn屏蔽"].path === "./ruleset/mcdn-block.mrs", "MCDN provider cache path changed");
 assert(!("path-in-bundle" in providers["mcdn屏蔽"]), "MCDN provider cannot reference the Bett bundle");
-assert(
-  JSON.stringify(output.rules.slice(0, 3)) === JSON.stringify([
-    "RULE-SET,private,Direct", "RULE-SET,private_ip,Direct,no-resolve", "RULE-SET,mcdn屏蔽,REJECT",
-  ]),
-  "Private domains and IPs must precede MCDN rejection",
-);
 assert(providers.appletv.format === "mrs" && providers.appletv.behavior === "domain", "AppleTV must use domain MRS");
 assert(providers.appletv.url === "https://raw.githubusercontent.com/appshubcc/bett-rules/meta/geo/geosite/apple-tvplus.mrs", "AppleTV must use the full Bett provider");
 assert(output.rules.includes("RULE-SET,appletv,媒体"), "AppleTV must target the media group");
@@ -318,14 +324,21 @@ const cdnRule = "DOMAIN,cdn.jsdmirror.com,Direct";
 const nvidiaDownloadRule = "DOMAIN,international-gfe.download.nvidia.com,Direct";
 const directRuleSetPrefix = prefixPlacement.direct.filter((rule) => rule.startsWith("RULE-SET,"));
 const directDomainSuffix = prefixPlacement.direct.filter((rule) => !rule.startsWith("RULE-SET,"));
-const expectedDirectBlock = [...directRuleSetPrefix, ...prefixPlacement.bootstrap, ...directDomainSuffix];
+const expectedDirectBlock = [
+  ...prefixPlacement.bootstrap,
+  "RULE-SET,private,Direct",
+  "RULE-SET,private_ip,Direct,no-resolve",
+  "RULE-SET,mcdn屏蔽,REJECT",
+  ...directRuleSetPrefix,
+  ...directDomainSuffix,
+];
 const directBlockStart = output.rules.indexOf(expectedDirectBlock[0]);
 assert(directBlockStart >= 0 && isDeepStrictEqual(
   output.rules.slice(directBlockStart, directBlockStart + expectedDirectBlock.length),
   expectedDirectBlock,
-), "direct rulesets must precede download hosts and direct domain exceptions");
-assert(output.rules.indexOf(cdnRule) === output.rules.indexOf(nvidiaDownloadRule) - 1, "CDN rule must immediately precede the NVIDIA download rule");
-assert(output.rules.indexOf(cdnRule) > output.rules.indexOf("RULE-SET,microsoft_cn,Direct"), "CDN rule must follow the existing CN direct rulesets");
+), "direct exception block must keep CDN, private, MCDN, CN rulesets, and download hosts in order");
+assert(output.rules.indexOf(cdnRule) === output.rules.indexOf("RULE-SET,facebook_ip,媒体,no-resolve") + 1, "direct exception block must follow the media rules");
+assert(output.rules.indexOf(nvidiaDownloadRule) > output.rules.indexOf("RULE-SET,microsoft_cn,Direct"), "download hosts must follow the CN direct rulesets");
 for (const rule of [
   "DOMAIN,international-gfe.download.nvidia.com,Direct",
   "RULE-SET,nvidia_cn,Direct",
@@ -364,7 +377,7 @@ for (const bucket of Object.values(prefixPlacement)) {
 const reviewedOrder = [
   "claude", "ai", "github", "telegram", "telegram_ip",
   "appletv", "twitch", "twitter", "twitter_ip", "tiktok", "tiktok_ip", "youtube", "meta", "facebook_ip",
-  "steam_cn", "nvidia_cn", "apple_cn", "microsoft_cn", "steam", "steam_ip", "pikpak", "ehentai", "bypass_japan",
+  "private", "private_ip", "mcdn屏蔽", "steam_cn", "nvidia_cn", "apple_cn", "microsoft_cn", "steam", "steam_ip", "pikpak", "ehentai", "bypass_japan",
   "google", "google_ip", "apple", "apple_ip", "microsoft", "microsoft_ip",
   "geolocation-!cn", "geolocation-cn", "cn_ip",
 ];
@@ -423,6 +436,7 @@ const taiwanOutput = main({
 });
 const taiwanGroups = new Map(taiwanOutput["proxy-groups"].map((group) => [group.name, group]));
 assert(JSON.stringify(taiwanGroups.get("台湾")?.proxies) === JSON.stringify(taiwanNames), "local Taiwan matching and region grouping must be preserved");
+assert(taiwanGroups.get("台湾").icon === buildReport.applied_group_icons["台湾"], "Taiwan SVG icon must follow upstream");
 assert(JSON.stringify(taiwanGroups.get("其他节点")?.proxies) === JSON.stringify(["韩国 01"]), "Taiwan nodes must not fall into Other");
 assert(JSON.stringify(taiwanGroups.get("订阅").proxies) === JSON.stringify([...taiwanNames, "韩国 01"]), "Taiwan nodes must remain in the subscription group");
 for (const name of ["Proxy", "AI", "Claude"]) {
