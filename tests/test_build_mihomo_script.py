@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import sys
 import tempfile
 import unittest
@@ -85,7 +84,7 @@ class BuilderTests(unittest.TestCase):
                 "ranges": provider("ipcidr"),
                 "dns_ip": provider("domain", format="text"),
                 "file_rules": {"type": "file", "behavior": "classical", "path": "./local.yaml"},
-                "inline_rules": {"type": "inline", "behavior": "domain", "payload": ["+.example.com"]},
+                "inline_rules": {"type": "inline", "behavior": "domain", "payload": ["*.example.com"]},
                 "unused_helper": provider(),
             },
             "rules": [
@@ -280,9 +279,9 @@ function getMatchedRegions(proxyName) {
         source = """dns:
   other: true
 real_ip_domains:
-  - '+.Example.COM'
+  - '*.Example.COM'
   - "time.*.example.com" # comment
-  - '+.example.com'
+  - '*.example.com'
   - '*-update.xoyocdn.com'
   - '*-appboot.netflix.com'
 other:
@@ -290,10 +289,10 @@ other:
 """
         parsed = extract_real_ip_domains(source)
         self.assertEqual(parsed, [
-            "+.example.com", "time.*.example.com", "*-update.xoyocdn.com", "*-appboot.netflix.com",
+            "*.example.com", "time.*.example.com", "*-update.xoyocdn.com", "*-appboot.netflix.com",
         ])
         self.assertEqual(select_real_ip_domains(parsed), (
-            ["+.example.com", "time.*.example.com"],
+            ["*.example.com", "time.*.example.com"],
             ["*-update.xoyocdn.com", "*-appboot.netflix.com"],
         ))
         with self.assertRaisesRegex(BuildError, "wildcard placement"):
