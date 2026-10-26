@@ -2,7 +2,7 @@
   "schema_version": 3,
   "source_mode": "native-git-merge",
   "source_lock": "custom/sources.lock.json",
-  "output_sha256": "c6d43343e6d668936dd1a5b0bc89da3feb2220525ac62a6ab0acb1d5ae1a6e6e",
+  "output_sha256": "a0a2cd5066443299485abd69bc58d3c5ab7a5bde135bfe5c3ce3e74c888c0acb",
   "real_ip_domains": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -494,14 +494,6 @@
       "origin": "base",
       "declaration": "prefixRules",
       "position": "before_services",
-      "source": "RULE-SET,epicgames,直连",
-      "status": "excluded",
-      "reason": "rule-policy"
-    },
-    {
-      "origin": "base",
-      "declaration": "prefixRules",
-      "position": "before_services",
       "source": "RULE-SET,nvidia_cn,直连",
       "status": "mapped",
       "outputs": [
@@ -614,7 +606,9 @@
       "section": "final"
     }
   ],
-  "stale_customizations": [],
+  "stale_customizations": [
+    "rule-exclusion:RULE-SET:epicgames"
+  ],
   "default_service_routes": [],
   "selected_services": [
     "YouTube",

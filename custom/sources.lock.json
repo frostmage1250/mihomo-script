@@ -2,10 +2,10 @@
   "schema_version": 1,
   "upstream": {
     "repository": "AIsouler/MyClash",
-    "commit": "c1de5acd1dfe7d29eb5af00084e8d93e3b9610c4",
-    "file_commit": "0c7a93ae424aefda5c44d781a05607490ed3dca1",
+    "commit": "071d4ec5764b4700d0c5de41797f20a8bdf6b6d8",
+    "file_commit": "071d4ec5764b4700d0c5de41797f20a8bdf6b6d8",
     "path": "Script/mihomoScript.js",
-    "sha256": "959445423f8f058e036f608e7f1d195cc4efc8295dcded3047ac5bbff844bea0"
+    "sha256": "55ae4b64b24f05568da69531dae20037092c3f9ca22dcbaedc6a203d00579e05"
   },
   "real_ip_domains": {
     "repository": "Repcz/Tool",

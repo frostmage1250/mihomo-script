@@ -1,7 +1,7 @@
 /**
  * Mihomo single-subscription override; upstream author: AIsouler.
  * Source: https://github.com/AIsouler/MyClash
- * Upstream commit: c1de5acd1dfe7d29eb5af00084e8d93e3b9610c4
+ * Upstream commit: 071d4ec5764b4700d0c5de41797f20a8bdf6b6d8
  * Generated from upstream AST and custom sources. MIT license retained.
  */
 const Compatible_With_Bettbox = {
