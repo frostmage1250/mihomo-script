@@ -293,7 +293,7 @@ function buildGlobalConfig(config, filteredProxies) {
     }
   };
 }
-const repczRealIpDomains = ["lancache.steamcontent.com", "*.msftconnecttest.com", "*.msftncsi.com", "*.srv.nintendo.net", "*.stun.playstation.net", "xbox.*.microsoft.com", "*.xboxlive.com", "*.logon.battlenet.com.cn", "*.logon.battle.net", "stun.l.google.com", "easy-login.10099.com.cn", "*.prod.cloud.netflix.com", "appboot.netflix.com"];
+const repczRealIpDomains = ["*.msftconnecttest.com", "*.msftncsi.com", "*.srv.nintendo.net", "*.stun.playstation.net", "xbox.*.microsoft.com", "*.xboxlive.com", "*.logon.battlenet.com.cn", "*.logon.battle.net", "stun.l.google.com", "easy-login.10099.com.cn", "*.prod.cloud.netflix.com", "appboot.netflix.com"];
 const finalRuleProviders = {
   "private": {
     "type": "http",

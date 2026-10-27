@@ -2,10 +2,9 @@
   "schema_version": 3,
   "source_mode": "native-git-merge",
   "source_lock": "custom/sources.lock.json",
-  "output_sha256": "a229b12ccc639c633c74be4babd72136f9433e0bee4a59742cbb5f49c4e05af7",
+  "output_sha256": "1d73e83421a4890af727090c7c11beeddf6947a79053e4d75924cc34ba18a296",
   "real_ip_domains": {
     "applied_domains": [
-      "lancache.steamcontent.com",
       "*.msftconnecttest.com",
       "*.msftncsi.com",
       "*.srv.nintendo.net",
@@ -20,6 +19,7 @@
       "appboot.netflix.com"
     ],
     "excluded_domains": [
+      "lancache.steamcontent.com",
       "*-update.xoyocdn.com",
       "*-appboot.netflix.com"
     ]
