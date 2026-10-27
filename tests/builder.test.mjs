@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import { parseScript, indexDeclarations, dependencyClosure, freeNames, transformDns, extractModel, globalConfigFunction } from "../custom/lib/ast.mjs";
 import { generate } from "astring";
 import { retargetRule, matchesRule, replaceProviderAsset, planRules } from "../custom/lib/rules.mjs";
-import { selectDomains } from "../custom/build_mihomo_script.mjs";
 import fs from "node:fs";
 const manifest = JSON.parse(fs.readFileSync(new URL("../custom/customizations.json", import.meta.url), "utf8"));
 
@@ -15,11 +14,15 @@ test("local bindings and property labels stay outside global dependencies", () =
   const names = freeNames(parseScript("function f(helper) { const local = {helper: helper}; return external(local); }"));
   assert.deepEqual([...names], ["external"]);
 });
-test("DNS changes target structured fields and remove multiline FCM conditions", () => {
+test("DNS changes preserve upstream Fake-IP expressions and FCM conditions", () => {
   const fn = parseScript("function buildDnsAndHostsConfig(config) { const minimalModeEnabled = false; const dns = {\"fake-ip-filter\": [\"rule-set:private\", ...(minimalModeEnabled ? [] : [\"rule-set:googlefcm\"])], \"nameserver-policy\": {\"rule-set:cn\": [\"old\"]}}; const hosts = {\"+.mcdn.bilivideo.com\": [\"1.2.3.4\"]}; return {dns, hosts}; }").body[0];
-  const source = generate(transformDns(fn, manifest, ["*.example.com"]));
-  assert.match(source, /repczRealIpDomains/);
-  assert.doesNotMatch(source, /googlefcm|minimalModeEnabled|mcdn\.bilivideo/);
+  const source = generate(transformDns(fn, manifest));
+  assert.match(source, /googlefcm/);
+  assert.match(source, /minimalModeEnabled/);
+  assert.doesNotMatch(source, /repczRealIpDomains|mcdn\.bilivideo/);
+  const original = fn.body.body[1].declarations[0].init.properties[0].value;
+  const transformed = transformDns(fn, manifest).body.body[1].declarations[0].init.properties[0].value;
+  assert.equal(generate(transformed), generate(original));
   assert.match(source, /system/);
   assert.match(source, /services\.googleapis\.com/);
 });
@@ -46,15 +49,6 @@ test("explicit asset replacement preserves URL parameters, CDN, and declared for
   assert.equal(value.url, "https://cdn.example/r/steam@cn.yaml?version=2#asset");
   assert.equal(value.path, "./cache/steam@cn.yaml");
   assert.equal(value.format, "yaml");
-});
-test("standard YAML parser handles inline lists and more than 1000 domains", () => {
-  assert.deepEqual(selectDomains("real_ip_domains: ['Example.COM', '*.example.com']", []).applied, ["example.com","*.example.com"]);
-  const domains = Array.from({length:1001}, (_,i) => "host" + i + ".example.com");
-  assert.equal(selectDomains("real_ip_domains: " + JSON.stringify(domains), []).applied.length, 1001);
-});
-test("real-IP selection retains explicit exclusions and validates wildcards", () => {
-  assert.deepEqual(selectDomains("real_ip_domains: ['*.example.com','*-update.xoyocdn.com']", manifest.real_ip_domain_exclusions).excluded, ["*-update.xoyocdn.com"]);
-  assert.throws(() => selectDomains("real_ip_domains: ['bad*.example.com']", []), /wildcard/);
 });
 test("new service names follow the default route and stale preferences are reported", () => {
   const local = {...manifest, additional_services:{}, additional_rule_providers:{},
@@ -109,8 +103,8 @@ test("additional Bett services follow an upstream CDN change", () => {
 
 test("DNS retains default foreign resolvers and shared direct-exit resolution", () => {
   const fn = parseScript('function buildDnsAndHostsConfig(config) { const dns = {"fake-ip-filter": [], nameserver: ["https://current-dns.example/dns-query#Proxy"], "nameserver-policy": {"rule-set:cn": ["old"]}}; const hosts = {}; return {dns, hosts}; }').body[0];
-  const source = generate(transformDns(fn, manifest, []));
-  const value = new Function("repczRealIpDomains", source + ";return buildDnsAndHostsConfig({});")([]);
+  const source = generate(transformDns(fn, manifest));
+  const value = new Function(source + ";return buildDnsAndHostsConfig({});")();
   assert.equal(Object.hasOwn(value.dns["nameserver-policy"], "rule-set:apple_podcasts"), false);
   assert.deepEqual(value.dns.nameserver, ["https://current-dns.example/dns-query#Proxy"]);
   assert.deepEqual(value.dns["direct-nameserver"], ["system"]);

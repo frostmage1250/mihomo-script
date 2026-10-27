@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { parse as parseYaml } from "yaml";
+import vm from "node:vm";
 import { extractModel } from "../custom/lib/ast.mjs";
 import { BUILTIN_ACTIONS, splitRule, policyIndex } from "../custom/lib/rules.mjs";
 
@@ -130,10 +130,16 @@ for(const group of groups.values()) {
 assert.deepEqual(output.dns["nameserver-policy"]["rule-set:cn"],["system"]);
 assert.deepEqual(output.dns["direct-nameserver"],["system"]);
 assert.equal(output.hosts["services.googleapis.cn"],"services.googleapis.com");
-assert.equal(output.dns["fake-ip-filter"].includes("rule-set:googlefcm"),false);
-const realIpDomains=new Set(parseYaml(snapshot.repcz).real_ip_domains.map(domain=>domain.toLowerCase())
-  .filter(domain=>!manifest.real_ip_domain_exclusions.includes(domain)));
-for(const domain of realIpDomains)assert.ok(output.dns["fake-ip-filter"].includes(domain),"real-IP domain missing: "+domain);
+// Compare the complete Fake-IP settings to the upstream function with the
+// same service switches; FCM stays disabled with the excluded FCM service.
+const dnsSandbox = vm.createContext({});
+vm.runInContext(snapshot.upstream + "\nObject.assign(ruleOptionsEnable, " +
+  JSON.stringify({...manifest.node_options}) + ");globalThis.__dns = buildDnsAndHostsConfig(" +
+  JSON.stringify(fixture) + ", " + JSON.stringify(output.proxies) + ").dns;", dnsSandbox);
+const upstreamDns = JSON.parse(JSON.stringify(dnsSandbox.__dns));
+for (const key of ["enhanced-mode", "fake-ip-range", "fake-ip-range6", "fake-ip-filter"]) {
+  assert.deepEqual(output.dns[key], upstreamDns[key], "Fake-IP differs from upstream: " + key);
+}
 for(const host of manifest.excluded_hosts)assert.equal(Object.hasOwn(output.hosts,host),false);
 for(const [key,value]of Object.entries(manifest.global_overrides))assert.deepEqual(output[key],value);
 for(const field of manifest.omitted_global_fields) {

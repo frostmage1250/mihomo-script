@@ -143,20 +143,8 @@ export function put(object, key, value) {
   else object.properties.push({type: "Property", key: literal(key), value, kind: "init", method: false, shorthand: false, computed: false});
 }
 
-function hasLiteral(node, value) {
-  let found = false;
-  walk(node, child => { if (child.type === "Literal" && child.value === value) found = true; });
-  return found;
-}
-
-export function transformDns(fn, manifest, domains) {
+export function transformDns(fn, manifest) {
   const result = clone(fn), dns = objectVariable(result, "dns"), hosts = objectVariable(result, "hosts");
-  const filter = property(dns, "fake-ip-filter");
-  if (filter?.value.type !== "ArrayExpression") throw new Error("Expected upstream fake-IP filter array");
-  filter.value.elements = [
-    {type: "SpreadElement", argument: {type: "Identifier", name: "repczRealIpDomains"}},
-    ...filter.value.elements.filter(item => !manifest.excluded_fake_ip_filters.some(value => hasLiteral(item, value))),
-  ];
   for (const [key, value] of Object.entries(manifest.dns_overrides)) put(dns, key, literal(value));
   const policy = property(dns, "nameserver-policy");
   if (policy?.value.type !== "ObjectExpression") throw new Error("Expected upstream nameserver policy object");
@@ -258,7 +246,7 @@ export function globalConfigFunction(model, manifest) {
   return parseScript("function buildGlobalConfig(config, filteredProxies) { return " + generate(object) + "; }").body[0];
 }
 
-export function compileScript(model, manifest, domains, plan, runtime, provenance) {
+export function compileScript(model, manifest, plan, runtime, provenance) {
   const index = new Map([...model.index].map(([name, entry]) => [name, {...entry, node: clone(entry.node)}]));
   const runtimeAst = parseScript(runtime);
   for (const name of blockBindings(runtimeAst.body)) index.delete(name);
@@ -274,9 +262,8 @@ export function compileScript(model, manifest, domains, plan, runtime, provenanc
   });
   setDeclaration("rateRegionDefinitions", {...clone(model.index.get("rateRegionDefinitions").node),
     declarations: [{...clone(model.index.get("rateRegionDefinitions").node.declarations[0]), init: ratesNode}]});
-  setDeclaration("buildDnsAndHostsConfig", transformDns(model.index.get("buildDnsAndHostsConfig").node, manifest, domains));
+  setDeclaration("buildDnsAndHostsConfig", transformDns(model.index.get("buildDnsAndHostsConfig").node, manifest));
   setDeclaration("buildGlobalConfig", globalConfigFunction(model, manifest));
-  setValue("repczRealIpDomains", domains);
   setValue("directProxies", manifest.direct_proxies);
   setValue("finalRuleProviders", plan.providers);
   setValue("finalRules", plan.rules);

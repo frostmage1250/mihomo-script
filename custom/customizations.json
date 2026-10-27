@@ -5,11 +5,6 @@
     "branch": "main",
     "path": "Script/mihomoScript.js"
   },
-  "real_ip_domains_upstream": {
-    "repository": "Repcz/Tool",
-    "branch": "X",
-    "path": "Egern/Egern.yaml"
-  },
   "output": "mihomoScript.js",
   "report": "custom/upstream.json",
   "service_provider_url_overrides": {
@@ -186,7 +181,8 @@
   "source_lock": "custom/sources.lock.json",
   "node_options": {
     "过滤低倍率节点": false,
-    "过滤非地区节点": true
+    "过滤非地区节点": true,
+    "FCM": false
   },
   "direct_proxies": [
     {
@@ -227,14 +223,6 @@
     "+.mcdn.bilivideo.cn",
     "+.edge.mountaintoys.cn",
     "+.h2.smtcdns.net"
-  ],
-  "excluded_fake_ip_filters": [
-    "rule-set:googlefcm"
-  ],
-  "real_ip_domain_exclusions": [
-    "lancache.steamcontent.com",
-    "*-update.xoyocdn.com",
-    "*-appboot.netflix.com"
   ],
   "policy_aliases": {
     "直连": "Direct",

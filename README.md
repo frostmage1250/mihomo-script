@@ -16,7 +16,7 @@ branch mirrors upstream main; legacy retains the former repository history.
 - custom/customizations.json: explicit source overrides, routing, exclusions, and retained global differences.
 - custom/lib/ast.mjs: AST extraction, dependencies, and structured DNS/global changes.
 - custom/lib/rules.mjs: rule placement, policy mapping, conflict checks, and coverage.
-- custom/snapshot.mjs: captures upstream and Repcz commits once per workflow.
+- custom/snapshot.mjs: captures the upstream commit once per workflow.
 - custom/build_mihomo_script.mjs: builds from the captured sources.
 - mihomoScript.js: generated standalone subscription output.
 - custom/sources.lock.json: immutable input commits, file digests, dependency lock and validation versions.
@@ -25,8 +25,7 @@ branch mirrors upstream main; legacy retains the former repository history.
 The generator builds exclusively from independent sources. Acceptance checks use
 the pinned upstream input, the explicit customization policy, and the generated
 configuration. Rule and icon definitions are read directly from the fixed upstream
-source, with no upstream configuration constructed. Repcz domain coverage is
-checked directly against its pinned YAML. Mihomo handles configuration syntax and
+source, with no upstream configuration constructed. Mihomo handles configuration syntax and
 reference validation.
 
 ## Retained policy
@@ -45,9 +44,10 @@ follow upstream. The selected low-rate group remains the existing local choice.
 
 The retained global differences are allow-lan=false, log-level=warning, and
 omission of bind-address, NTP, and tun.auto-redirect. Other ordinary global fields
-are inherited structurally from upstream. FCM and its optional DNS filter remain
-excluded. Repcz parsing uses the standard YAML parser and explicit compatibility
-checks without a domain-count ceiling.
+are inherited structurally from upstream. FCM remains disabled with its excluded
+service. Fake-IP mode, address ranges,
+and filter expressions follow upstream without Repcz additions or filter overrides.
+The upstream conditional FCM filter is preserved and follows that service switch.
 
 ## Bettbox compatibility
 
@@ -67,7 +67,7 @@ Reference: https://github.com/appshubcc/Bettbox/tree/v1.19.7/plugins/code_forge/
 
 Every six hours, on relevant pushes, or by manual dispatch, the workflow merges
 upstream history, restores the full source, installs locked build dependencies,
-pins the Mihomo validation release, and captures upstream/Repcz inputs once.
+pins the Mihomo validation release, and captures upstream inputs once.
 Generation and acceptance share that snapshot. The workflow generates the script
 once, executes the final script once with the Bettbox engine, checks upstream
 coverage and explicit customizations, and validates the configuration with Mihomo.
@@ -79,7 +79,7 @@ published atomically.
 
 The report uses schema version 3. It links to custom/sources.lock.json for source
 and validation versions, and records rule blocks, coverage, effective icons,
-real-IP domain selections, and stale preferences. Full upstream definitions stay
+the upstream Fake-IP mode, and stale preferences. Full upstream definitions stay
 in Script/mihomoScript.js; source provenance stays in the source lock.
 
 Upstream attribution and the MIT license are retained.

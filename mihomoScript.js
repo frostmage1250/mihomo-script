@@ -9,7 +9,9 @@ const Compatible_With_Bettbox = {
 };
 const ruleOptionsEnable = {
   "过滤低倍率节点": false,
-  "过滤非地区节点": true
+  "过滤非地区节点": true,
+  "FCM": false,
+  "极简模式": false
 };
 const excludeFilter = /群|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|电报|无法|说明|提示|访问|支持|教程|关注|更新|作者|加入|超时|收藏|优惠|福利|邀请|好友|失联|选择|剩余|公益|发布|DIZTNA|通路|登录|禁止|定时|渠道|牢记|永久|余额|阁下|本站|刷新|导航|建议|重置|以下|过滤|⚠️|@|t\.me\/\+|\bexpire\b|\bhttps?:\/\/|\.com|\btraffic\b/iu;
 const directProxies = [{
@@ -193,6 +195,7 @@ function simplifyDomainPolicy(policy) {
   return result;
 }
 function buildDnsAndHostsConfig(config, filteredProxies) {
+  const minimalModeEnabled = ruleOptionsEnable.极简模式;
   const originalDnsConfig = config.dns || ({});
   const proxyServerNameservers = originalDnsConfig['proxy-server-nameserver'] || [];
   const listenValue = originalDnsConfig['listen'];
@@ -237,7 +240,7 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/15',
     'fake-ip-range6': '2001:2::1/48',
-    'fake-ip-filter': [...repczRealIpDomains, 'rule-set:private', 'rule-set:fakeip_filter', 'rule-set:geolocation-cn', ...proxyFakeIpFilter],
+    'fake-ip-filter': ['rule-set:private', 'rule-set:fakeip_filter', 'rule-set:geolocation-cn', ...minimalModeEnabled ? [] : ruleOptionsEnable['FCM'] ? ['rule-set:googlefcm'] : [], ...proxyFakeIpFilter],
     'default-nameserver': defaultDNS,
     'proxy-server-nameserver': proxyServerDNS,
     ...Object.keys(proxyServerPolicy).length > 0 && ({
@@ -292,7 +295,6 @@ function buildGlobalConfig(config, filteredProxies) {
     }
   };
 }
-const repczRealIpDomains = ["*.msftconnecttest.com", "*.msftncsi.com", "*.srv.nintendo.net", "*.stun.playstation.net", "xbox.*.microsoft.com", "*.xboxlive.com", "*.logon.battlenet.com.cn", "*.logon.battle.net", "stun.l.google.com", "easy-login.10099.com.cn", "*.prod.cloud.netflix.com", "appboot.netflix.com"];
 const finalRuleProviders = {
   "private": {
     "type": "http",

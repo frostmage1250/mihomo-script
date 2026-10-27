@@ -7,21 +7,15 @@
     "path": "Script/mihomoScript.js",
     "sha256": "55ae4b64b24f05568da69531dae20037092c3f9ca22dcbaedc6a203d00579e05"
   },
-  "real_ip_domains": {
-    "repository": "Repcz/Tool",
-    "commit": "14096d214d0f870ee11f8172b2f8be94e93d0663",
-    "path": "Egern/Egern.yaml",
-    "sha256": "96a61d19e9590923dec9a0f65c22f02244f199ac4bbef3204c0ea103611456ac"
-  },
   "local_files": {
-    "custom/build_mihomo_script.mjs": "3cbae3d80ac315183d676fc06b92dbdd446e1feee0f4a9966a093dbaf51cc745",
-    "custom/snapshot.mjs": "d1846cdf70ec035890477a0cf3d625f8aa1f641d722e5dc9e6e2fc822873e4b3",
-    "custom/lib/ast.mjs": "33db3d37ba9bcbace949669c97c68024303aaf1bcb8a499fedaf60dae4c8acab",
+    "custom/build_mihomo_script.mjs": "8c60161cfa7fdc9f115d50f13dc66090e3f7dda82e5b6b6dd16ec3ec4b2b03b6",
+    "custom/snapshot.mjs": "da53bde2d27bbaa26ca46955e4b11542939de8f8741dc3a2a94395eb40ceb382",
+    "custom/lib/ast.mjs": "349d2ab284b47fcbe5f82f8e21a85de18212d4cb5b0120896a8cc128232de868",
     "custom/lib/rules.mjs": "1e57b75113d71dddbdc3318b24c4c73d810b6ad3ffb40431a017e3b5ddb785a2",
     "custom/runtime.js": "1fbef5a9bf18d56b0c25f073dd5c157f9003031dcca7148457a14368350bc654",
-    "custom/customizations.json": "e1d52a06c6877bfffc1162748cd5bed50fb49da42b5b501f761b2cf7d73e67e9"
+    "custom/customizations.json": "506a126e1908bb1f898a2fede3eb31e56290b3f7df4543b71dad3b5c3af8b6c1"
   },
-  "dependency_lock_sha256": "74f5b47f256dc76ea45409c6f31c0066e7823f8a5b9a514c95cd12b2811d0003",
+  "dependency_lock_sha256": "4b4d0e6559790a82178f3238e5cb20cf440c86709ec87c380710a9e8187efdb0",
   "validation": {
     "mihomo": {
       "version": "v1.19.33",

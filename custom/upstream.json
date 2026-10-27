@@ -2,28 +2,8 @@
   "schema_version": 3,
   "source_mode": "native-git-merge",
   "source_lock": "custom/sources.lock.json",
-  "output_sha256": "3ad91e3567d99262e0fa14ab7c566c681aeaa72578ba9668808c7290726981ce",
-  "real_ip_domains": {
-    "applied_domains": [
-      "*.msftconnecttest.com",
-      "*.msftncsi.com",
-      "*.srv.nintendo.net",
-      "*.stun.playstation.net",
-      "xbox.*.microsoft.com",
-      "*.xboxlive.com",
-      "*.logon.battlenet.com.cn",
-      "*.logon.battle.net",
-      "stun.l.google.com",
-      "easy-login.10099.com.cn",
-      "*.prod.cloud.netflix.com",
-      "appboot.netflix.com"
-    ],
-    "excluded_domains": [
-      "lancache.steamcontent.com",
-      "*-update.xoyocdn.com",
-      "*-appboot.netflix.com"
-    ]
-  },
+  "output_sha256": "2042c8dd0d64eba45e6a00d2fe38ed54502f65b5955f69aac7fa5648c8050126",
+  "fake_ip_mode": "upstream",
   "rule_blocks": {
     "before_direct": [
       "RULE-SET,claude,Claude",
