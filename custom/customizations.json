@@ -232,6 +232,7 @@
     "rule-set:googlefcm"
   ],
   "real_ip_domain_exclusions": [
+    "lancache.steamcontent.com",
     "*-update.xoyocdn.com",
     "*-appboot.netflix.com"
   ],
