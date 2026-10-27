@@ -245,7 +245,6 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
     }),
     nameserver: foreignDNS,
     'nameserver-policy': {
-      "rule-set:apple_podcasts": foreignDNS,
       'rule-set:private': 'system',
       'rule-set:douyin': ['system', '180.184.1.1', '180.184.2.2'],
       'rule-set:cn': ["system"]

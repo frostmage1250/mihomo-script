@@ -2,7 +2,7 @@
   "schema_version": 3,
   "source_mode": "native-git-merge",
   "source_lock": "custom/sources.lock.json",
-  "output_sha256": "1532e5d5938e118f0e2b96b074c2a4b4a268622634be2b5d439c8d57907783f8",
+  "output_sha256": "3ad91e3567d99262e0fa14ab7c566c681aeaa72578ba9668808c7290726981ce",
   "real_ip_domains": {
     "applied_domains": [
       "*.msftconnecttest.com",
