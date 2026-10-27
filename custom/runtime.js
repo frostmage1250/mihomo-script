@@ -100,7 +100,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     simpleSelect('AI', ['Proxy', ...optional('日本', '台湾', '其他节点')]),
     simpleSelect('porn', ['Proxy', ...optional('新加坡', '低倍率节点', '美国')]),
     simpleSelect('Google', ['Proxy', '订阅']),
-    simpleSelect('媒体', ['Proxy', ...optional('低倍率节点', '香港')]),
+    simpleSelect('媒体', ['Proxy', ...optional('低倍率节点', '香港', '美国')]),
     simpleSelect('Apple Podcasts', ['Proxy', '订阅', ...optional('美国', '香港', '日本', '新加坡'), 'Direct']),
     simpleSelect('YouTube', ['Proxy', ...optional('香港', '低倍率节点')]),
     simpleSelect('Telegram', ['Proxy', ...optional('低倍率节点', '香港')]),

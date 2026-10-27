@@ -109,7 +109,7 @@ assert.deepEqual(names,["日本 01","香港 01","新加坡 01","美国 01","韩�
 assert.ok(output.proxies.every(proxy=>!("dialer-proxy" in proxy)));
 assert.deepEqual(groups.get("GitHub").proxies,["Proxy","订阅","AI"]);
 assert.deepEqual(groups.get("YouTube").proxies,["Proxy","香港","低倍率节点"]);
-assert.deepEqual(groups.get("媒体").proxies,["Proxy","低倍率节点","香港"]);
+assert.deepEqual(groups.get("媒体").proxies,["Proxy","低倍率节点","香港","美国"]);
 assert.equal(groups.get("Apple Podcasts").proxies[0], "Proxy");
 assert.equal(providers.apple.url, new URL("geosite/apple.mrs", upstream.ruleSetBaseUrl).href);
 assert.equal(providers.apple_podcasts.url, new URL("geosite/apple-podcasts.mrs", upstream.ruleSetBaseUrl).href);
