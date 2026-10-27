@@ -2,7 +2,7 @@
   "schema_version": 3,
   "source_mode": "native-git-merge",
   "source_lock": "custom/sources.lock.json",
-  "output_sha256": "1d73e83421a4890af727090c7c11beeddf6947a79053e4d75924cc34ba18a296",
+  "output_sha256": "1e23292f64e8f96902177d71fd851344e0e6ae3d04230fc37da20da462e1b489",
   "real_ip_domains": {
     "applied_domains": [
       "*.msftconnecttest.com",
@@ -65,7 +65,7 @@
       "RULE-SET,steam_ip,Proxy,no-resolve",
       "RULE-SET,pikpak,PikPak",
       "RULE-SET,ehentai,EHentai",
-      "RULE-SET,porn,pron",
+      "RULE-SET,porn,porn",
       "RULE-SET,google,Google",
       "RULE-SET,google_ip,Google,no-resolve",
       "RULE-SET,apple,Proxy",
@@ -626,7 +626,7 @@
     "PikPak",
     "EHentai",
     "AppleTV",
-    "pron",
+    "porn",
     "Claude",
     "Twitch",
     "Apple Podcasts"
