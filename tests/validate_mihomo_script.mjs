@@ -119,7 +119,7 @@ assert.deepEqual(output.dns["nameserver-policy"]["rule-set:apple_podcasts"], out
 assert.equal(Object.keys(output.dns["nameserver-policy"])[0], "rule-set:apple_podcasts");
 assert.deepEqual(groups.get("PikPak").proxies,["Proxy","Direct","低倍率节点","香港"]);
 assert.deepEqual(groups.get("porn").proxies,["Proxy","新加坡","低倍率节点","美国"]);
-assert.deepEqual(groups.get("EHentai").proxies,["美国","新加坡","Proxy","香港"]);
+assert.deepEqual(groups.get("EHentai").proxies,["Proxy","美国","新加坡","香港"]);
 assert.ok(!groups.has("pron"));
 const noIconGroups=new Set(["Claude","媒体","porn"]);
 for(const group of groups.values()) {

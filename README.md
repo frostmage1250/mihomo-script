@@ -93,7 +93,7 @@ is AIsouler/MyClash. Acceptance validates every provider URL against this bounda
 
 The porn rule-set uses provider key `porn` and `dist/mihomo/porn.mrs`; its
 policy group is `porn`, with choices `Proxy`, `新加坡`, `低倍率节点`, and `美国`.
-EHentai choices are `美国`, `新加坡`, `Proxy`, and `香港`, in that order.
+EHentai choices are `Proxy`, `美国`, `新加坡`, and `香港`, in that order.
 Regional choices appear only when matching subscription nodes exist.
 Steam CN continues to use Bett `steam@cn`.
 The retired 11-rule steam-cn-download provider is not referenced by this script.

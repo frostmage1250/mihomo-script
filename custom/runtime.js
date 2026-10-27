@@ -105,7 +105,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
     simpleSelect('YouTube', ['Proxy', ...optional('香港', '低倍率节点')]),
     simpleSelect('Telegram', ['Proxy', ...optional('低倍率节点', '香港')]),
     simpleSelect('PikPak', ['Proxy', 'Direct', ...optional('低倍率节点', '香港')]),
-    simpleSelect('EHentai', [...optional('美国', '新加坡'), 'Proxy', ...optional('香港')]),
+    simpleSelect('EHentai', ['Proxy', ...optional('美国', '新加坡', '香港')]),
     ...availableRegions.map((name) => simpleSelect(name, regionProxyMap.get(name))),
     simpleSelect('Final', ['Proxy', 'Direct']),
   ];
