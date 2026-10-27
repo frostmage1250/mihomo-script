@@ -102,4 +102,6 @@ Apple uses the upstream Bett `geosite/apple.mrs` definition.
 Apple Podcasts uses Bett `geosite/apple-podcasts.mrs` through the upstream
 `ruleSetBaseUrl`, so mirror changes flow into both providers automatically.
 Its independent select group defaults to `Proxy` and routes before Apple CN.
-Podcasts DNS inherits the upstream foreign nameservers before general CN DNS.
+Podcasts uses the default foreign nameservers while proxied. Selecting Direct
+uses system DNS through `direct-nameserver`; DNS policy retains the shared
+Private, Douyin, and CN entries.

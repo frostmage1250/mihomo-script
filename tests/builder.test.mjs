@@ -17,7 +17,7 @@ test("local bindings and property labels stay outside global dependencies", () =
 });
 test("DNS changes target structured fields and remove multiline FCM conditions", () => {
   const fn = parseScript("function buildDnsAndHostsConfig(config) { const minimalModeEnabled = false; const dns = {\"fake-ip-filter\": [\"rule-set:private\", ...(minimalModeEnabled ? [] : [\"rule-set:googlefcm\"])], \"nameserver-policy\": {\"rule-set:cn\": [\"old\"]}}; const hosts = {\"+.mcdn.bilivideo.com\": [\"1.2.3.4\"]}; return {dns, hosts}; }").body[0];
-  const source = generate(transformDns(fn, {...manifest, dns_policy_inherit:{}}, ["*.example.com"]));
+  const source = generate(transformDns(fn, manifest, ["*.example.com"]));
   assert.match(source, /repczRealIpDomains/);
   assert.doesNotMatch(source, /googlefcm|minimalModeEnabled|mcdn\.bilivideo/);
   assert.match(source, /system/);
@@ -107,11 +107,12 @@ test("additional Bett services follow an upstream CDN change", () => {
   }
 });
 
-test("Podcasts DNS inherits current foreign resolvers ahead of CN matching", () => {
+test("DNS retains default foreign resolvers and shared direct-exit resolution", () => {
   const fn = parseScript('function buildDnsAndHostsConfig(config) { const dns = {"fake-ip-filter": [], nameserver: ["https://current-dns.example/dns-query#Proxy"], "nameserver-policy": {"rule-set:cn": ["old"]}}; const hosts = {}; return {dns, hosts}; }').body[0];
   const source = generate(transformDns(fn, manifest, []));
   const value = new Function("repczRealIpDomains", source + ";return buildDnsAndHostsConfig({});")([]);
-  assert.equal(Object.keys(value.dns["nameserver-policy"])[0], "rule-set:apple_podcasts");
-  assert.deepEqual(value.dns["nameserver-policy"]["rule-set:apple_podcasts"], value.dns.nameserver);
+  assert.equal(Object.hasOwn(value.dns["nameserver-policy"], "rule-set:apple_podcasts"), false);
+  assert.deepEqual(value.dns.nameserver, ["https://current-dns.example/dns-query#Proxy"]);
+  assert.deepEqual(value.dns["direct-nameserver"], ["system"]);
   assert.deepEqual(value.dns["nameserver-policy"]["rule-set:cn"], ["system"]);
 });

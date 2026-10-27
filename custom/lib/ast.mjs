@@ -161,13 +161,6 @@ export function transformDns(fn, manifest, domains) {
   const policy = property(dns, "nameserver-policy");
   if (policy?.value.type !== "ObjectExpression") throw new Error("Expected upstream nameserver policy object");
   for (const [key, value] of Object.entries(manifest.dns_policy_overrides)) put(policy.value, key, literal(value));
-  const inherited = Object.entries(manifest.dns_policy_inherit || {}).map(([key, field]) => {
-    const source = property(dns, field);
-    if (!source) throw new Error("Missing upstream DNS field: " + field);
-    return {type: "Property", key: literal(key), value: clone(source.value), kind: "init", method: false, shorthand: false, computed: false};
-  });
-  const inheritedKeys = new Set(Object.keys(manifest.dns_policy_inherit || {}));
-  policy.value.properties = [...inherited, ...policy.value.properties.filter(item => !inheritedKeys.has(keyOf(item)))];
   hosts.properties = hosts.properties.filter(item => !manifest.excluded_hosts.includes(keyOf(item)));
   for (const [key, value] of Object.entries(manifest.host_overrides)) put(hosts, key, literal(value));
   result.body.body = result.body.body.filter(statement => {

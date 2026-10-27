@@ -368,8 +368,5 @@
     "memory_limit": 134217728,
     "stack_limit": 524288,
     "timeout_seconds": 10
-  },
-  "dns_policy_inherit": {
-    "rule-set:apple_podcasts": "nameserver"
   }
 }

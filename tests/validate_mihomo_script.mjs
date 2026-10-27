@@ -115,8 +115,7 @@ assert.equal(providers.apple.url, new URL("geosite/apple.mrs", upstream.ruleSetB
 assert.equal(providers.apple_podcasts.url, new URL("geosite/apple-podcasts.mrs", upstream.ruleSetBaseUrl).href);
 assert.equal(output.rules.filter(rule => rule === "RULE-SET,apple_podcasts,Apple Podcasts").length, 1);
 assert.ok(output.rules.indexOf("RULE-SET,apple_podcasts,Apple Podcasts") < output.rules.indexOf("RULE-SET,apple_cn,Direct"));
-assert.deepEqual(output.dns["nameserver-policy"]["rule-set:apple_podcasts"], output.dns.nameserver);
-assert.equal(Object.keys(output.dns["nameserver-policy"])[0], "rule-set:apple_podcasts");
+assert.equal(Object.hasOwn(output.dns["nameserver-policy"], "rule-set:apple_podcasts"), false);
 assert.deepEqual(groups.get("PikPak").proxies,["Proxy","Direct","低倍率节点","香港"]);
 assert.deepEqual(groups.get("porn").proxies,["Proxy","新加坡","低倍率节点","美国"]);
 assert.deepEqual(groups.get("EHentai").proxies,["Proxy","美国","新加坡","香港"]);
