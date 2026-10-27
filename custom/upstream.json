@@ -2,7 +2,7 @@
   "schema_version": 3,
   "source_mode": "native-git-merge",
   "source_lock": "custom/sources.lock.json",
-  "output_sha256": "2042c8dd0d64eba45e6a00d2fe38ed54502f65b5955f69aac7fa5648c8050126",
+  "output_sha256": "107b09c12193f6c7b9f2a6dfb0a78b1e6ba63659e5fc76b02e1d9cbf9c9a95c3",
   "fake_ip_mode": "upstream",
   "rule_blocks": {
     "before_direct": [
@@ -12,7 +12,7 @@
       "RULE-SET,telegram,Telegram",
       "RULE-SET,telegram_ip,Telegram,no-resolve",
       "RULE-SET,appletv,媒体",
-      "RULE-SET,apple_podcasts,Apple Podcasts",
+      "RULE-SET,apple_podcasts,媒体",
       "RULE-SET,twitch,媒体",
       "RULE-SET,twitter,媒体",
       "RULE-SET,twitter_ip,媒体,no-resolve",

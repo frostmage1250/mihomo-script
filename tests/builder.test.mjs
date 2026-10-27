@@ -97,7 +97,7 @@ test("additional Bett services follow an upstream CDN change", () => {
     const model = {ruleSetBaseUrl:base, services:[], baseRuleProviders:{}, baseRules:[]};
     const result = planRules(model, local);
     assert.equal(result.providers.apple_podcasts.url, base + "geosite/apple-podcasts.mrs");
-    assert.deepEqual(result.rules, ["RULE-SET,apple_podcasts,Apple Podcasts", "MATCH,Final"]);
+    assert.deepEqual(result.rules, ["RULE-SET,apple_podcasts,媒体", "MATCH,Final"]);
   }
 });
 

@@ -101,7 +101,7 @@ The retired 11-rule steam-cn-download provider is not referenced by this script.
 Apple uses the upstream Bett `geosite/apple.mrs` definition.
 Apple Podcasts uses Bett `geosite/apple-podcasts.mrs` through the upstream
 `ruleSetBaseUrl`, so mirror changes flow into both providers automatically.
-Its independent select group defaults to `Proxy` and routes before Apple CN.
+Its rule routes to `媒体` before Apple CN, with no independent Podcasts group.
 Podcasts uses the default foreign nameservers while proxied. Selecting Direct
 uses system DNS through `direct-nameserver`; DNS policy retains the shared
 Private, Douyin, and CN entries.
