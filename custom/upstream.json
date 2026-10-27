@@ -2,7 +2,7 @@
   "schema_version": 3,
   "source_mode": "native-git-merge",
   "source_lock": "custom/sources.lock.json",
-  "output_sha256": "a0a2cd5066443299485abd69bc58d3c5ab7a5bde135bfe5c3ce3e74c888c0acb",
+  "output_sha256": "a229b12ccc639c633c74be4babd72136f9433e0bee4a59742cbb5f49c4e05af7",
   "real_ip_domains": {
     "applied_domains": [
       "lancache.steamcontent.com",
@@ -32,6 +32,7 @@
       "RULE-SET,telegram,Telegram",
       "RULE-SET,telegram_ip,Telegram,no-resolve",
       "RULE-SET,appletv,媒体",
+      "RULE-SET,apple_podcasts,Apple Podcasts",
       "RULE-SET,twitch,媒体",
       "RULE-SET,twitter,媒体",
       "RULE-SET,twitter_ip,媒体,no-resolve",
@@ -627,7 +628,8 @@
     "AppleTV",
     "pron",
     "Claude",
-    "Twitch"
+    "Twitch",
+    "Apple Podcasts"
   ],
   "applied_group_icons": {
     "香港": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/HongKong.svg",
