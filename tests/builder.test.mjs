@@ -17,7 +17,7 @@ test("local bindings and property labels stay outside global dependencies", () =
 });
 test("DNS changes target structured fields and remove multiline FCM conditions", () => {
   const fn = parseScript("function buildDnsAndHostsConfig(config) { const minimalModeEnabled = false; const dns = {\"fake-ip-filter\": [\"rule-set:private\", ...(minimalModeEnabled ? [] : [\"rule-set:googlefcm\"])], \"nameserver-policy\": {\"rule-set:cn\": [\"old\"]}}; const hosts = {\"+.mcdn.bilivideo.com\": [\"1.2.3.4\"]}; return {dns, hosts}; }").body[0];
-  const source = generate(transformDns(fn, manifest, ["*.example.com"]));
+  const source = generate(transformDns(fn, {...manifest, dns_policy_inherit:{}}, ["*.example.com"]));
   assert.match(source, /repczRealIpDomains/);
   assert.doesNotMatch(source, /googlefcm|minimalModeEnabled|mcdn\.bilivideo/);
   assert.match(source, /system/);
@@ -90,4 +90,28 @@ test("main rules are extracted from declaration order, independent of sample nod
   const model = extractModel(changed,manifest);
   assert.equal(model.baseRules.some(entry => entry.rules.includes("DOMAIN,new-global.example.com,默认代理") && entry.position==="after_services"),true);
   assert.equal(model.icons["其他节点"],model.evaluate(parseScript("iconBaseUrl + 'WorldMap.svg'").body[0].expression));
+});
+
+test("additional Bett services follow an upstream CDN change", () => {
+  const local = {...manifest, additional_services: {"Apple Podcasts": manifest.additional_services["Apple Podcasts"]},
+    additional_rule_providers:{}, excluded_base_rule_providers:[], excluded_services:[],
+    service_provider_url_overrides:{}, base_rule_provider_url_overrides:{}, base_rule_provider_replacements:{},
+    service_routing: {"Apple Podcasts": manifest.service_routing["Apple Podcasts"]},
+    excluded_rules:[], custom_rules:{final:["MATCH,Final"]}};
+  for (const base of ["https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/",
+    "https://new-mirror.example/gh/appshubcc/bett-rules@meta/geo/"]) {
+    const model = {ruleSetBaseUrl:base, services:[], baseRuleProviders:{}, baseRules:[]};
+    const result = planRules(model, local);
+    assert.equal(result.providers.apple_podcasts.url, base + "geosite/apple-podcasts.mrs");
+    assert.deepEqual(result.rules, ["RULE-SET,apple_podcasts,Apple Podcasts", "MATCH,Final"]);
+  }
+});
+
+test("Podcasts DNS inherits current foreign resolvers ahead of CN matching", () => {
+  const fn = parseScript('function buildDnsAndHostsConfig(config) { const dns = {"fake-ip-filter": [], nameserver: ["https://current-dns.example/dns-query#Proxy"], "nameserver-policy": {"rule-set:cn": ["old"]}}; const hosts = {}; return {dns, hosts}; }').body[0];
+  const source = generate(transformDns(fn, manifest, []));
+  const value = new Function("repczRealIpDomains", source + ";return buildDnsAndHostsConfig({});")([]);
+  assert.equal(Object.keys(value.dns["nameserver-policy"])[0], "rule-set:apple_podcasts");
+  assert.deepEqual(value.dns["nameserver-policy"]["rule-set:apple_podcasts"], value.dns.nameserver);
+  assert.deepEqual(value.dns["nameserver-policy"]["rule-set:cn"], ["system"]);
 });

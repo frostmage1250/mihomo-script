@@ -15,9 +15,6 @@
   "service_provider_url_overrides": {
     "AI": {
       "ai": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/ai.mrs"
-    },
-    "Apple": {
-      "apple": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/apple-merged.mrs"
     }
   },
   "base_rule_provider_replacements": {
@@ -150,6 +147,11 @@
       "target": "Proxy",
       "section": "after_direct",
       "order": 70
+    },
+    "Apple Podcasts": {
+      "target": "Apple Podcasts",
+      "section": "before_direct",
+      "order": 55
     }
   },
   "default_service_routing": {
@@ -314,6 +316,22 @@
       "rules": [
         "RULE-SET,twitch,Twitch"
       ]
+    },
+    "Apple Podcasts": {
+      "providers": {
+        "apple_podcasts": {
+          "type": "http",
+          "format": "mrs",
+          "interval": 86400,
+          "behavior": "domain",
+          "upstream_asset": "geosite/apple-podcasts.mrs",
+          "path": "./ruleset/apple-podcasts.mrs",
+          "path-in-bundle": "geo/geosite/apple-podcasts.mrs"
+        }
+      },
+      "rules": [
+        "RULE-SET,apple_podcasts,Apple Podcasts"
+      ]
     }
   },
   "additional_rule_providers": {
@@ -349,5 +367,8 @@
     "memory_limit": 134217728,
     "stack_limit": 524288,
     "timeout_seconds": 10
+  },
+  "dns_policy_inherit": {
+    "rule-set:apple_podcasts": "nameserver"
   }
 }

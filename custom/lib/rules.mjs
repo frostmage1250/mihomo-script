@@ -115,7 +115,14 @@ export function planRules(model, manifest) {
   for (const [name, service] of Object.entries(manifest.additional_services)) {
     if (Object.hasOwn(services, name)) throw new Error("Upstream/additional service conflict: " + name);
     services[name] = {name, ...service, additional: true};
-    for (const [key, provider] of Object.entries(service.providers || {})) addProvider(key, provider, name);
+    for (const [key, provider] of Object.entries(service.providers || {})) {
+      const {upstream_asset, ...definition} = provider;
+      if (upstream_asset !== undefined) {
+        if (!/^geo(?:site|ip)\/[a-z0-9@!._-]+\.mrs$/.test(upstream_asset)) throw new Error("Invalid inherited Bett asset: " + upstream_asset);
+        definition.url = new URL(upstream_asset, model.ruleSetBaseUrl).href;
+      }
+      addProvider(key, definition, name);
+    }
   }
   for (const [name, provider] of Object.entries(manifest.additional_rule_providers)) addProvider(name, provider, "additional");
 

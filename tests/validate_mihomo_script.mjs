@@ -67,14 +67,20 @@ for(const service of upstream.services) {
   if(manifest.excluded_services.includes(service.name)||!service.rules?.length)continue;
   for(const [name,value] of Object.entries(service.providers||{}))expectedProviders[name]=applyOverride(value,manifest.service_provider_url_overrides[service.name]?.[name]);
 }
-for(const service of Object.values(manifest.additional_services))Object.assign(expectedProviders,service.providers);
+for(const service of Object.values(manifest.additional_services)) {
+  for(const [name, provider] of Object.entries(service.providers || {})) {
+    const {upstream_asset, ...definition} = provider;
+    if(upstream_asset !== undefined) definition.url = new URL(upstream_asset, upstream.ruleSetBaseUrl).href;
+    expectedProviders[name] = definition;
+  }
+}
 Object.assign(expectedProviders,manifest.additional_rule_providers);
 assert.deepEqual(providers,expectedProviders,"provider definitions differ from upstream and explicit custom sources");
 
 // Ordinary rule data must remain on Bett; only these reviewed providers use
 // converter output. The source script itself is inherited from AIsouler/MyClash.
 const customProviderAssets = {
-  "geolocation-cn": "geolocation-cn.mrs", ai: "ai.mrs", apple: "apple-merged.mrs",
+  "geolocation-cn": "geolocation-cn.mrs", ai: "ai.mrs",
   porn: "porn.mrs", claude: "claude.yaml", "mcdn屏蔽": "mcdn-block.mrs",
 };
 let bettProviderCount = 0;
@@ -104,6 +110,13 @@ assert.ok(output.proxies.every(proxy=>!("dialer-proxy" in proxy)));
 assert.deepEqual(groups.get("GitHub").proxies,["Proxy","订阅","AI"]);
 assert.deepEqual(groups.get("YouTube").proxies,["Proxy","香港","低倍率节点"]);
 assert.deepEqual(groups.get("媒体").proxies,["Proxy","低倍率节点","香港"]);
+assert.equal(groups.get("Apple Podcasts").proxies[0], "Proxy");
+assert.equal(providers.apple.url, new URL("geosite/apple.mrs", upstream.ruleSetBaseUrl).href);
+assert.equal(providers.apple_podcasts.url, new URL("geosite/apple-podcasts.mrs", upstream.ruleSetBaseUrl).href);
+assert.equal(output.rules.filter(rule => rule === "RULE-SET,apple_podcasts,Apple Podcasts").length, 1);
+assert.ok(output.rules.indexOf("RULE-SET,apple_podcasts,Apple Podcasts") < output.rules.indexOf("RULE-SET,apple_cn,Direct"));
+assert.deepEqual(output.dns["nameserver-policy"]["rule-set:apple_podcasts"], output.dns.nameserver);
+assert.equal(Object.keys(output.dns["nameserver-policy"])[0], "rule-set:apple_podcasts");
 assert.deepEqual(groups.get("PikPak").proxies,["Proxy","Direct","低倍率节点","香港"]);
 assert.deepEqual(groups.get("pron").proxies,["Proxy","香港","新加坡"]);
 const noIconGroups=new Set(["Claude","媒体","pron"]);
