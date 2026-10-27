@@ -18,7 +18,7 @@
     "custom/snapshot.mjs": "d1846cdf70ec035890477a0cf3d625f8aa1f641d722e5dc9e6e2fc822873e4b3",
     "custom/lib/ast.mjs": "75a4081aba7cf11bf2e7575d466c920bba79ca1f4c14124154335f2f7d216693",
     "custom/lib/rules.mjs": "1e57b75113d71dddbdc3318b24c4c73d810b6ad3ffb40431a017e3b5ddb785a2",
-    "custom/runtime.js": "d13736763b351b216be7787fa628340389aeba580d796a7410ed0f5a301f966d",
+    "custom/runtime.js": "1fbef5a9bf18d56b0c25f073dd5c157f9003031dcca7148457a14368350bc654",
     "custom/customizations.json": "ba3a06e007921c16a1be699424c1106066fa2edd26718edf6c66ad2b916ab782"
   },
   "dependency_lock_sha256": "74f5b47f256dc76ea45409c6f31c0066e7823f8a5b9a514c95cd12b2811d0003",
