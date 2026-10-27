@@ -31,7 +31,7 @@ reference validation.
 
 ## Retained policy
 
-The AI, Apple merge, geolocation-cn, Claude, pron, and MCDN converter sources
+The AI, geolocation-cn, Claude, pron, and MCDN converter sources
 remain explicit. AI retains Bett's base rules with the converter's supplements.
 Twitch and AppleTV remain additional Bett definitions. Their existing URLs remain
 declared in the customization policy.
@@ -86,11 +86,17 @@ Upstream attribution and the MIT license are retained.
 
 ## Rule data provenance
 
-Ordinary provider data comes from appshubcc/bett-rules on meta. The six reviewed
-converter providers are AI, Claude, Apple merge, geolocation-cn, porn, and MCDN.
+Ordinary provider data comes from appshubcc/bett-rules on meta. The five reviewed
+converter providers are AI, Claude, geolocation-cn, porn, and MCDN.
 Bettbox is the execution/compatibility client, while the script's upstream source
 is AIsouler/MyClash. Acceptance validates every provider URL against this boundary.
 
 The porn rule-set uses provider key `porn` and `dist/mihomo/porn.mrs`; its
 existing policy group remains `pron`. Steam CN continues to use Bett `steam@cn`.
 The retired 11-rule steam-cn-download provider is not referenced by this script.
+
+Apple uses the upstream Bett `geosite/apple.mrs` definition.
+Apple Podcasts uses Bett `geosite/apple-podcasts.mrs` through the upstream
+`ruleSetBaseUrl`, so mirror changes flow into both providers automatically.
+Its independent select group defaults to `Proxy` and routes before Apple CN.
+Podcasts DNS inherits the upstream foreign nameservers before general CN DNS.
