@@ -100,7 +100,7 @@ for (const [name, provider] of Object.entries(providers)) {
 }
 assert.ok(!Object.hasOwn(providers, "bypass_japan"));
 assert.ok(!Object.values(providers).some(provider => provider.url.includes("steam-cn-download")));
-assert.ok(output.rules.includes("RULE-SET,porn,pron"));
+assert.ok(output.rules.includes("RULE-SET,porn,porn"));
 console.log("Rule provenance verified: " + bettProviderCount + " Bett providers and " +
   Object.keys(customProviderAssets).length + " reviewed converter providers.");
 
@@ -118,8 +118,10 @@ assert.ok(output.rules.indexOf("RULE-SET,apple_podcasts,Apple Podcasts") < outpu
 assert.deepEqual(output.dns["nameserver-policy"]["rule-set:apple_podcasts"], output.dns.nameserver);
 assert.equal(Object.keys(output.dns["nameserver-policy"])[0], "rule-set:apple_podcasts");
 assert.deepEqual(groups.get("PikPak").proxies,["Proxy","Direct","低倍率节点","香港"]);
-assert.deepEqual(groups.get("pron").proxies,["Proxy","香港","新加坡"]);
-const noIconGroups=new Set(["Claude","媒体","pron"]);
+assert.deepEqual(groups.get("porn").proxies,["Proxy","新加坡","低倍率节点","美国"]);
+assert.deepEqual(groups.get("EHentai").proxies,["美国","新加坡","Proxy","香港"]);
+assert.ok(!groups.has("pron"));
+const noIconGroups=new Set(["Claude","媒体","porn"]);
 for(const group of groups.values()) {
   assert.equal(group.type,"select");assert.equal(group.interval,0);assert.equal(group.url,upstream.groupTestUrl);
   const sourceName=manifest.group_icon_sources[group.name]||group.name;

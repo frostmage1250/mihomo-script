@@ -31,7 +31,7 @@ reference validation.
 
 ## Retained policy
 
-The AI, geolocation-cn, Claude, pron, and MCDN converter sources
+The AI, geolocation-cn, Claude, porn, and MCDN converter sources
 remain explicit. AI retains Bett's base rules with the converter's supplements.
 Twitch and AppleTV remain additional Bett definitions. Their existing URLs remain
 declared in the customization policy.
@@ -92,7 +92,10 @@ Bettbox is the execution/compatibility client, while the script's upstream sourc
 is AIsouler/MyClash. Acceptance validates every provider URL against this boundary.
 
 The porn rule-set uses provider key `porn` and `dist/mihomo/porn.mrs`; its
-existing policy group remains `pron`. Steam CN continues to use Bett `steam@cn`.
+policy group is `porn`, with choices `Proxy`, `新加坡`, `低倍率节点`, and `美国`.
+EHentai choices are `美国`, `新加坡`, `Proxy`, and `香港`, in that order.
+Regional choices appear only when matching subscription nodes exist.
+Steam CN continues to use Bett `steam@cn`.
 The retired 11-rule steam-cn-download provider is not referenced by this script.
 
 Apple uses the upstream Bett `geosite/apple.mrs` definition.
