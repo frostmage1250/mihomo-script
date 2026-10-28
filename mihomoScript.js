@@ -1,7 +1,7 @@
 /**
  * Mihomo single-subscription override; upstream author: AIsouler.
  * Source: https://github.com/AIsouler/MyClash
- * Upstream commit: 071d4ec5764b4700d0c5de41797f20a8bdf6b6d8
+ * Upstream commit: bf6c2dbc3b007b791284b437e5283854ce9c0f1a
  * Generated from upstream AST and custom sources. MIT license retained.
  */
 const Compatible_With_Bettbox = {
@@ -56,7 +56,13 @@ const rateRegionDefinitions = [{
   regex: /^(?!.*(?:剩|期)).*(?:(?<![\d.])0(\.[0-5]|[*×✕✖⨯⨉x倍]))|(?:[*×✕✖⨯⨉x]0)|^(?!.*(?:客户端|软件)).*下载|低倍|免费|(?<![A-Za-z])free(?![A-Za-z])/i,
   icon: `${iconBaseUrl}Available.svg`
 }];
-const allRegionDefinitions = [...regionDefinitions, ...rateRegionDefinitions];
+const homeRegionName = '家宽节点';
+const homeRegionDefinitions = [{
+  name: homeRegionName,
+  regex: /家宽|住宅|原生\s*IP|家庭宽带|\bISP\b|\bRES\b|residential/i,
+  icon: `${iconBaseUrl}Home.svg`
+}];
+const allRegionDefinitions = [...regionDefinitions, ...rateRegionDefinitions, ...homeRegionDefinitions];
 const invisibleCharsRegex = /[\u00AD\u180E\u200B\u200E\u200F\u202A-\u202E\u2060-\u206F\uFEFF\u115F\u1160\u3164\uFFA0]/g;
 function toMatchableName(name) {
   return typeof name === 'string' ? name.replace(invisibleCharsRegex, '') : name;

@@ -2,7 +2,7 @@
   "schema_version": 3,
   "source_mode": "native-git-merge",
   "source_lock": "custom/sources.lock.json",
-  "output_sha256": "107b09c12193f6c7b9f2a6dfb0a78b1e6ba63659e5fc76b02e1d9cbf9c9a95c3",
+  "output_sha256": "f64bbcd14a618859b647f7c8a3c0390b25d71b25ce8d613d20ffe89adfefc01e",
   "fake_ip_mode": "upstream",
   "rule_blocks": {
     "before_direct": [
