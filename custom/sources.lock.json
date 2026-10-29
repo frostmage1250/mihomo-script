@@ -2,10 +2,10 @@
   "schema_version": 1,
   "upstream": {
     "repository": "AIsouler/MyClash",
-    "commit": "bf6c2dbc3b007b791284b437e5283854ce9c0f1a",
-    "file_commit": "d906c4552a6a744cc1d923f0a3586f49faa09d27",
+    "commit": "a5943f09b296b5f2a977fcac5f5015e9a7563601",
+    "file_commit": "a5943f09b296b5f2a977fcac5f5015e9a7563601",
     "path": "Script/mihomoScript.js",
-    "sha256": "700113784e7b756b572d647267b2e616c679856d9bc0b3bea98ad4488ec95eed"
+    "sha256": "45b1dc3d8a5d4b24d4cc08c025039eb251f1dc3a9c067586e8fe0162f4f33fdf"
   },
   "local_files": {
     "custom/build_mihomo_script.mjs": "8c60161cfa7fdc9f115d50f13dc66090e3f7dda82e5b6b6dd16ec3ec4b2b03b6",
