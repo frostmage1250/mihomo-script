@@ -12,6 +12,7 @@ branch mirrors upstream main; legacy retains the former repository history.
 ## Source and output
 
 - Script/mihomoScript.js: complete upstream source, restored from a native Git merge.
+- Config/mihomoConfig.yaml: complete upstream YAML supplying routing order.
 - custom/runtime.js: local subscription filtering and functional policy choices.
 - custom/customizations.json: explicit source overrides, routing, exclusions, and retained global differences.
 - custom/lib/ast.mjs: AST extraction, dependencies, and structured DNS/global changes.
@@ -38,8 +39,12 @@ declared in the customization policy.
 Existing functional group choices, direct exceptions, Steam CN replacement,
 service exclusions, original node names, exact-name deduplication, dialer-proxy
 removal, and system DNS behavior remain in the source policy.
-The upstream prefix rules precede foreign QUIC blocking, followed by service
-routing in its retained relative order. The QUIC switch and its default come
+The fixed upstream `Config/mihomoConfig.yaml` supplies routing order.
+Its download/private/domestic direct prefix precedes QUIC and MCDN rejection,
+then business services follow YAML order, then foreign-domain, domestic-IP,
+private-IP and final fallbacks. Extra services use explicit insertion anchors:
+Claude before AI, AppleTV and Podcasts before Apple, and Twitch after YouTube.
+The YAML and script come from the same upstream commit and are hash-locked. The QUIC switch and its default come
 directly from upstream `ruleOptionsEnable.屏蔽国外QUIC`. Setting it to `false`
 removes the upstream QUIC reject rules and `cn_additional`; setting it to `true`
 restores both. The reject expression and provider definition follow upstream.

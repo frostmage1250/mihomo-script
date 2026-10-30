@@ -22,6 +22,10 @@ export async function capture() {
   const upstream = await fs.readFile(path.join(ROOT, manifest.upstream.path), "utf8");
   const restored = execFileSync("git", ["show", upstreamCommit + ":" + manifest.upstream.path], {cwd: ROOT, encoding: "utf8"});
   if (upstream !== restored) throw new Error("Retained source differs from fixed upstream commit");
+  const referencePath = manifest.routing_reference.path;
+  const routingReference = await fs.readFile(path.join(ROOT, referencePath), "utf8");
+  const restoredReference = execFileSync("git", ["show", upstreamCommit + ":" + referencePath], {cwd: ROOT, encoding: "utf8"});
+  if (routingReference !== restoredReference) throw new Error("Routing reference differs from fixed upstream commit");
   const runtime = await fs.readFile(path.join(ROOT, manifest.runtime), "utf8");
   const packageLock = await fs.readFile(path.join(ROOT, "package-lock.json"), "utf8");
   const sourceFiles = ["custom/build_mihomo_script.mjs", "custom/snapshot.mjs", "custom/lib/ast.mjs", "custom/lib/rules.mjs", manifest.runtime, "custom/customizations.json"];
@@ -43,11 +47,13 @@ export async function capture() {
   const lock = {
     schema_version: 1,
     upstream: {repository: manifest.upstream.repository, commit: upstreamCommit, file_commit: fileCommit, path: manifest.upstream.path, sha256: sha256(upstream)},
+    routing_reference: {repository: manifest.routing_reference.repository, commit: upstreamCommit,
+      path: referencePath, sha256: sha256(routingReference)},
     local_files: localFiles,
     dependency_lock_sha256: sha256(packageLock),
     validation,
   };
-  const snapshot = {lock, manifest, runtime, upstream};
+  const snapshot = {lock, manifest, runtime, upstream, routingReference};
   await fs.mkdir(path.join(ROOT, ".build"), {recursive: true});
   await fs.writeFile(path.join(ROOT, ".build/snapshot.json"), JSON.stringify(snapshot, null, 2) + "\n");
   console.log("Fixed sources: MyClash " + upstreamCommit);

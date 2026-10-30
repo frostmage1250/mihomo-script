@@ -59,121 +59,103 @@
   "service_routing": {
     "Claude": {
       "target": "Claude",
-      "section": "before_direct",
-      "order": 10
+      "section": "services",
+      "relative_to": "AI",
+      "offset": -0.1
     },
     "AI": {
       "target": "AI",
-      "section": "before_direct",
-      "order": 20
+      "section": "services"
     },
     "GitHub": {
       "target": "GitHub",
-      "section": "before_direct",
-      "order": 30
+      "section": "services"
     },
     "Telegram": {
       "target": "Telegram",
-      "section": "before_direct",
-      "order": 40
+      "section": "services"
     },
     "AppleTV": {
       "target": "媒体",
-      "section": "before_direct",
-      "order": 50
+      "section": "services",
+      "relative_to": "Apple",
+      "offset": -0.2
     },
     "Twitch": {
       "target": "媒体",
-      "section": "before_direct",
-      "order": 60
+      "section": "services",
+      "relative_to": "YouTube",
+      "offset": 0.1
     },
     "Twitter": {
       "target": "媒体",
-      "section": "before_direct",
-      "order": 70
+      "section": "services"
     },
     "TikTok": {
       "target": "媒体",
-      "section": "before_direct",
-      "order": 80
+      "section": "services"
     },
     "YouTube": {
       "target": "YouTube",
-      "section": "before_direct",
-      "order": 90
+      "section": "services"
     },
     "Meta": {
       "target": "媒体",
-      "section": "before_direct",
-      "order": 100
+      "section": "services"
     },
     "Steam": {
       "target": "Proxy",
-      "section": "after_direct",
-      "order": 10
+      "section": "services"
     },
     "PikPak": {
       "target": "PikPak",
-      "section": "after_direct",
-      "order": 20
+      "section": "services"
     },
     "EHentai": {
       "target": "EHentai",
-      "section": "after_direct",
-      "order": 30
+      "section": "services"
     },
     "porn": {
       "target": "porn",
-      "section": "after_direct",
-      "order": 40
+      "section": "services"
     },
     "Google": {
       "target": "Google",
-      "section": "after_direct",
-      "order": 50
+      "section": "services"
     },
     "Apple": {
       "target": "Proxy",
-      "section": "after_direct",
-      "order": 60
+      "section": "services"
     },
     "Microsoft": {
       "target": "Proxy",
-      "section": "after_direct",
-      "order": 70
+      "section": "services"
     },
     "Apple Podcasts": {
       "target": "媒体",
-      "section": "before_direct",
-      "order": 55
+      "section": "services",
+      "relative_to": "Apple",
+      "offset": -0.1
     }
   },
   "default_service_routing": {
     "target": "Proxy",
-    "section": "after_direct",
+    "section": "services",
     "order": 1000
   },
   "base_rule_routing": {
-    "private": {
-      "section": "private",
-      "order": 10
-    },
-    "private_ip": {
-      "section": "private",
-      "order": 20,
-      "no_resolve": true
-    },
-    "geolocation-cn": {
-      "section": "fallback",
-      "order": 20
-    },
     "geolocation-!cn": {
       "section": "fallback",
       "order": 10
     },
     "cn_ip": {
       "section": "fallback",
-      "order": 30
+      "order": 20
+    },
+    "private_ip": {
+      "section": "fallback",
+      "order": 30,
+      "no_resolve": true
     }
   },
   "runtime": "custom/runtime.js",
@@ -333,12 +315,8 @@
   "rule_blocks": [
     "upstream_prefix",
     "quic",
-    "before_direct",
-    "bootstrap",
-    "private",
     "custom_reject",
-    "direct",
-    "after_direct",
+    "services",
     "fallback",
     "final"
   ],
@@ -359,5 +337,9 @@
   "base_rule_spread_routing": {
     "prefixRules": "upstream_prefix",
     "blockForeignQuic": "quic"
+  },
+  "routing_reference": {
+    "repository": "AIsouler/MyClash",
+    "path": "Config/mihomoConfig.yaml"
   }
 }

@@ -129,7 +129,15 @@ export function planRules(model, manifest) {
   const blocks = Object.fromEntries(manifest.rule_blocks.map(name => [name, []]));
   const plan = Object.values(services).map((service, sequence) => ({
     service, sequence, ...manifest.default_service_routing, ...manifest.service_routing[service.name],
-  })).sort((a, b) => a.order - b.order || a.sequence - b.sequence);
+  })).map(entry => {
+    const ranks = model.serviceRanks || {};
+    if (entry.relative_to && Object.hasOwn(ranks, entry.relative_to)) {
+      entry.order = ranks[entry.relative_to] + entry.offset;
+    } else if (Object.hasOwn(ranks, entry.service.name)) {
+      entry.order = ranks[entry.service.name];
+    }
+    return entry;
+  }).sort((a, b) => a.order - b.order || a.sequence - b.sequence);
   for (const entry of plan) {
     if (!blocks[entry.section]) throw new Error("Unknown routing section: " + entry.section);
     for (const rule of entry.service.rules || []) {
@@ -171,7 +179,7 @@ export function planRules(model, manifest) {
       coverage.push({...record, status: output === rule ? "adopted" : "mapped", outputs: [output], section});
       if (seenBaseRules.has(output)) continue;
       seenBaseRules.add(output);
-      (baseEntries[section] ||= []).push({order: spreadSection ? sequence : placement.order ?? sequence + 100, sequence, output});
+      (baseEntries[section] ||= []).push({order: model.referenceRuleRanks?.[rule] ?? (spreadSection ? sequence : placement.order ?? sequence + 100), sequence, output});
       sequence++;
     }
   }
@@ -202,5 +210,5 @@ export function planRules(model, manifest) {
   }
   const defaults = plan.filter(entry => !Object.hasOwn(manifest.service_routing, entry.service.name))
     .map(entry => ({name: entry.service.name, target: entry.target, section: entry.section}));
-  return {providers, rules, blocks, coverage, stale, defaults, selectedServices: Object.keys(services)};
+  return {providers, rules, blocks, coverage, stale, defaults, selectedServices: plan.map(entry => entry.service.name)};
 }

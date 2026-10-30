@@ -8,13 +8,15 @@ import { ROOT, sha256 } from "./snapshot.mjs";
 export function render(snapshot) {
   const {manifest, lock} = snapshot;
   if (sha256(snapshot.upstream) !== lock.upstream.sha256) throw new Error("Fixed source digest mismatch");
-  const model = extractModel(snapshot.upstream, manifest);
+  if (sha256(snapshot.routingReference) !== lock.routing_reference.sha256) throw new Error("Routing reference digest mismatch");
+  const model = extractModel(snapshot.upstream, manifest, snapshot.routingReference);
   const plan = planRules(model, manifest);
   const compiled = compileScript(model, manifest, plan, snapshot.runtime, lock.upstream);
   const report = {
     schema_version: 3,
     source_mode: "native-git-merge",
     source_lock: manifest.source_lock,
+    routing_reference: lock.routing_reference,
     output_sha256: sha256(compiled.script),
     fake_ip_mode: "upstream",
     rule_blocks: plan.blocks,

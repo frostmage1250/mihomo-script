@@ -173,7 +173,18 @@ function assignments(main) {
   return entries;
 }
 
-export function extractModel(source, manifest) {
+export function referenceRules(source) {
+  const block = source.match(/^rules:\s*\r?\n([\s\S]*)$/m);
+  if (!block) throw new Error("Missing YAML routing reference");
+  const rules = block[1].split(/\r?\n/).flatMap(line => {
+    const match = line.match(/^\s+-\s+(.+?)\s*$/);
+    return match ? [match[1].replace(/\s+#.*$/, "").trim()] : [];
+  });
+  if (!rules.length) throw new Error("Empty YAML routing reference");
+  return rules;
+}
+
+export function extractModel(source, manifest, routingReference) {
   const ast = parseScript(source), index = indexDeclarations(ast);
   const context = vm.createContext({});
   new vm.Script(source).runInContext(context, {timeout: 3000});
@@ -206,6 +217,14 @@ export function extractModel(source, manifest) {
     });
   }
   const services = JSON.parse(JSON.stringify(read("serviceConfigs")));
+  const reference = routingReference === undefined ? [] : referenceRules(routingReference);
+  const referenceRuleRanks = Object.fromEntries(reference.map((rule, index) => [rule, index]));
+  const serviceRanks = {};
+  for (const service of services) {
+    const ranks = (service.rules || []).filter(rule => Object.hasOwn(referenceRuleRanks, rule))
+      .map(rule => referenceRuleRanks[rule]);
+    if (ranks.length) serviceRanks[service.name] = Math.min(...ranks);
+  }
   const regions = read("regionDefinitions"), rates = read("rateRegionDefinitions");
   const icons = {};
   for (const item of [...services, ...regions, ...rates]) if (item.icon !== undefined) icons[item.name] = item.icon;
@@ -220,7 +239,7 @@ export function extractModel(source, manifest) {
     }
   });
   return {
-    ast, index, evaluate, main, ruleExpression, baseRules, services, icons,
+    ast, index, evaluate, main, ruleExpression, baseRules, services, icons, serviceRanks, referenceRuleRanks,
     baseRuleProviders: JSON.parse(JSON.stringify(read("baseRuleProviders"))),
     ruleSetBaseUrl: read("ruleSetBaseUrl"),
     groupTestUrl: read("groupBaseOption").url,

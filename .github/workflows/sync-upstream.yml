@@ -10,6 +10,7 @@ on:
       - "tests/**"
       - "package*.json"
       - "Script/mihomoScript.js"
+      - "Config/mihomoConfig.yaml"
       - "mihomoScript.js"
   schedule:
     - cron: "0 5,11,17,23 * * *"
@@ -41,7 +42,7 @@ jobs:
           git remote add upstream https://github.com/AIsouler/MyClash.git
           git fetch --no-tags upstream main
           git merge --no-commit --no-ff --strategy=ours refs/remotes/upstream/main
-          git restore --source=refs/remotes/upstream/main --staged --worktree -- Script/mihomoScript.js LICENSE
+          git restore --source=refs/remotes/upstream/main --staged --worktree -- Script/mihomoScript.js Config/mihomoConfig.yaml LICENSE
           git branch -f upstream refs/remotes/upstream/main
 
       - name: Set up the build-only Node runtime
@@ -133,7 +134,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git add -- Script/mihomoScript.js LICENSE mihomoScript.js custom/upstream.json custom/sources.lock.json
+          git add -- Script/mihomoScript.js Config/mihomoConfig.yaml LICENSE mihomoScript.js custom/upstream.json custom/sources.lock.json
           git diff --cached --check
           if test -f "$(git rev-parse --git-path MERGE_HEAD)" || ! git diff --cached --quiet; then
             git commit -m "chore: publish validated Mihomo build from fixed inputs"

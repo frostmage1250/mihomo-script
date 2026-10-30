@@ -176,3 +176,39 @@ test("foreign QUIC preserves upstream defaults, definitions, precedence and both
     }
   }
 });
+
+
+test("the pinned YAML controls business order and explicit extra-service anchors", () => {
+  const source = fs.readFileSync(new URL("../Script/mihomoScript.js",import.meta.url),"utf8");
+  const reference = fs.readFileSync(new URL("../Config/mihomoConfig.yaml",import.meta.url),"utf8");
+  const model = extractModel(source,manifest,reference);
+  const plan = planRules(model,manifest);
+  const selected = plan.selectedServices;
+  for(const [before,after] of [
+    ["YouTube","Twitch"],["Twitch","Google"],["Google","Claude"],["Claude","AI"],
+    ["AI","GitHub"],["GitHub","Microsoft"],["Microsoft","AppleTV"],
+    ["AppleTV","Apple Podcasts"],["Apple Podcasts","Apple"],["Apple","Telegram"],
+    ["Telegram","Steam"],["Steam","TikTok"],["TikTok","Twitter"],
+    ["Twitter","Meta"],["Meta","PikPak"],["PikPak","EHentai"],["EHentai","porn"],
+  ]) {
+    assert.ok(selected.includes(before)&&selected.includes(after),before+" / "+after);
+    assert.ok(selected.indexOf(before)<selected.indexOf(after),before+" before "+after);
+  }
+  assert.deepEqual(manifest.rule_blocks,["upstream_prefix","quic","custom_reject","services","fallback","final"]);
+  const quic=plan.blocks.quic[0];
+  assert.equal(plan.rules.indexOf(quic),plan.blocks.upstream_prefix.length);
+  assert.equal(plan.rules[plan.rules.indexOf(quic)+1],"RULE-SET,mcdn屏蔽,REJECT");
+  assert.ok(plan.rules.indexOf("RULE-SET,mcdn屏蔽,REJECT")<plan.rules.indexOf("RULE-SET,youtube,YouTube"));
+  assert.deepEqual(plan.rules.slice(-4),[
+    "RULE-SET,geolocation-!cn,Proxy","RULE-SET,cn_ip,Direct",
+    "RULE-SET,private_ip,Direct,no-resolve","MATCH,Final",
+  ]);
+  // Swapping two lines in the reference changes the generated order.
+  const changed=reference.replace(
+    "  - RULE-SET,youtube,YouTube\n  - RULE-SET,google,Google",
+    "  - RULE-SET,google,Google\n  - RULE-SET,youtube,YouTube"
+  );
+  assert.notEqual(changed,reference);
+  const switched=planRules(extractModel(source,manifest,changed),manifest);
+  assert.ok(switched.selectedServices.indexOf("Google")<switched.selectedServices.indexOf("YouTube"));
+});
