@@ -33,7 +33,7 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Merge upstream history and restore the complete source
+      - name: Fetch the upstream build inputs
         shell: bash
         run: |
           set -euo pipefail
@@ -41,9 +41,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote add upstream https://github.com/AIsouler/MyClash.git
           git fetch --no-tags upstream main
-          git merge --no-commit --no-ff --strategy=ours refs/remotes/upstream/main
           git restore --source=refs/remotes/upstream/main --staged --worktree -- Script/mihomoScript.js Config/mihomoConfig.yaml LICENSE
-          git branch -f upstream refs/remotes/upstream/main
 
       - name: Set up the build-only Node runtime
         uses: actions/setup-node@v6
@@ -130,14 +128,13 @@ jobs:
       - name: Validate generated Mihomo configuration
         run: mihomo -t -f .build/mihomo-fixture.json
 
-      - name: Publish the validated source lock, output, and upstream mirror
+      - name: Publish the validated source lock and output
         shell: bash
         run: |
           set -euo pipefail
           git add -- Script/mihomoScript.js Config/mihomoConfig.yaml LICENSE mihomoScript.js custom/upstream.json custom/sources.lock.json
           git diff --cached --check
-          if test -f "$(git rev-parse --git-path MERGE_HEAD)" || ! git diff --cached --quiet; then
+          if ! git diff --cached --quiet; then
             git commit -m "chore: publish validated Mihomo build from fixed inputs"
           fi
-          git merge-base --is-ancestor refs/remotes/upstream/main HEAD
-          git push --atomic origin HEAD:refs/heads/main refs/heads/upstream:refs/heads/upstream
+          git push origin HEAD:refs/heads/main

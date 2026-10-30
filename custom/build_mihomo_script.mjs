@@ -14,7 +14,7 @@ export function render(snapshot) {
   const compiled = compileScript(model, manifest, plan, snapshot.runtime, lock.upstream);
   const report = {
     schema_version: 3,
-    source_mode: "native-git-merge",
+    source_mode: "fixed-upstream-snapshot",
     source_lock: manifest.source_lock,
     routing_reference: lock.routing_reference,
     output_sha256: sha256(compiled.script),

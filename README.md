@@ -6,12 +6,14 @@ The subscription remains:
 https://raw.githubusercontent.com/frostmage1250/mihomo-script/main/mihomoScript.js
 ```
 
-The publishing tree retains the complete upstream script and license. The upstream
-branch mirrors upstream main; legacy retains the former repository history.
+The publishing tree retains the upstream build inputs and license.
+The workflow fetches upstream sources for each build without merging their Git
+history or maintaining a mirror branch. The legacy branch retains the former
+repository history.
 
 ## Source and output
 
-- Script/mihomoScript.js: complete upstream source, restored from a native Git merge.
+- Script/mihomoScript.js: complete upstream source fetched for the build.
 - Config/mihomoConfig.yaml: complete upstream YAML supplying routing order.
 - custom/runtime.js: local subscription filtering and functional policy choices.
 - custom/customizations.json: explicit source overrides, routing, exclusions, and retained global differences.
@@ -75,17 +77,18 @@ Reference: https://github.com/appshubcc/Bettbox/tree/v1.19.7/plugins/code_forge/
 
 ## Fixed-input publication
 
-Every six hours, on relevant pushes, or by manual dispatch, the workflow merges
-upstream history, restores the full source, installs locked build dependencies,
-pins the Mihomo validation release, and captures upstream inputs once.
+Every six hours, on relevant pushes, or by manual dispatch, the workflow fetches
+upstream sources into the temporary runner, restores the required build inputs,
+installs locked build dependencies, pins the Mihomo validation release, and
+captures upstream inputs once.
 Generation and acceptance share that snapshot. The workflow generates the script
 once, executes the final script once with the Bettbox engine, checks upstream
 coverage and explicit customizations, and validates the configuration with Mihomo.
 Builder unit tests run on pushes that change the builder, runtime, policy, tests,
 dependencies, or this workflow. Scheduled and manually dispatched synchronization
 runs use the output acceptance checks. Dependency installation uses committed locks.
-The validated output, source lock, compact report, and upstream mirror are
-published atomically.
+The validated output, source lock, compact report, and required build inputs are
+published to main in one commit. Upstream history is not merged or pushed.
 
 The report uses schema version 3. It links to custom/sources.lock.json for source
 and validation versions, and records rule blocks, coverage, effective icons,
