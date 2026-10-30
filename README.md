@@ -37,7 +37,12 @@ declared in the customization policy.
 
 Existing functional group choices, direct exceptions, Steam CN replacement,
 service exclusions, original node names, exact-name deduplication, dialer-proxy
-removal, system DNS behavior, and routing block order remain in the source policy.
+removal, and system DNS behavior remain in the source policy.
+The upstream prefix rules precede foreign QUIC blocking, followed by service
+routing in its retained relative order. The QUIC switch and its default come
+directly from upstream `ruleOptionsEnable.屏蔽国外QUIC`. Setting it to `false`
+removes the upstream QUIC reject rules and `cn_additional`; setting it to `true`
+restores both. The reject expression and provider definition follow upstream.
 Built-in service rule actions stay intact while group targets are mapped.
 Upstream names, ordinary provider fields, icons, and the complete region list
 follow upstream. The selected low-rate group remains the existing local choice.
@@ -86,7 +91,9 @@ Upstream attribution and the MIT license are retained.
 
 ## Rule data provenance
 
-Ordinary provider data comes from appshubcc/bett-rules on meta. The five reviewed
+Ordinary provider data comes from appshubcc/bett-rules on meta. The QUIC-specific
+`cn_additional` provider retains its complete upstream definition and source URL.
+The five reviewed
 converter providers are AI, Claude, geolocation-cn, porn, and MCDN.
 Bettbox is the execution/compatibility client, while the script's upstream source
 is AIsouler/MyClash. Acceptance validates every provider URL against this boundary.
@@ -101,7 +108,7 @@ The retired 11-rule steam-cn-download provider is not referenced by this script.
 Apple uses the upstream Bett `geosite/apple.mrs` definition.
 Apple Podcasts uses Bett `geosite/apple-podcasts.mrs` through the upstream
 `ruleSetBaseUrl`, so mirror changes flow into both providers automatically.
-Its rule routes to `媒体` before Apple CN, with no independent Podcasts group.
+Its service rule routes to `媒体` after the upstream prefix and QUIC stage, with no independent Podcasts group.
 Podcasts uses the default foreign nameservers while proxied. Selecting Direct
 uses system DNS through `direct-nameserver`; DNS policy retains the shared
 Private, Douyin, and CN entries.

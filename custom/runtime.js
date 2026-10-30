@@ -118,13 +118,15 @@ function main(config) {
   const filteredProxies = filterProxies(config);
   const regionProxyMap = buildRegionProxyMap(filteredProxies);
   const { dns, hosts, proxies: mappedProxies } = buildDnsAndHostsConfig(config, filteredProxies);
+  const ruleProviders = { ...finalRuleProviders };
+  if (!ruleOptionsEnable.屏蔽国外QUIC) delete ruleProviders.cn_additional;
   return {
     ...buildGlobalConfig(config, filteredProxies),
     dns,
     hosts,
     proxies: [...mappedProxies, ...directProxies],
     'proxy-groups': buildProxyGroups(regionProxyMap, mappedProxies),
-    'rule-providers': { ...finalRuleProviders },
-    rules: finalRules.slice(),
+    'rule-providers': ruleProviders,
+    rules: buildRules(),
   };
 }

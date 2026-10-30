@@ -195,9 +195,11 @@ export function extractModel(source, manifest) {
     }
     const value = node.type === "SpreadElement" ? node.argument : node;
     const dependencies = [...freeNames(value)];
-    const declaration = dependencies.find(name => manifest.excluded_rule_spreads.includes(name)) ||
+    const declaration = dependencies.find(name => manifest.excluded_rule_spreads.includes(name) ||
+      Object.hasOwn(manifest.base_rule_spread_routing || {}, name)) ||
       (value.type === "Identifier" ? value.name : "main.rules[" + i + "]");
-    const rules = evaluate(value);
+    // Keep both switch states available, including when upstream changes its default.
+    const rules = declaration === "blockForeignQuic" ? read(declaration) : evaluate(value);
     baseRules.push({
       source: declaration, position, excluded: dependencies.some(name => manifest.excluded_rule_spreads.includes(name)),
       rules: Array.isArray(rules) ? Array.from(rules) : [rules],
@@ -218,7 +220,7 @@ export function extractModel(source, manifest) {
     }
   });
   return {
-    ast, index, evaluate, main, baseRules, services, icons,
+    ast, index, evaluate, main, ruleExpression, baseRules, services, icons,
     baseRuleProviders: JSON.parse(JSON.stringify(read("baseRuleProviders"))),
     ruleSetBaseUrl: read("ruleSetBaseUrl"),
     groupTestUrl: read("groupBaseOption").url,
@@ -266,7 +268,19 @@ export function compileScript(model, manifest, plan, runtime, provenance) {
   setDeclaration("buildGlobalConfig", globalConfigFunction(model, manifest));
   setValue("directProxies", manifest.direct_proxies);
   setValue("finalRuleProviders", plan.providers);
-  setValue("finalRules", plan.rules);
+  // Retain the upstream conditional spread itself, rather than freezing its default.
+  const quicSpread = model.ruleExpression.elements.find(node =>
+    node.type === "SpreadElement" && freeNames(node.argument).has("blockForeignQuic"));
+  if (!quicSpread) throw new Error("Missing upstream QUIC rule switch");
+  const prefixSection = manifest.base_rule_spread_routing.prefixRules;
+  const quicSection = manifest.base_rule_spread_routing.blockForeignQuic;
+  setValue("upstreamPrefixRules", plan.blocks[prefixSection]);
+  setValue("remainingRules", manifest.rule_blocks
+    .filter(section => section !== prefixSection && section !== quicSection)
+    .flatMap(section => plan.blocks[section]));
+  const buildRules = parseScript("function buildRules() { return [...upstreamPrefixRules, ...remainingRules]; }").body[0];
+  buildRules.body.body[0].argument.elements.splice(1, 0, clone(quicSpread));
+  setDeclaration("buildRules", buildRules);
   setValue("groupTestUrl", model.groupTestUrl ?? null);
   const aliases = {...Object.fromEntries(Array.from(regions, region => [region.name, region.name])), ...manifest.group_icon_sources};
   const icons = Object.fromEntries(Object.entries(aliases).filter(([, source]) => model.icons[source] !== undefined)

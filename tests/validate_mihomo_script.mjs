@@ -46,7 +46,10 @@ for(const rule of upstreamRules) {
       assert.ok(["service-policy","spread-policy","rule-policy"].includes(record.reason));
     } else {
       assert.ok(record.outputs?.length,"adopted rule lacks output: "+rule);
-      for(const item of record.outputs)assert.ok(outputRules.has(item),"upstream rule output missing: "+rule);
+      for(const item of record.outputs) {
+        const disabledQuic = record.declaration === "blockForeignQuic" && !upstream.nativeOptions.屏蔽国外QUIC;
+        assert.equal(outputRules.has(item), !disabledQuic, "upstream rule output: " + rule);
+      }
     }
   }
 }
@@ -75,6 +78,7 @@ for(const service of Object.values(manifest.additional_services)) {
   }
 }
 Object.assign(expectedProviders,manifest.additional_rule_providers);
+if (!upstream.nativeOptions.屏蔽国外QUIC) delete expectedProviders.cn_additional;
 assert.deepEqual(providers,expectedProviders,"provider definitions differ from upstream and explicit custom sources");
 
 // Ordinary rule data must remain on Bett; only these reviewed providers use
@@ -89,6 +93,8 @@ for (const [name, provider] of Object.entries(providers)) {
   if (Object.hasOwn(customProviderAssets, name)) {
     assert.equal(provider.url,
       "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/" + customProviderAssets[name]);
+  } else if (name === "cn_additional") {
+    assert.deepEqual(provider, upstream.baseRuleProviders.cn_additional, "upstream QUIC provider");
   } else {
     assert.ok(
       (url.hostname === "raw.githubusercontent.com" && url.pathname.startsWith("/appshubcc/bett-rules/meta/")) ||
@@ -114,7 +120,7 @@ assert.equal(groups.has("Apple Podcasts"), false);
 assert.equal(providers.apple.url, new URL("geosite/apple.mrs", upstream.ruleSetBaseUrl).href);
 assert.equal(providers.apple_podcasts.url, new URL("geosite/apple-podcasts.mrs", upstream.ruleSetBaseUrl).href);
 assert.equal(output.rules.filter(rule => rule === "RULE-SET,apple_podcasts,媒体").length, 1);
-assert.ok(output.rules.indexOf("RULE-SET,apple_podcasts,媒体") < output.rules.indexOf("RULE-SET,apple_cn,Direct"));
+assert.ok(output.rules.indexOf("RULE-SET,apple_cn,Direct") < output.rules.indexOf("RULE-SET,apple_podcasts,媒体"));
 assert.equal(Object.hasOwn(output.dns["nameserver-policy"], "rule-set:apple_podcasts"), false);
 assert.deepEqual(groups.get("PikPak").proxies,["Proxy","Direct","低倍率节点","香港"]);
 assert.deepEqual(groups.get("porn").proxies,["Proxy","新加坡","低倍率节点","美国"]);

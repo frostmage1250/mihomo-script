@@ -51,8 +51,7 @@
     "AdBlock"
   ],
   "excluded_base_rule_providers": [
-    "epicgames",
-    "cn_additional"
+    "epicgames"
   ],
   "base_rule_provider_url_overrides": {
     "geolocation-cn": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs"
@@ -230,9 +229,7 @@
     "默认代理": "Proxy",
     "漏网之鱼": "Final"
   },
-  "excluded_rule_spreads": [
-    "blockForeignQuic"
-  ],
+  "excluded_rule_spreads": [],
   "excluded_rules": [
     {
       "type": "DOMAIN",
@@ -334,6 +331,8 @@
     }
   },
   "rule_blocks": [
+    "upstream_prefix",
+    "quic",
     "before_direct",
     "bootstrap",
     "private",
@@ -356,5 +355,9 @@
     "memory_limit": 134217728,
     "stack_limit": 524288,
     "timeout_seconds": 10
+  },
+  "base_rule_spread_routing": {
+    "prefixRules": "upstream_prefix",
+    "blockForeignQuic": "quic"
   }
 }

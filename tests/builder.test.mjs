@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseScript, indexDeclarations, dependencyClosure, freeNames, transformDns, extractModel, globalConfigFunction } from "../custom/lib/ast.mjs";
+import { parseScript, indexDeclarations, dependencyClosure, freeNames, transformDns, extractModel, globalConfigFunction, compileScript } from "../custom/lib/ast.mjs";
 import { generate } from "astring";
 import { retargetRule, matchesRule, replaceProviderAsset, planRules } from "../custom/lib/rules.mjs";
 import fs from "node:fs";
+import vm from "node:vm";
 const manifest = JSON.parse(fs.readFileSync(new URL("../custom/customizations.json", import.meta.url), "utf8"));
 
 test("AST matching accepts formatting and follows helper dependencies", () => {
@@ -109,4 +110,69 @@ test("DNS retains default foreign resolvers and shared direct-exit resolution", 
   assert.deepEqual(value.dns.nameserver, ["https://current-dns.example/dns-query#Proxy"]);
   assert.deepEqual(value.dns["direct-nameserver"], ["system"]);
   assert.deepEqual(value.dns["nameserver-policy"]["rule-set:cn"], ["system"]);
+});
+
+test("foreign QUIC preserves upstream defaults, definitions, precedence and both switch states", () => {
+  const original = fs.readFileSync(new URL("../Script/mihomoScript.js", import.meta.url), "utf8");
+  const runtime = fs.readFileSync(new URL("../custom/runtime.js", import.meta.url), "utf8");
+  const fixture = {proxies: [{name:"日本 01",type:"ss",server:"node.example.com",port:443,
+    cipher:"aes-128-gcm",password:"fixture-password"}],dns:{},hosts:{}};
+  // A changed upstream default and expression must propagate through generation.
+  const variants = [
+    original,
+    original.replace("屏蔽国外QUIC: true", "屏蔽国外QUIC: false")
+      .replace("(DST-PORT,443)", "(DST-PORT,8443)"),
+  ];
+  for (const source of variants) {
+    const model = extractModel(source, manifest);
+    const plan = planRules(model, manifest);
+    const compiled = compileScript(model, manifest, plan, runtime, {commit:"test"}).script;
+    const context = vm.createContext({});
+    vm.runInContext(compiled + "\n" +
+      "globalThis.run = main; globalThis.setQuic = value => {ruleOptionsEnable.屏蔽国外QUIC = value;};" +
+      "globalThis.defaultQuic = ruleOptionsEnable.屏蔽国外QUIC;" +
+      "globalThis.quicRules = blockForeignQuic;", context);
+    assert.equal(context.defaultQuic, model.nativeOptions.屏蔽国外QUIC);
+    const nativeQuic = JSON.parse(JSON.stringify(model.evaluate(parseScript("blockForeignQuic").body[0].expression)));
+    assert.deepEqual(JSON.parse(JSON.stringify(context.quicRules)), nativeQuic);
+    const upstreamContext = vm.createContext({});
+    vm.runInContext(source +
+      "\n globalThis.run = main; globalThis.setQuic = value => {ruleOptionsEnable.屏蔽国外QUIC = value;};",
+      upstreamContext);
+    const snapshot = () => JSON.parse(JSON.stringify(context.run(fixture)));
+    const initial = snapshot();
+    for (const enabled of [true, false, true]) {
+      context.setQuic(enabled);
+      upstreamContext.setQuic(enabled);
+      const output = snapshot();
+      const nativeOutput = JSON.parse(JSON.stringify(upstreamContext.run(fixture)));
+      assert.equal(Object.hasOwn(output["rule-providers"], "cn_additional"), enabled);
+      if (enabled) {
+        assert.deepEqual(output["rule-providers"].cn_additional, nativeOutput["rule-providers"].cn_additional);
+        const prefix = JSON.parse(JSON.stringify(model.evaluate(parseScript("prefixRules").body[0].expression)))
+          .filter(rule => !manifest.excluded_rules.some(selector => matchesRule(rule, selector)))
+          .map(rule => {
+            const parts = rule.split(",");
+            if (parts[0] === "RULE-SET") parts[1] = manifest.base_rule_provider_replacements[parts[1]]?.name || parts[1];
+            const index = parts.length - 1;
+            parts[index] = manifest.policy_aliases[parts[index]] || parts[index];
+            return parts.join(",");
+          });
+        assert.deepEqual(output.rules.slice(0, prefix.length), prefix);
+        assert.deepEqual(output.rules.slice(prefix.length, prefix.length + nativeQuic.length), nativeQuic);
+      }
+      for (const rule of nativeQuic) {
+        assert.equal(output.rules.filter(value => value === rule).length, enabled ? 1 : 0);
+        assert.equal(nativeOutput.rules.includes(rule), enabled);
+      }
+      assert.equal(new Set(output.rules).size, output.rules.length);
+      const stripQuic = value => value.rules.filter(rule => !nativeQuic.includes(rule));
+      assert.deepEqual(stripQuic(output), stripQuic(initial));
+      const baselineProviders = {...initial["rule-providers"]};
+      const actualProviders = {...output["rule-providers"]};
+      delete baselineProviders.cn_additional;
+      delete actualProviders.cn_additional;
+      assert.deepEqual(actualProviders, baselineProviders);
+    }
+  }
 });

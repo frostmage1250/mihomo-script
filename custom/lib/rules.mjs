@@ -160,8 +160,9 @@ export function planRules(model, manifest) {
       }
       const name = parts[0] === "RULE-SET" ? parts[1] : undefined;
       const placement = manifest.base_rule_routing[name] || {};
-      let section = placement.section || (native.position === "before_services" ? "direct" : "fallback");
-      if (parts[0] === "DOMAIN" && providerHosts.has(parts[1])) section = "bootstrap";
+      const spreadSection = manifest.base_rule_spread_routing?.[native.source];
+      let section = spreadSection || placement.section || (native.position === "before_services" ? "direct" : "fallback");
+      if (!spreadSection && parts[0] === "DOMAIN" && providerHosts.has(parts[1])) section = "bootstrap";
       if (name) parts[1] = manifest.base_rule_provider_replacements[name]?.name || name;
       const index = policyIndex(parts);
       parts[index] = manifest.policy_aliases[parts[index]] || parts[index];
@@ -170,7 +171,7 @@ export function planRules(model, manifest) {
       coverage.push({...record, status: output === rule ? "adopted" : "mapped", outputs: [output], section});
       if (seenBaseRules.has(output)) continue;
       seenBaseRules.add(output);
-      (baseEntries[section] ||= []).push({order: placement.order ?? sequence + 100, sequence, output});
+      (baseEntries[section] ||= []).push({order: spreadSection ? sequence : placement.order ?? sequence + 100, sequence, output});
       sequence++;
     }
   }
