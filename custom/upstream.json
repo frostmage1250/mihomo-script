@@ -2,7 +2,13 @@
   "schema_version": 3,
   "source_mode": "native-git-merge",
   "source_lock": "custom/sources.lock.json",
-  "output_sha256": "63e176d03080450abfe1f91f37d6f90214b63922f9aca45546ecb301812756cf",
+  "routing_reference": {
+    "repository": "AIsouler/MyClash",
+    "commit": "a5943f09b296b5f2a977fcac5f5015e9a7563601",
+    "path": "Config/mihomoConfig.yaml",
+    "sha256": "3ead0f5460ec50f4dd6a553cfc0b93005825d79e23ebdb0260e605d44f61ebb6"
+  },
+  "output_sha256": "120453e68bbaec8abc7942f33c82148b75578f83b203f7df9cbea046a459da49",
   "fake_ip_mode": "upstream",
   "rule_blocks": {
     "upstream_prefix": [
@@ -19,47 +25,41 @@
     "quic": [
       "AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn_additional),(RULE-SET,cn_ip,no-resolve)))))),REJECT"
     ],
-    "before_direct": [
-      "RULE-SET,claude,Claude",
-      "RULE-SET,ai,AI",
-      "RULE-SET,github,GitHub",
-      "RULE-SET,telegram,Telegram",
-      "RULE-SET,telegram_ip,Telegram,no-resolve",
-      "RULE-SET,appletv,媒体",
-      "RULE-SET,apple_podcasts,媒体",
-      "RULE-SET,twitch,媒体",
-      "RULE-SET,twitter,媒体",
-      "RULE-SET,twitter_ip,媒体,no-resolve",
-      "RULE-SET,tiktok,媒体",
-      "RULE-SET,tiktok_ip,媒体,no-resolve",
-      "RULE-SET,youtube,YouTube",
-      "RULE-SET,meta,媒体",
-      "RULE-SET,facebook_ip,媒体,no-resolve"
-    ],
-    "bootstrap": [],
-    "private": [
-      "RULE-SET,private_ip,Direct,no-resolve"
-    ],
     "custom_reject": [
       "RULE-SET,mcdn屏蔽,REJECT"
     ],
-    "direct": [],
-    "after_direct": [
-      "RULE-SET,steam,Proxy",
-      "RULE-SET,steam_ip,Proxy,no-resolve",
-      "RULE-SET,pikpak,PikPak",
-      "RULE-SET,ehentai,EHentai",
-      "RULE-SET,porn,porn",
+    "services": [
+      "RULE-SET,youtube,YouTube",
+      "RULE-SET,twitch,媒体",
       "RULE-SET,google,Google",
       "RULE-SET,google_ip,Google,no-resolve",
+      "RULE-SET,claude,Claude",
+      "RULE-SET,ai,AI",
+      "RULE-SET,github,GitHub",
+      "RULE-SET,microsoft,Proxy",
+      "RULE-SET,microsoft_ip,Proxy,no-resolve",
+      "RULE-SET,appletv,媒体",
+      "RULE-SET,apple_podcasts,媒体",
       "RULE-SET,apple,Proxy",
       "RULE-SET,apple_ip,Proxy,no-resolve",
-      "RULE-SET,microsoft,Proxy",
-      "RULE-SET,microsoft_ip,Proxy,no-resolve"
+      "RULE-SET,telegram,Telegram",
+      "RULE-SET,telegram_ip,Telegram,no-resolve",
+      "RULE-SET,steam,Proxy",
+      "RULE-SET,steam_ip,Proxy,no-resolve",
+      "RULE-SET,tiktok,媒体",
+      "RULE-SET,tiktok_ip,媒体,no-resolve",
+      "RULE-SET,twitter,媒体",
+      "RULE-SET,twitter_ip,媒体,no-resolve",
+      "RULE-SET,meta,媒体",
+      "RULE-SET,facebook_ip,媒体,no-resolve",
+      "RULE-SET,pikpak,PikPak",
+      "RULE-SET,ehentai,EHentai",
+      "RULE-SET,porn,porn"
     ],
     "fallback": [
       "RULE-SET,geolocation-!cn,Proxy",
-      "RULE-SET,cn_ip,Direct"
+      "RULE-SET,cn_ip,Direct",
+      "RULE-SET,private_ip,Direct,no-resolve"
     ],
     "final": [
       "MATCH,Final"
@@ -222,83 +222,13 @@
     },
     {
       "origin": "service",
-      "service": "Steam",
-      "source": "RULE-SET,steam,Steam",
-      "status": "mapped",
-      "outputs": [
-        "RULE-SET,steam,Proxy"
-      ],
-      "section": "after_direct"
-    },
-    {
-      "origin": "service",
-      "service": "Steam",
-      "source": "RULE-SET,steam_ip,Steam,no-resolve",
-      "status": "mapped",
-      "outputs": [
-        "RULE-SET,steam_ip,Proxy,no-resolve"
-      ],
-      "section": "after_direct"
-    },
-    {
-      "origin": "service",
-      "service": "AI",
-      "source": "RULE-SET,ai,AI",
+      "service": "YouTube",
+      "source": "RULE-SET,youtube,YouTube",
       "status": "adopted",
       "outputs": [
-        "RULE-SET,ai,AI"
+        "RULE-SET,youtube,YouTube"
       ],
-      "section": "before_direct"
-    },
-    {
-      "origin": "service",
-      "service": "PikPak",
-      "source": "RULE-SET,pikpak,PikPak",
-      "status": "adopted",
-      "outputs": [
-        "RULE-SET,pikpak,PikPak"
-      ],
-      "section": "after_direct"
-    },
-    {
-      "origin": "service",
-      "service": "GitHub",
-      "source": "RULE-SET,github,GitHub",
-      "status": "adopted",
-      "outputs": [
-        "RULE-SET,github,GitHub"
-      ],
-      "section": "before_direct"
-    },
-    {
-      "origin": "service",
-      "service": "EHentai",
-      "source": "RULE-SET,ehentai,EHentai",
-      "status": "adopted",
-      "outputs": [
-        "RULE-SET,ehentai,EHentai"
-      ],
-      "section": "after_direct"
-    },
-    {
-      "origin": "service",
-      "service": "Telegram",
-      "source": "RULE-SET,telegram,Telegram",
-      "status": "adopted",
-      "outputs": [
-        "RULE-SET,telegram,Telegram"
-      ],
-      "section": "before_direct"
-    },
-    {
-      "origin": "service",
-      "service": "Telegram",
-      "source": "RULE-SET,telegram_ip,Telegram,no-resolve",
-      "status": "adopted",
-      "outputs": [
-        "RULE-SET,telegram_ip,Telegram,no-resolve"
-      ],
-      "section": "before_direct"
+      "section": "services"
     },
     {
       "origin": "service",
@@ -308,7 +238,7 @@
       "outputs": [
         "RULE-SET,google,Google"
       ],
-      "section": "after_direct"
+      "section": "services"
     },
     {
       "origin": "service",
@@ -318,27 +248,27 @@
       "outputs": [
         "RULE-SET,google_ip,Google,no-resolve"
       ],
-      "section": "after_direct"
+      "section": "services"
     },
     {
       "origin": "service",
-      "service": "Apple",
-      "source": "RULE-SET,apple,Apple",
-      "status": "mapped",
+      "service": "AI",
+      "source": "RULE-SET,ai,AI",
+      "status": "adopted",
       "outputs": [
-        "RULE-SET,apple,Proxy"
+        "RULE-SET,ai,AI"
       ],
-      "section": "after_direct"
+      "section": "services"
     },
     {
       "origin": "service",
-      "service": "Apple",
-      "source": "RULE-SET,apple_ip,Apple,no-resolve",
-      "status": "mapped",
+      "service": "GitHub",
+      "source": "RULE-SET,github,GitHub",
+      "status": "adopted",
       "outputs": [
-        "RULE-SET,apple_ip,Proxy,no-resolve"
+        "RULE-SET,github,GitHub"
       ],
-      "section": "after_direct"
+      "section": "services"
     },
     {
       "origin": "service",
@@ -348,7 +278,7 @@
       "outputs": [
         "RULE-SET,microsoft,Proxy"
       ],
-      "section": "after_direct"
+      "section": "services"
     },
     {
       "origin": "service",
@@ -358,27 +288,67 @@
       "outputs": [
         "RULE-SET,microsoft_ip,Proxy,no-resolve"
       ],
-      "section": "after_direct"
+      "section": "services"
     },
     {
       "origin": "service",
-      "service": "Twitter",
-      "source": "RULE-SET,twitter,Twitter",
+      "service": "Apple",
+      "source": "RULE-SET,apple,Apple",
       "status": "mapped",
       "outputs": [
-        "RULE-SET,twitter,媒体"
+        "RULE-SET,apple,Proxy"
       ],
-      "section": "before_direct"
+      "section": "services"
     },
     {
       "origin": "service",
-      "service": "Twitter",
-      "source": "RULE-SET,twitter_ip,Twitter,no-resolve",
+      "service": "Apple",
+      "source": "RULE-SET,apple_ip,Apple,no-resolve",
       "status": "mapped",
       "outputs": [
-        "RULE-SET,twitter_ip,媒体,no-resolve"
+        "RULE-SET,apple_ip,Proxy,no-resolve"
       ],
-      "section": "before_direct"
+      "section": "services"
+    },
+    {
+      "origin": "service",
+      "service": "Telegram",
+      "source": "RULE-SET,telegram,Telegram",
+      "status": "adopted",
+      "outputs": [
+        "RULE-SET,telegram,Telegram"
+      ],
+      "section": "services"
+    },
+    {
+      "origin": "service",
+      "service": "Telegram",
+      "source": "RULE-SET,telegram_ip,Telegram,no-resolve",
+      "status": "adopted",
+      "outputs": [
+        "RULE-SET,telegram_ip,Telegram,no-resolve"
+      ],
+      "section": "services"
+    },
+    {
+      "origin": "service",
+      "service": "Steam",
+      "source": "RULE-SET,steam,Steam",
+      "status": "mapped",
+      "outputs": [
+        "RULE-SET,steam,Proxy"
+      ],
+      "section": "services"
+    },
+    {
+      "origin": "service",
+      "service": "Steam",
+      "source": "RULE-SET,steam_ip,Steam,no-resolve",
+      "status": "mapped",
+      "outputs": [
+        "RULE-SET,steam_ip,Proxy,no-resolve"
+      ],
+      "section": "services"
     },
     {
       "origin": "service",
@@ -388,7 +358,7 @@
       "outputs": [
         "RULE-SET,tiktok,媒体"
       ],
-      "section": "before_direct"
+      "section": "services"
     },
     {
       "origin": "service",
@@ -398,17 +368,27 @@
       "outputs": [
         "RULE-SET,tiktok_ip,媒体,no-resolve"
       ],
-      "section": "before_direct"
+      "section": "services"
     },
     {
       "origin": "service",
-      "service": "YouTube",
-      "source": "RULE-SET,youtube,YouTube",
-      "status": "adopted",
+      "service": "Twitter",
+      "source": "RULE-SET,twitter,Twitter",
+      "status": "mapped",
       "outputs": [
-        "RULE-SET,youtube,YouTube"
+        "RULE-SET,twitter,媒体"
       ],
-      "section": "before_direct"
+      "section": "services"
+    },
+    {
+      "origin": "service",
+      "service": "Twitter",
+      "source": "RULE-SET,twitter_ip,Twitter,no-resolve",
+      "status": "mapped",
+      "outputs": [
+        "RULE-SET,twitter_ip,媒体,no-resolve"
+      ],
+      "section": "services"
     },
     {
       "origin": "service",
@@ -418,7 +398,7 @@
       "outputs": [
         "RULE-SET,meta,媒体"
       ],
-      "section": "before_direct"
+      "section": "services"
     },
     {
       "origin": "service",
@@ -428,7 +408,27 @@
       "outputs": [
         "RULE-SET,facebook_ip,媒体,no-resolve"
       ],
-      "section": "before_direct"
+      "section": "services"
+    },
+    {
+      "origin": "service",
+      "service": "PikPak",
+      "source": "RULE-SET,pikpak,PikPak",
+      "status": "adopted",
+      "outputs": [
+        "RULE-SET,pikpak,PikPak"
+      ],
+      "section": "services"
+    },
+    {
+      "origin": "service",
+      "service": "EHentai",
+      "source": "RULE-SET,ehentai,EHentai",
+      "status": "adopted",
+      "outputs": [
+        "RULE-SET,ehentai,EHentai"
+      ],
+      "section": "services"
     },
     {
       "origin": "base",
@@ -579,7 +579,7 @@
       "outputs": [
         "RULE-SET,private_ip,Direct,no-resolve"
       ],
-      "section": "private"
+      "section": "fallback"
     },
     {
       "origin": "base",
@@ -599,10 +599,14 @@
   "default_service_routes": [],
   "selected_services": [
     "YouTube",
+    "Twitch",
     "Google",
+    "Claude",
     "AI",
     "GitHub",
     "Microsoft",
+    "AppleTV",
+    "Apple Podcasts",
     "Apple",
     "Telegram",
     "Steam",
@@ -611,11 +615,7 @@
     "Meta",
     "PikPak",
     "EHentai",
-    "AppleTV",
-    "porn",
-    "Claude",
-    "Twitch",
-    "Apple Podcasts"
+    "porn"
   ],
   "applied_group_icons": {
     "香港": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/HongKong.svg",
