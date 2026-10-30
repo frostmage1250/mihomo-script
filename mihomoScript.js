@@ -11,9 +11,11 @@ const ruleOptionsEnable = {
   "过滤低倍率节点": false,
   "过滤非地区节点": true,
   "FCM": false,
-  "极简模式": false
+  "极简模式": false,
+  "屏蔽国外QUIC": true
 };
 const excludeFilter = /群|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|电报|无法|说明|提示|访问|支持|教程|关注|更新|作者|加入|超时|收藏|优惠|福利|邀请|好友|失联|选择|剩余|公益|发布|DIZTNA|通路|登录|禁止|定时|渠道|牢记|永久|余额|阁下|本站|刷新|导航|建议|重置|以下|过滤|⚠️|@|t\.me\/\+|\bexpire\b|\bhttps?:\/\/|\.com|\btraffic\b/iu;
+const blockForeignQuic = ['AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn_additional),(RULE-SET,cn_ip,no-resolve)))))),REJECT'];
 const directProxies = [{
   "name": "IPv4优先",
   "type": "direct",
@@ -391,6 +393,15 @@ const finalRuleProviders = {
     "path": "./ruleset/fakeip-filter.mrs",
     "path-in-bundle": "geo/geosite/fakeip-filter.mrs"
   },
+  "cn_additional": {
+    "type": "http",
+    "format": "mrs",
+    "interval": 86400,
+    "behavior": "domain",
+    "url": "https://static-file-global.353355.xyz/rules/cn-additional-list.mrs",
+    "path": "./ruleset/cn-additional-list.mrs",
+    "path-in-bundle": "geo/geosite/cn.mrs"
+  },
   "cn": {
     "type": "http",
     "format": "mrs",
@@ -649,7 +660,11 @@ const finalRuleProviders = {
     "path": "./ruleset/mcdn-block.mrs"
   }
 };
-const finalRules = ["RULE-SET,claude,Claude", "RULE-SET,ai,AI", "RULE-SET,github,GitHub", "RULE-SET,telegram,Telegram", "RULE-SET,telegram_ip,Telegram,no-resolve", "RULE-SET,appletv,媒体", "RULE-SET,apple_podcasts,媒体", "RULE-SET,twitch,媒体", "RULE-SET,twitter,媒体", "RULE-SET,twitter_ip,媒体,no-resolve", "RULE-SET,tiktok,媒体", "RULE-SET,tiktok_ip,媒体,no-resolve", "RULE-SET,youtube,YouTube", "RULE-SET,meta,媒体", "RULE-SET,facebook_ip,媒体,no-resolve", "DOMAIN,cdn.jsdmirror.com,Direct", "RULE-SET,private,Direct", "RULE-SET,private_ip,Direct,no-resolve", "RULE-SET,mcdn屏蔽,REJECT", "RULE-SET,steam_cn,Direct", "RULE-SET,nvidia_cn,Direct", "RULE-SET,apple_cn,Direct", "RULE-SET,microsoft_cn,Direct", "DOMAIN,international-gfe.download.nvidia.com,Direct", "DOMAIN-SUFFIX,ctaiot.com,Direct", "RULE-SET,steam,Proxy", "RULE-SET,steam_ip,Proxy,no-resolve", "RULE-SET,pikpak,PikPak", "RULE-SET,ehentai,EHentai", "RULE-SET,porn,porn", "RULE-SET,google,Google", "RULE-SET,google_ip,Google,no-resolve", "RULE-SET,apple,Proxy", "RULE-SET,apple_ip,Proxy,no-resolve", "RULE-SET,microsoft,Proxy", "RULE-SET,microsoft_ip,Proxy,no-resolve", "RULE-SET,geolocation-!cn,Proxy", "RULE-SET,geolocation-cn,Direct", "RULE-SET,cn_ip,Direct", "MATCH,Final"];
+const upstreamPrefixRules = ["DOMAIN,cdn.jsdmirror.com,Direct", "RULE-SET,private,Direct", "RULE-SET,geolocation-cn,Direct", "RULE-SET,steam_cn,Direct", "RULE-SET,nvidia_cn,Direct", "RULE-SET,apple_cn,Direct", "RULE-SET,microsoft_cn,Direct", "DOMAIN,international-gfe.download.nvidia.com,Direct", "DOMAIN-SUFFIX,ctaiot.com,Direct"];
+const remainingRules = ["RULE-SET,claude,Claude", "RULE-SET,ai,AI", "RULE-SET,github,GitHub", "RULE-SET,telegram,Telegram", "RULE-SET,telegram_ip,Telegram,no-resolve", "RULE-SET,appletv,媒体", "RULE-SET,apple_podcasts,媒体", "RULE-SET,twitch,媒体", "RULE-SET,twitter,媒体", "RULE-SET,twitter_ip,媒体,no-resolve", "RULE-SET,tiktok,媒体", "RULE-SET,tiktok_ip,媒体,no-resolve", "RULE-SET,youtube,YouTube", "RULE-SET,meta,媒体", "RULE-SET,facebook_ip,媒体,no-resolve", "RULE-SET,private_ip,Direct,no-resolve", "RULE-SET,mcdn屏蔽,REJECT", "RULE-SET,steam,Proxy", "RULE-SET,steam_ip,Proxy,no-resolve", "RULE-SET,pikpak,PikPak", "RULE-SET,ehentai,EHentai", "RULE-SET,porn,porn", "RULE-SET,google,Google", "RULE-SET,google_ip,Google,no-resolve", "RULE-SET,apple,Proxy", "RULE-SET,apple_ip,Proxy,no-resolve", "RULE-SET,microsoft,Proxy", "RULE-SET,microsoft_ip,Proxy,no-resolve", "RULE-SET,geolocation-!cn,Proxy", "RULE-SET,cn_ip,Direct", "MATCH,Final"];
+function buildRules() {
+  return [...upstreamPrefixRules, ...ruleOptionsEnable.屏蔽国外QUIC ? blockForeignQuic : [], ...remainingRules];
+}
 const groupTestUrl = "https://www.apple.com/library/test/success.html";
 const groupIcons = {
   "香港": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/HongKong.svg",
@@ -745,15 +760,17 @@ function main(config) {
   const filteredProxies = filterProxies(config);
   const regionProxyMap = buildRegionProxyMap(filteredProxies);
   const {dns, hosts, proxies: mappedProxies} = buildDnsAndHostsConfig(config, filteredProxies);
+  const ruleProviders = {
+    ...finalRuleProviders
+  };
+  if (!ruleOptionsEnable.屏蔽国外QUIC) delete ruleProviders.cn_additional;
   return {
     ...buildGlobalConfig(config, filteredProxies),
     dns,
     hosts,
     proxies: [...mappedProxies, ...directProxies],
     'proxy-groups': buildProxyGroups(regionProxyMap, mappedProxies),
-    'rule-providers': {
-      ...finalRuleProviders
-    },
-    rules: finalRules.slice()
+    'rule-providers': ruleProviders,
+    rules: buildRules()
   };
 }

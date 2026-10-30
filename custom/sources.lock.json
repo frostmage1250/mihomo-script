@@ -10,10 +10,10 @@
   "local_files": {
     "custom/build_mihomo_script.mjs": "8c60161cfa7fdc9f115d50f13dc66090e3f7dda82e5b6b6dd16ec3ec4b2b03b6",
     "custom/snapshot.mjs": "da53bde2d27bbaa26ca46955e4b11542939de8f8741dc3a2a94395eb40ceb382",
-    "custom/lib/ast.mjs": "349d2ab284b47fcbe5f82f8e21a85de18212d4cb5b0120896a8cc128232de868",
-    "custom/lib/rules.mjs": "1e57b75113d71dddbdc3318b24c4c73d810b6ad3ffb40431a017e3b5ddb785a2",
-    "custom/runtime.js": "628c4834d0eab1bda34a7124d75cab8b885e246b3080d6b016cca10c369df567",
-    "custom/customizations.json": "fc24d4501a5fd2c7215f1bf01f96a1778a87e8208ec5cd0b773159b4a20b5f25"
+    "custom/lib/ast.mjs": "c97db85306a114b89fc2f39484198409e4d89f6c5eec48c14852c5c2e65d4de5",
+    "custom/lib/rules.mjs": "c2685dadaa8737dd591b53d60a953dd70c6a38be1f046e048b447343444627d1",
+    "custom/runtime.js": "1571420272873a426731dad098d203280f20fc91e58d69b4c8f5b11f6029636f",
+    "custom/customizations.json": "4a2e7449a4fdd7e36c77b8134163d089c7a863d6a20dad3be33538f58fdef509"
   },
   "dependency_lock_sha256": "4b4d0e6559790a82178f3238e5cb20cf440c86709ec87c380710a9e8187efdb0",
   "validation": {

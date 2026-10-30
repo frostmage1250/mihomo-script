@@ -2,9 +2,23 @@
   "schema_version": 3,
   "source_mode": "native-git-merge",
   "source_lock": "custom/sources.lock.json",
-  "output_sha256": "97506eb6558ada51b247f768bad617a83759415bb7a007e0ec9a20f47d8aa0e3",
+  "output_sha256": "63e176d03080450abfe1f91f37d6f90214b63922f9aca45546ecb301812756cf",
   "fake_ip_mode": "upstream",
   "rule_blocks": {
+    "upstream_prefix": [
+      "DOMAIN,cdn.jsdmirror.com,Direct",
+      "RULE-SET,private,Direct",
+      "RULE-SET,geolocation-cn,Direct",
+      "RULE-SET,steam_cn,Direct",
+      "RULE-SET,nvidia_cn,Direct",
+      "RULE-SET,apple_cn,Direct",
+      "RULE-SET,microsoft_cn,Direct",
+      "DOMAIN,international-gfe.download.nvidia.com,Direct",
+      "DOMAIN-SUFFIX,ctaiot.com,Direct"
+    ],
+    "quic": [
+      "AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn_additional),(RULE-SET,cn_ip,no-resolve)))))),REJECT"
+    ],
     "before_direct": [
       "RULE-SET,claude,Claude",
       "RULE-SET,ai,AI",
@@ -22,24 +36,14 @@
       "RULE-SET,meta,媒体",
       "RULE-SET,facebook_ip,媒体,no-resolve"
     ],
-    "bootstrap": [
-      "DOMAIN,cdn.jsdmirror.com,Direct"
-    ],
+    "bootstrap": [],
     "private": [
-      "RULE-SET,private,Direct",
       "RULE-SET,private_ip,Direct,no-resolve"
     ],
     "custom_reject": [
       "RULE-SET,mcdn屏蔽,REJECT"
     ],
-    "direct": [
-      "RULE-SET,steam_cn,Direct",
-      "RULE-SET,nvidia_cn,Direct",
-      "RULE-SET,apple_cn,Direct",
-      "RULE-SET,microsoft_cn,Direct",
-      "DOMAIN,international-gfe.download.nvidia.com,Direct",
-      "DOMAIN-SUFFIX,ctaiot.com,Direct"
-    ],
+    "direct": [],
     "after_direct": [
       "RULE-SET,steam,Proxy",
       "RULE-SET,steam_ip,Proxy,no-resolve",
@@ -55,7 +59,6 @@
     ],
     "fallback": [
       "RULE-SET,geolocation-!cn,Proxy",
-      "RULE-SET,geolocation-cn,Direct",
       "RULE-SET,cn_ip,Direct"
     ],
     "final": [
@@ -436,7 +439,7 @@
       "outputs": [
         "DOMAIN,cdn.jsdmirror.com,Direct"
       ],
-      "section": "bootstrap"
+      "section": "upstream_prefix"
     },
     {
       "origin": "base",
@@ -447,7 +450,7 @@
       "outputs": [
         "RULE-SET,private,Direct"
       ],
-      "section": "private"
+      "section": "upstream_prefix"
     },
     {
       "origin": "base",
@@ -458,7 +461,7 @@
       "outputs": [
         "RULE-SET,geolocation-cn,Direct"
       ],
-      "section": "fallback"
+      "section": "upstream_prefix"
     },
     {
       "origin": "base",
@@ -469,7 +472,7 @@
       "outputs": [
         "RULE-SET,steam_cn,Direct"
       ],
-      "section": "direct"
+      "section": "upstream_prefix"
     },
     {
       "origin": "base",
@@ -480,7 +483,7 @@
       "outputs": [
         "RULE-SET,nvidia_cn,Direct"
       ],
-      "section": "direct"
+      "section": "upstream_prefix"
     },
     {
       "origin": "base",
@@ -491,7 +494,7 @@
       "outputs": [
         "RULE-SET,apple_cn,Direct"
       ],
-      "section": "direct"
+      "section": "upstream_prefix"
     },
     {
       "origin": "base",
@@ -502,7 +505,7 @@
       "outputs": [
         "RULE-SET,microsoft_cn,Direct"
       ],
-      "section": "direct"
+      "section": "upstream_prefix"
     },
     {
       "origin": "base",
@@ -521,7 +524,7 @@
       "outputs": [
         "DOMAIN,international-gfe.download.nvidia.com,Direct"
       ],
-      "section": "direct"
+      "section": "upstream_prefix"
     },
     {
       "origin": "base",
@@ -532,15 +535,18 @@
       "outputs": [
         "DOMAIN-SUFFIX,ctaiot.com,Direct"
       ],
-      "section": "direct"
+      "section": "upstream_prefix"
     },
     {
       "origin": "base",
       "declaration": "blockForeignQuic",
       "position": "before_services",
       "source": "AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn_additional),(RULE-SET,cn_ip,no-resolve)))))),REJECT",
-      "status": "excluded",
-      "reason": "spread-policy"
+      "status": "adopted",
+      "outputs": [
+        "AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn_additional),(RULE-SET,cn_ip,no-resolve)))))),REJECT"
+      ],
+      "section": "quic"
     },
     {
       "origin": "base",
