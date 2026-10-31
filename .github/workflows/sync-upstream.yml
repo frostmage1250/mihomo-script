@@ -33,16 +33,6 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Fetch the upstream build inputs
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git remote add upstream https://github.com/AIsouler/MyClash.git
-          git fetch --no-tags upstream main
-          git restore --source=refs/remotes/upstream/main --staged --worktree -- Script/mihomoScript.js Config/mihomoConfig.yaml LICENSE
-
       - name: Set up the build-only Node runtime
         uses: actions/setup-node@v6
         with:
@@ -102,13 +92,10 @@ jobs:
           JS
           "${RUNNER_TEMP}/mihomo" -v
 
-      - name: Capture all generation inputs once
+      - name: Fetch latest upstream main, apply customizations, and generate
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node custom/snapshot.mjs
-
-      - name: Generate entirely from source
-        run: node custom/build_mihomo_script.mjs
+        run: npm run build
 
       - name: Validate changed builder sources
         if: github.event_name == 'push'
@@ -132,6 +119,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- Script/mihomoScript.js Config/mihomoConfig.yaml LICENSE mihomoScript.js custom/upstream.json custom/sources.lock.json
           git diff --cached --check
           if ! git diff --cached --quiet; then

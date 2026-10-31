@@ -7,8 +7,9 @@ https://raw.githubusercontent.com/frostmage1250/mihomo-script/main/mihomoScript.
 ```
 
 The publishing tree retains the upstream build inputs and license.
-The workflow fetches upstream sources for each build without merging their Git
-history or maintaining a mirror branch. The legacy branch retains the former
+The single `npm run build` entry point reads the latest upstream `main` for each
+build, applies `custom/customizations.json`, and generates the published script.
+It does not merge upstream Git history or maintain a mirror branch. The legacy branch retains the former
 repository history.
 
 ## Source and output
@@ -19,10 +20,10 @@ repository history.
 - custom/customizations.json: explicit source overrides, routing, exclusions, and retained global differences.
 - custom/lib/ast.mjs: AST extraction, dependencies, and structured DNS/global changes.
 - custom/lib/rules.mjs: rule placement, policy mapping, conflict checks, and coverage.
-- custom/snapshot.mjs: captures the upstream commit once per workflow.
-- custom/build_mihomo_script.mjs: builds from the captured sources.
+- custom/snapshot.mjs: resolves latest upstream main once and downloads JS, YAML, and LICENSE at that commit.
+- custom/build_mihomo_script.mjs: single entry point for fetching, applying the customization policy, and generating output.
 - mihomoScript.js: generated standalone subscription output.
-- custom/sources.lock.json: immutable input commits, file digests, dependency lock and validation versions.
+- custom/sources.lock.json: upstream branch and immutable input commits, script/routing/license digests, dependency lock and validation versions.
 - custom/upstream.json: source coverage, applied policies, retired customization keys, and output digest.
 
 The generator retains the complete runtime from the fixed upstream script.
@@ -105,10 +106,15 @@ Reference: https://github.com/appshubcc/Bettbox/tree/v1.19.7/plugins/code_forge/
 
 ## Fixed-input publication
 
-Every six hours, on relevant pushes, or by manual dispatch, the workflow fetches
-upstream sources into the temporary runner, restores the required build inputs,
-installs locked build dependencies, pins the Mihomo validation release, and
-captures upstream inputs once.
+Every six hours, on relevant pushes, or by manual dispatch, the workflow installs
+locked build dependencies, pins the Mihomo validation release, and calls
+`npm run build`. This single entry point first resolves the current upstream
+`main` to one commit SHA, downloads the complete script, routing YAML, and LICENSE
+from that exact commit, then applies `custom/customizations.json` and generates
+the standalone subscription. It never uses the previously published script or
+a stored upstream copy as a fallback. A source download or validation failure
+stops publication. An upstream change during the build is picked up by the next
+build; all files in the current build remain pinned to its initial commit.
 Generation and acceptance share that snapshot. The workflow generates the script
 once, executes the final script once with the Bettbox engine, checks upstream
 coverage and explicit customizations, and validates the configuration with Mihomo.

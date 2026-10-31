@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractModel, compileScript } from "./lib/ast.mjs";
 import { planRules } from "./lib/rules.mjs";
-import { ROOT, sha256 } from "./snapshot.mjs";
+import { ROOT, sha256, capture } from "./snapshot.mjs";
 
 export function render(snapshot) {
   const {manifest, lock} = snapshot;
@@ -31,10 +31,11 @@ export function render(snapshot) {
 }
 
 export async function build() {
-  const snapshot = JSON.parse(await fs.readFile(path.join(ROOT, ".build/snapshot.json"), "utf8"));
+  const snapshot = await capture();
   for (const [file, digest] of Object.entries(snapshot.lock.local_files)) {
     if (sha256(await fs.readFile(path.join(ROOT, file))) !== digest) throw new Error("Source changed after snapshot: " + file);
   }
+  console.log("Applying customization policy: custom/customizations.json");
   const result = render(snapshot);
   const files = [[snapshot.manifest.output, result.script], [snapshot.manifest.report, result.report], [snapshot.manifest.source_lock, result.lock]];
   await Promise.all(files.map(([file, content]) => fs.writeFile(path.join(ROOT, file), content)));

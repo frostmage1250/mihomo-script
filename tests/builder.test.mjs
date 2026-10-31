@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { parseScript, indexDeclarations, dependencyClosure, freeNames, transformDns, extractModel, globalConfigFunction, compileScript, retargetDnsProxySuffix } from "../custom/lib/ast.mjs";
 import { generate } from "astring";
 import { retargetRule, matchesRule, replaceProviderAsset, planRules } from "../custom/lib/rules.mjs";
+import { readLatestUpstream } from "../custom/snapshot.mjs";
 import fs from "node:fs";
 import vm from "node:vm";
 const manifest = JSON.parse(fs.readFileSync(new URL("../custom/customizations.json", import.meta.url), "utf8"));
@@ -313,4 +314,42 @@ test("DNS proxy suffixes follow group aliases without changing built-in DIRECT o
     "https://dns.example/dns-query#eth0"]) {
     assert.equal(retargetDnsProxySuffix(value,manifest.policy_aliases),value);
   }
+});
+
+test("latest main is resolved once and all upstream files use that immutable commit", async () => {
+  const head = "a".repeat(40), fileCommit = "b".repeat(40);
+  const repository = manifest.upstream.repository;
+  const api = "https://api.github.com/repos/" + repository;
+  const raw = "https://raw.githubusercontent.com/" + repository + "/" + head + "/";
+  const calls = [];
+  const replies = new Map([
+    [api + "/commits/main", JSON.stringify({sha:head})],
+    [raw + manifest.upstream.path, "upstream script"],
+    [raw + manifest.routing_reference.path, "upstream routing"],
+    [raw + "LICENSE", "upstream license"],
+    [api + "/commits?sha=" + head + "&path=" + encodeURIComponent(manifest.upstream.path) + "&per_page=1",
+      JSON.stringify([{sha:fileCommit}])],
+  ]);
+  const captured = await readLatestUpstream(manifest, async url => {
+    calls.push(url);
+    assert.ok(replies.has(url), "Unexpected mutable or unrelated source: " + url);
+    return replies.get(url);
+  });
+  assert.equal(calls[0], api + "/commits/main");
+  assert.equal(calls.filter(url => url === api + "/commits/main").length, 1);
+  assert.deepEqual(new Set(calls), new Set(replies.keys()));
+  assert.deepEqual(captured, {upstreamCommit:head, fileCommit,
+    upstream:"upstream script", routingReference:"upstream routing", license:"upstream license"});
+});
+
+test("invalid or unavailable latest main stops the build without a stale-source fallback", async () => {
+  let calls = 0;
+  await assert.rejects(readLatestUpstream(manifest, async () => {
+    calls++;
+    return JSON.stringify({sha:"invalid"});
+  }), /Invalid upstream main commit/);
+  assert.equal(calls, 1);
+  await assert.rejects(readLatestUpstream(manifest, async () => {
+    throw new Error("Source HTTP 503");
+  }), /Source HTTP 503/);
 });
