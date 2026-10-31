@@ -8,7 +8,7 @@
     "path": "Config/mihomoConfig.yaml",
     "sha256": "3ead0f5460ec50f4dd6a553cfc0b93005825d79e23ebdb0260e605d44f61ebb6"
   },
-  "output_sha256": "2e2fc0c5075f6ba962bce9cc99d3ddb277b4789887d7adc1db33de6bdfc51285",
+  "output_sha256": "48a0a28e8892f0df96976ab869d27b8785cdbad279b5be441f85db53be02995f",
   "fake_ip_mode": "upstream",
   "rule_blocks": {
     "upstream_prefix": [
