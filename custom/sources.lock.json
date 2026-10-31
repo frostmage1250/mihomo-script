@@ -16,7 +16,7 @@
   "local_files": {
     "custom/build_mihomo_script.mjs": "c9e5e25daa9751df82a86f0f9de0554ecb2cafdef47d7451f1d51e79e291c390",
     "custom/snapshot.mjs": "9edfb539987d72abbf4145a73eee3b03e87badb391d0ddeb5c4567f39c50c586",
-    "custom/lib/ast.mjs": "7a7712adf85762ca53ce166bc9a04fa023259cbebbfa023d8ae8a583376efdec",
+    "custom/lib/ast.mjs": "b5b2596d7f1b5754eace7789b65d960218a624351e8a822a80f9fafe9bde8839",
     "custom/lib/rules.mjs": "a11d14739cd99b03db961d4a454fa316f19af47a5f574ffdbf447abafa05def2",
     "custom/runtime.js": "c616b989ae22fbae405983546db4567cdfe7e66e34453fb38f9d1557e11d2fd1",
     "custom/customizations.json": "06a2784b4d4a4140a95ae26656bcd87350a036f45bdfd81baca3800996c48906"
