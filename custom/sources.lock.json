@@ -2,10 +2,17 @@
   "schema_version": 1,
   "upstream": {
     "repository": "AIsouler/MyClash",
+    "branch": "main",
     "commit": "9ae100c4c23fb492a2b05934f1983a452eabe85e",
     "file_commit": "9ae100c4c23fb492a2b05934f1983a452eabe85e",
     "path": "Script/mihomoScript.js",
     "sha256": "8f50ebd9cb7da9723f069feec6abf5e0d17e09984720bfc2fc48042e2e926250"
+  },
+  "license": {
+    "repository": "AIsouler/MyClash",
+    "commit": "9ae100c4c23fb492a2b05934f1983a452eabe85e",
+    "path": "LICENSE",
+    "sha256": "274bc9ff51996df9d595a91b2a69065f6e647fa7674c65e8628496a5904fa66d"
   },
   "routing_reference": {
     "repository": "AIsouler/MyClash",
@@ -14,8 +21,8 @@
     "sha256": "3ead0f5460ec50f4dd6a553cfc0b93005825d79e23ebdb0260e605d44f61ebb6"
   },
   "local_files": {
-    "custom/build_mihomo_script.mjs": "c9e5e25daa9751df82a86f0f9de0554ecb2cafdef47d7451f1d51e79e291c390",
-    "custom/snapshot.mjs": "9edfb539987d72abbf4145a73eee3b03e87badb391d0ddeb5c4567f39c50c586",
+    "custom/build_mihomo_script.mjs": "4c64af0a28120739da41a923e4dc94350e5e61d2f78e551c40623ad7c2b3b0dc",
+    "custom/snapshot.mjs": "8bee73a26cec7bf01ebc86d3ce3da51bbd6a4305a4d72f9444a5362dd3e11b75",
     "custom/lib/ast.mjs": "b5b2596d7f1b5754eace7789b65d960218a624351e8a822a80f9fafe9bde8839",
     "custom/lib/rules.mjs": "a11d14739cd99b03db961d4a454fa316f19af47a5f574ffdbf447abafa05def2",
     "custom/runtime.js": "c616b989ae22fbae405983546db4567cdfe7e66e34453fb38f9d1557e11d2fd1",
