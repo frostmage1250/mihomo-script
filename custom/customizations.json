@@ -8,7 +8,6 @@
     "path": "Script/mihomoScript.js"
   },
   "output": "mihomoScript.js",
-  "report": "custom/upstream.json",
   "service_provider_url_overrides": {
     "AI": {
       "ai": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/ai.mrs"
@@ -163,7 +162,6 @@
     }
   },
   "runtime": "custom/runtime.js",
-  "source_lock": "custom/sources.lock.json",
   "node_options": {
     "过滤低倍率节点": false,
     "过滤非地区节点": true,
@@ -332,12 +330,6 @@
     "final": [
       "MATCH,Final"
     ]
-  },
-  "client_compatibility": {
-    "bettbox_reference": "v1.19.7",
-    "memory_limit": 134217728,
-    "stack_limit": 524288,
-    "timeout_seconds": 10
   },
   "base_rule_spread_routing": {
     "prefixRules": "upstream_prefix",

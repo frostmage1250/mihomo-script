@@ -115,17 +115,6 @@ export function indexDeclarations(ast) {
   return index;
 }
 
-export function dependencyClosure(index, roots) {
-  const chosen = new Set();
-  function include(name) {
-    if (chosen.has(name) || !index.has(name)) return;
-    chosen.add(name);
-    for (const dependency of freeNames(index.get(name).node)) if (dependency !== name) include(dependency);
-  }
-  for (const name of roots) include(name);
-  return [...chosen].map(name => ({name, ...index.get(name)})).sort((a, b) => a.order - b.order);
-}
-
 function objectVariable(fn, name) {
   let object;
   walk(fn.body, node => {
@@ -242,29 +231,8 @@ export function extractModel(source, manifest, routingReference) {
     ast, index, evaluate, main, ruleExpression, baseRules, services, icons, serviceRanks, referenceRuleRanks,
     baseRuleProviders: JSON.parse(JSON.stringify(read("baseRuleProviders"))),
     ruleSetBaseUrl: read("ruleSetBaseUrl"),
-    groupTestUrl: read("groupBaseOption").url,
-    regionDefinitions: Array.from(regions, ({name, regex}) => ({name, regex: String(regex)})),
-    rateRegionDefinitions: Array.from(rates, ({name, regex}) => ({name, regex: String(regex)})),
-    lowRateRegionName: read("lowRateRegionName"),
     nativeOptions: JSON.parse(JSON.stringify(read("ruleOptionsEnable"))),
   };
-}
-
-function removePath(object, path) {
-  const [head, ...tail] = path;
-  if (!tail.length) object.properties = object.properties.filter(item => keyOf(item) !== head);
-  else { const child = property(object, head)?.value; if (child?.type === "ObjectExpression") removePath(child, tail); }
-}
-
-export function globalConfigFunction(model, manifest) {
-  const omitted = new Set(["dns", "hosts", "proxies", "proxy-groups", "rule-providers", "rules"]);
-  const object = {type: "ObjectExpression", properties: []};
-  for (const entry of assignments(model.main)) {
-    if (!omitted.has(entry.key)) put(object, entry.key, clone(entry.value));
-  }
-  for (const path of manifest.omitted_global_fields) removePath(object, path.split("."));
-  for (const [key, value] of Object.entries(manifest.global_overrides)) put(object, key, literal(value));
-  return parseScript("function buildGlobalConfig(config, filteredProxies) { return " + generate(object) + "; }").body[0];
 }
 
 export function retargetDnsProxySuffix(value, aliases) {
@@ -279,7 +247,7 @@ export function retargetDnsProxySuffix(value, aliases) {
     (separator < 0 ? "" : suffix.slice(separator));
 }
 
-export function compileScript(model, manifest, plan, runtime, provenance) {
+export function compileScript(model, manifest, plan, runtime) {
   if (manifest.preserve_original_proxy_names !== true ||
       manifest.proxy_name_deduplication !== "exact-name-first") {
     throw new Error("Original proxy names and exact-name-first deduplication must be preserved");
@@ -380,15 +348,13 @@ export function compileScript(model, manifest, plan, runtime, provenance) {
     }
   });
   const header = "/**\n * Mihomo single-subscription override; upstream author: AIsouler.\n" +
-    " * Source: https://github.com/AIsouler/MyClash\n * Upstream commit: " + provenance.commit +
-    "\n * Full upstream runtime with explicit customizations. MIT license retained.\n */\n";
+    " * Source: https://github.com/AIsouler/MyClash\n" +
+    " * Full upstream runtime with explicit customizations. MIT license retained.\n */\n";
   const program = {type: "Program", sourceType: "script", body: [
     ...body,
     parseScript("const customizationPolicy = " + JSON.stringify(policy) + ";").body[0],
     ...parseScript(runtime).body,
   ]};
   const script = header + generate(program, {indent: "  "}).trimEnd() + "\n";
-  return {script, icons, emittedDeclarations: body.flatMap(node =>
-    node.type === "FunctionDeclaration" ? [node.id.name] :
-    node.type === "VariableDeclaration" ? node.declarations.map(item => item.id.name) : [])};
+  return script;
 }

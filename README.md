@@ -1,39 +1,28 @@
 # Mihomo script
 
-A customized Fork of [AIsouler/MyClash](https://github.com/AIsouler/MyClash).
-The subscription remains:
+Customized from [AIsouler/MyClash](https://github.com/AIsouler/MyClash).
+
+Subscription:
 ```text
 https://raw.githubusercontent.com/frostmage1250/mihomo-script/main/mihomoScript.js
 ```
 
-The publishing tree retains the upstream build inputs and license.
-The single `npm run build` entry point reads the latest upstream `main` for each
-build, applies `custom/customizations.json`, and generates the published script.
-It does not merge upstream Git history or maintain a mirror branch. The legacy branch retains the former
-repository history.
+## Generation
 
-## Source and output
+On a relevant push, manual dispatch, or the six-hour schedule:
 
-- Script/mihomoScript.js: complete upstream source fetched for the build.
-- Config/mihomoConfig.yaml: complete upstream YAML supplying routing order.
-- custom/runtime.js: local subscription filtering and functional policy choices.
-- custom/customizations.json: explicit source overrides, routing, exclusions, and retained global differences.
-- custom/lib/ast.mjs: AST extraction, dependencies, and structured DNS/global changes.
-- custom/lib/rules.mjs: rule placement, policy mapping, conflict checks, and coverage.
-- custom/snapshot.mjs: resolves latest upstream main once and downloads JS, YAML, and LICENSE at that commit.
-- custom/build_mihomo_script.mjs: single entry point for fetching, applying the customization policy, and generating output.
-- mihomoScript.js: generated standalone subscription output.
-- custom/sources.lock.json: upstream branch and immutable input commits, script/routing/license digests, dependency lock and validation versions.
-- custom/upstream.json: source coverage, applied policies, retired customization keys, and output digest.
+1. Download the latest upstream `main` source archive once.
+2. Read its script and routing YAML, then apply `custom/customizations.json` once.
+3. Generate and publish `mihomoScript.js`, retaining the upstream MIT license.
 
-The generator retains the complete runtime from the fixed upstream script.
-The upstream entry point performs node filtering, rate/home classification,
-custom-node processing, dialer reference repair, proxy IP preference, service
-switches, minimal mode, DNS/hosts processing, and ordinary global configuration.
-Only the explicit customization manifest is applied around that runtime. Rule
-order comes from the fixed upstream YAML. Acceptance checks compare inherited
-behavior with the actual upstream entry point; Mihomo validates configuration
-syntax and references.
+The upstream files exist only in a temporary runner directory, which is removed
+when the publishing step finishes. No upstream mirror, source snapshot, report,
+source lock, test output, or build cache is published. The workflow has no extra
+test or validation stages and emits no custom build logs.
+
+The build uses `custom/build_mihomo_script.mjs`, `custom/lib/`,
+`custom/runtime.js`, and the customization manifest. The upstream runtime is
+retained with the explicit customizations below.
 
 ## Retained policy
 
@@ -69,7 +58,7 @@ Its download/private/domestic direct prefix precedes QUIC and MCDN rejection,
 then business services follow YAML order, then foreign-domain, domestic-IP,
 private-IP and final fallbacks. Extra services use explicit insertion anchors:
 Claude before AI, AppleTV and Podcasts before Apple, and Twitch after YouTube.
-The YAML and script come from the same upstream commit and are hash-locked. The QUIC switch and its default come
+The YAML and script come from the same downloaded upstream archive. The QUIC switch and its default come
 directly from upstream `ruleOptionsEnable.屏蔽国外QUIC`. Setting it to `false`
 removes the upstream QUIC reject rules and `cn_additional`; setting it to `true`
 restores both. The reject expression and provider definition follow upstream.
@@ -90,48 +79,6 @@ service. Fake-IP mode, address ranges,
 and filter expressions follow upstream without Repcz additions or filter overrides.
 The upstream conditional FCM filter is preserved and follows that service switch.
 
-## Bettbox compatibility
-
-Build tools use Node.js 22 exclusively in GitHub Actions. The generated subscription
-contains no Node imports. One normal subscription fixture is passed directly to
-rquickjs/core/sys 0.12.2, matching the dependency lock of Bettbox v1.19.7.
-The runner uses the client's 128 MiB memory, 512 KiB stack, and 10-second execution
-limits, read from custom/customizations.json. The engine version comes from the
-locked Cargo dependency graph. Its generated configuration is checked against
-upstream coverage and the retained policy, then passed directly to Mihomo.
-The engine executes the final script once. Cargo build artifacts are cached by
-the dependency lock and runner source.
-
-Reference: https://github.com/appshubcc/Bettbox/tree/v1.19.7/plugins/code_forge/rust
-
-## Fixed-input publication
-
-Every six hours, on relevant pushes, or by manual dispatch, the workflow installs
-locked build dependencies, pins the Mihomo validation release, and calls
-`npm run build`. This single entry point first resolves the current upstream
-`main` to one commit SHA, downloads the complete script, routing YAML, and LICENSE
-from that exact commit, then applies `custom/customizations.json` and generates
-the standalone subscription. It never uses the previously published script or
-a stored upstream copy as a fallback. A source download or validation failure
-stops publication. An upstream change during the build is picked up by the next
-build; all files in the current build remain pinned to its initial commit.
-Generation and acceptance share that snapshot. The workflow generates the script
-once, executes the final script once with the Bettbox engine, checks upstream
-coverage and explicit customizations, and validates the configuration with Mihomo.
-Builder unit tests run on pushes that change the builder, runtime, policy, tests,
-dependencies, or this workflow. Scheduled and manually dispatched synchronization
-runs use the output acceptance checks. Dependency installation uses committed locks.
-The validated output, source lock, compact report, and required build inputs are
-published to main in one commit. Upstream history is not merged or pushed.
-
-The report uses schema version 3 and runtime_mode=upstream-with-explicit-customizations.
-It links to custom/sources.lock.json for source and validation versions, and records
-rule blocks, coverage, effective icons,
-the upstream Fake-IP mode, and stale preferences. Full upstream definitions stay
-in Script/mihomoScript.js; source provenance stays in the source lock.
-
-Upstream attribution and the MIT license are retained.
-
 ## Rule data provenance
 
 Ordinary provider data comes from appshubcc/bett-rules on meta. The QUIC-specific
@@ -139,7 +86,7 @@ Ordinary provider data comes from appshubcc/bett-rules on meta. The QUIC-specifi
 The five reviewed
 converter providers are AI, Claude, geolocation-cn, porn, and MCDN.
 Bettbox is the execution/compatibility client, while the script's upstream source
-is AIsouler/MyClash. Acceptance validates every provider URL against this boundary.
+is AIsouler/MyClash. Provider customizations follow this boundary.
 
 The porn rule-set uses provider key `porn` and `dist/mihomo/porn.mrs`; its
 policy group is `porn`, with choices `Proxy`, `新加坡`, `低倍率节点`, and `美国`.

@@ -79,7 +79,7 @@ export function validateProvider(name, provider) {
 }
 
 export function planRules(model, manifest) {
-  const providers = {}, services = {}, coverage = [], usedOverrides = new Set();
+  const providers = {}, services = {};
   const excludedBase = new Set(manifest.excluded_base_rule_providers);
   const excludedServices = new Set(manifest.excluded_services);
   const addProvider = (name, provider, origin) => {
@@ -94,7 +94,6 @@ export function planRules(model, manifest) {
     const replacement = manifest.base_rule_provider_replacements[name];
     const outputName = replacement?.name || name;
     const url = manifest.base_rule_provider_url_overrides[name];
-    if (url !== undefined) usedOverrides.add("base:" + name);
     addProvider(outputName, overrideUrl(replacement ? replaceProviderAsset(provider, replacement) : provider, url), "base");
   }
   const seen = new Set();
@@ -102,19 +101,17 @@ export function planRules(model, manifest) {
     if (seen.has(service.name)) throw new Error("Duplicate upstream service: " + service.name);
     seen.add(service.name);
     if (excludedServices.has(service.name) || !service.rules?.length) {
-      for (const rule of service.rules || []) coverage.push({ origin: "service", service: service.name, source: rule, status: "excluded", reason: "service-policy" });
       continue;
     }
     services[service.name] = service;
     for (const [name, provider] of Object.entries(service.providers || {})) {
       const url = manifest.service_provider_url_overrides[service.name]?.[name];
-      if (url !== undefined) usedOverrides.add("service:" + service.name + ":" + name);
       addProvider(name, overrideUrl(provider, url), service.name);
     }
   }
   for (const [name, service] of Object.entries(manifest.additional_services)) {
     if (Object.hasOwn(services, name)) throw new Error("Upstream/additional service conflict: " + name);
-    services[name] = {name, ...service, additional: true};
+    services[name] = {name, ...service};
     for (const [key, provider] of Object.entries(service.providers || {})) {
       const {upstream_asset, ...definition} = provider;
       if (upstream_asset !== undefined) {
@@ -143,10 +140,6 @@ export function planRules(model, manifest) {
     for (const rule of entry.service.rules || []) {
       const output = retargetRule(rule, entry.target);
       blocks[entry.section].push(output);
-      if (!entry.service.additional) coverage.push({
-        origin: "service", service: entry.service.name, source: rule,
-        status: output === rule ? "adopted" : "mapped", outputs: [output], section: entry.section,
-      });
     }
   }
 
@@ -156,14 +149,11 @@ export function planRules(model, manifest) {
   let sequence = 0;
   for (const native of model.baseRules) {
     for (const rule of native.rules) {
-      const record = {origin: "base", declaration: native.source, position: native.position, source: rule};
       if (native.excluded || manifest.excluded_rules.some(selector => matchesRule(rule, selector))) {
-        coverage.push({...record, status: "excluded", reason: native.excluded ? "spread-policy" : "rule-policy"});
         continue;
       }
       const parts = splitRule(rule);
       if (parts[0] === "MATCH") {
-        coverage.push({...record, status: "mapped", outputs: manifest.custom_rules.final, section: "final"});
         continue;
       }
       const name = parts[0] === "RULE-SET" ? parts[1] : undefined;
@@ -176,7 +166,6 @@ export function planRules(model, manifest) {
       parts[index] = manifest.policy_aliases[parts[index]] || parts[index];
       if (placement.no_resolve && !parts.slice(index + 1).includes("no-resolve")) parts.push("no-resolve");
       const output = parts.join(",");
-      coverage.push({...record, status: output === rule ? "adopted" : "mapped", outputs: [output], section});
       if (seenBaseRules.has(output)) continue;
       seenBaseRules.add(output);
       (baseEntries[section] ||= []).push({order: model.referenceRuleRanks?.[rule] ?? (spreadSection ? sequence : placement.order ?? sequence + 100), sequence, output});
@@ -190,26 +179,6 @@ export function planRules(model, manifest) {
   for (const [section, rules] of Object.entries(manifest.custom_rules)) blocks[section].push(...rules);
   const rules = manifest.rule_blocks.flatMap(section => blocks[section]);
   if (new Set(rules).size !== rules.length) throw new Error("Duplicate final routing rules");
-  const stale = [];
-  for (const name of Object.keys(manifest.base_rule_provider_replacements)) {
-    if (!Object.hasOwn(model.baseRuleProviders, name)) stale.push("base-replacement:" + name);
-  }
-  for (const selector of manifest.excluded_rules) {
-    if (!model.baseRules.some(entry => entry.rules.some(rule => matchesRule(rule, selector)))) {
-      stale.push("rule-exclusion:" + selector.type + ":" + selector.value);
-    }
-  }
-  for (const name of Object.keys(manifest.service_routing)) if (!services[name]) stale.push("service-routing:" + name);
-  for (const name of Object.keys(manifest.base_rule_provider_url_overrides)) {
-    if (!usedOverrides.has("base:" + name)) stale.push("base-url:" + name);
-  }
-  for (const [service, values] of Object.entries(manifest.service_provider_url_overrides)) {
-    for (const name of Object.keys(values)) {
-      if (!usedOverrides.has("service:" + service + ":" + name)) stale.push("service-url:" + service + ":" + name);
-    }
-  }
-  const defaults = plan.filter(entry => !Object.hasOwn(manifest.service_routing, entry.service.name))
-    .map(entry => ({name: entry.service.name, target: entry.target, section: entry.section}));
   const servicePlans = plan.map(entry => ({
     name: entry.service.name, target: entry.target, section: entry.section,
     rules: (entry.service.rules || []).map(rule => retargetRule(rule, entry.target)),
@@ -218,6 +187,5 @@ export function planRules(model, manifest) {
     section, values.slice(servicePlans.filter(entry => entry.section === section)
       .reduce((count, entry) => count + entry.rules.length, 0)),
   ]));
-  return {providers, rules, blocks, coverage, stale, defaults, servicePlans, nonServiceBlocks,
-    selectedServices: plan.map(entry => entry.service.name)};
+  return {providers, servicePlans, nonServiceBlocks};
 }

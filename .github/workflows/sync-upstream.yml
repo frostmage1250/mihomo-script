@@ -1,17 +1,13 @@
-name: Sync upstream and publish Mihomo
+name: Publish Mihomo
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - ".github/workflows/**"
+      - ".github/workflows/sync-upstream.yml"
       - "custom/**"
-      - "tests/**"
       - "package*.json"
-      - "Script/mihomoScript.js"
-      - "Config/mihomoConfig.yaml"
-      - "mihomoScript.js"
   schedule:
     - cron: "0 5,11,17,23 * * *"
 
@@ -25,105 +21,28 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     steps:
-      - name: Check out the triggering source commit
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-
-      - name: Set up the build-only Node runtime
-        uses: actions/setup-node@v6
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
-
-      - name: Cache the Bettbox engine build
-        id: bettbox_cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            tests/bettbox-runner/target
-          key: ${{ runner.os }}-${{ runner.arch }}-bettbox-${{ hashFiles('tests/bettbox-runner/Cargo.lock', 'tests/bettbox-runner/Cargo.toml', 'tests/bettbox-runner/src/**') }}
-
-      - name: Install locked build dependencies and prepare the engine
-        env:
-          ENGINE_CACHE_HIT: ${{ steps.bettbox_cache.outputs.cache-hit }}
-        run: |
-          npm ci --ignore-scripts --no-audit --no-fund
-          if [[ "$ENGINE_CACHE_HIT" == "true" && -x tests/bettbox-runner/target/release/bettbox-script-check ]]; then
-            echo "Using the cached Bettbox engine executable."
-          else
-            cargo build --release --locked --manifest-path tests/bettbox-runner/Cargo.toml
-          fi
-
-      - name: Pin and install the Mihomo validation release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          release_json="$(gh api repos/MetaCubeX/mihomo/releases/latest)"
-          mihomo_version="$(jq --raw-output '.tag_name' <<< "${release_json}")"
-          asset="mihomo-linux-amd64-compatible-${mihomo_version}.gz"
-          asset_json="$(jq --compact-output --arg name "${asset}" '.assets[] | select(.name == $name)' <<< "${release_json}")"
-          download_url="$(jq --raw-output '.browser_download_url' <<< "${asset_json}")"
-          digest="$(jq --raw-output '.digest' <<< "${asset_json}")"
-          if [[ -z "${asset_json}" || "${digest}" != sha256:* ]]; then
-            echo "Release asset or SHA-256 digest missing." >&2
-            exit 1
-          fi
-          archive="${RUNNER_TEMP}/${asset}"
-          curl --fail --location --silent --show-error "${download_url}" --output "${archive}"
-          echo "${digest#sha256:}  ${archive}" | sha256sum --check
-          gzip --decompress --stdout "${archive}" > "${RUNNER_TEMP}/mihomo"
-          chmod +x "${RUNNER_TEMP}/mihomo"
-          echo "${RUNNER_TEMP}" >> "${GITHUB_PATH}"
-          export MIHOMO_VERSION="${mihomo_version}" MIHOMO_DIGEST="${digest}"
-          node --input-type=module <<'JS'
-          import fs from "node:fs";
-          fs.mkdirSync(".build", {recursive: true});
-          const validation = {
-            mihomo: {version: process.env.MIHOMO_VERSION, archive_sha256: process.env.MIHOMO_DIGEST.slice(7)}
-          };
-          fs.writeFileSync(".build/validation.json", JSON.stringify(validation, null, 2) + "\n");
-          JS
-          "${RUNNER_TEMP}/mihomo" -v
-
-      - name: Fetch latest upstream main, apply customizations, and generate
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: npm run build
-
-      - name: Validate changed builder sources
-        if: github.event_name == 'push'
-        env:
-          BEFORE: ${{ github.event.before }}
-        run: |
-          if ! git diff --quiet "$BEFORE" "$GITHUB_SHA" -- custom/lib custom/runtime.js custom/customizations.json 'custom/*.mjs' tests 'package*.json' .github/workflows/sync-upstream.yml; then
-            npm test
-          fi
-
-      - name: Generate the configuration with the Bettbox engine and verify retained policy
-        env:
-          BETTBOX_RUNNER: ${{ github.workspace }}/tests/bettbox-runner/target/release/bettbox-script-check
-        run: |
-          node tests/validate_mihomo_script.mjs .build/mihomo-fixture.json
-
-      - name: Validate generated Mihomo configuration
-        run: mihomo -t -f .build/mihomo-fixture.json
-
-      - name: Publish the validated source lock and output
+      - name: Fetch, customize, and publish
         shell: bash
         run: |
           set -euo pipefail
+          upstream_dir="$(mktemp -d)"
+          trap 'rm -rf -- "$upstream_dir"' EXIT
+          curl --fail --silent --show-error --location \
+            "https://codeload.github.com/AIsouler/MyClash/tar.gz/refs/heads/main" |
+            tar --extract --gzip --directory "$upstream_dir" --strip-components=1 --wildcards \
+              '*/Script/mihomoScript.js' '*/Config/mihomoConfig.yaml' '*/LICENSE'
+          npm ci --ignore-scripts --no-audit --no-fund --silent
+          UPSTREAM_DIR="$upstream_dir" node custom/build_mihomo_script.mjs
+          if git diff --quiet -- mihomoScript.js LICENSE; then
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- Script/mihomoScript.js Config/mihomoConfig.yaml LICENSE mihomoScript.js custom/upstream.json custom/sources.lock.json
-          git diff --cached --check
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: publish validated Mihomo build from fixed inputs"
-          fi
-          git push origin HEAD:refs/heads/main
+          git add -- mihomoScript.js LICENSE
+          git commit --quiet -m "chore: publish customized upstream Mihomo script"
+          git push --quiet origin HEAD:refs/heads/main

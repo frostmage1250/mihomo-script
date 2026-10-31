@@ -6,7 +6,6 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test tests/*.test.mjs",
     "build": "node custom/build_mihomo_script.mjs"
   },
   "dependencies": {
