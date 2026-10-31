@@ -14,12 +14,12 @@
     "sha256": "3ead0f5460ec50f4dd6a553cfc0b93005825d79e23ebdb0260e605d44f61ebb6"
   },
   "local_files": {
-    "custom/build_mihomo_script.mjs": "6086ff65cd0ee7898a0d823b0fca7d6c2119fc590ed26a9562d3ddf93e87edc4",
+    "custom/build_mihomo_script.mjs": "c9e5e25daa9751df82a86f0f9de0554ecb2cafdef47d7451f1d51e79e291c390",
     "custom/snapshot.mjs": "9edfb539987d72abbf4145a73eee3b03e87badb391d0ddeb5c4567f39c50c586",
-    "custom/lib/ast.mjs": "51d7a8b092a590801287c73b4933aeb5f50a10eea499ae0659b22dc97e7d96e4",
-    "custom/lib/rules.mjs": "64b5aa41d8d8ea84d00d81f8c622882f90b3fa32f7c73ba44107dca45adb5662",
-    "custom/runtime.js": "8de331e09fb4891cca148abc3cd1ed110623e7106ecc7d8cda5ea07cfd980dcd",
-    "custom/customizations.json": "b8aaf87ecdfd6061f802ea7785e56251de2f7b115eb0d56da0a3278eff647675"
+    "custom/lib/ast.mjs": "7a7712adf85762ca53ce166bc9a04fa023259cbebbfa023d8ae8a583376efdec",
+    "custom/lib/rules.mjs": "a11d14739cd99b03db961d4a454fa316f19af47a5f574ffdbf447abafa05def2",
+    "custom/runtime.js": "c616b989ae22fbae405983546db4567cdfe7e66e34453fb38f9d1557e11d2fd1",
+    "custom/customizations.json": "06a2784b4d4a4140a95ae26656bcd87350a036f45bdfd81baca3800996c48906"
   },
   "dependency_lock_sha256": "4b4d0e6559790a82178f3238e5cb20cf440c86709ec87c380710a9e8187efdb0",
   "validation": {

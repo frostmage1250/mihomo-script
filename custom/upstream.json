@@ -1,6 +1,7 @@
 {
   "schema_version": 3,
   "source_mode": "fixed-upstream-snapshot",
+  "runtime_mode": "upstream-with-explicit-customizations",
   "source_lock": "custom/sources.lock.json",
   "routing_reference": {
     "repository": "AIsouler/MyClash",
@@ -8,7 +9,7 @@
     "path": "Config/mihomoConfig.yaml",
     "sha256": "3ead0f5460ec50f4dd6a553cfc0b93005825d79e23ebdb0260e605d44f61ebb6"
   },
-  "output_sha256": "48a0a28e8892f0df96976ab869d27b8785cdbad279b5be441f85db53be02995f",
+  "output_sha256": "c5049379aa28396a85eced0ce0e3f62126f2559d3d8d959bd5f5997637f38603",
   "fake_ip_mode": "upstream",
   "rule_blocks": {
     "upstream_prefix": [
@@ -618,11 +619,6 @@
     "porn"
   ],
   "applied_group_icons": {
-    "香港": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/HongKong.svg",
-    "日本": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Japan.svg",
-    "美国": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/America.svg",
-    "新加坡": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Singapore.svg",
-    "台湾": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Taiwan.svg",
     "Proxy": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Proxy.svg",
     "订阅": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Static.svg",
     "Direct": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/China.svg",
@@ -633,8 +629,16 @@
     "Telegram": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Telegram.svg",
     "PikPak": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/PikPak.svg",
     "EHentai": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/EHentai.svg",
+    "香港": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/HongKong.svg",
+    "台湾": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Taiwan.svg",
+    "新加坡": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Singapore.svg",
+    "日本": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Japan.svg",
+    "美国": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/America.svg",
     "其他节点": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/WorldMap.svg",
     "低倍率节点": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Available.svg",
-    "Final": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Stack.svg"
+    "Final": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Stack.svg",
+    "Claude": null,
+    "媒体": null,
+    "porn": null
   }
 }
