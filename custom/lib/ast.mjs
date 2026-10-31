@@ -268,6 +268,7 @@ export function globalConfigFunction(model, manifest) {
 }
 
 export function compileScript(model, manifest, plan, runtime, provenance) {
+  if (manifest.preserve_original_proxy_names !== true) throw new Error("Original proxy names must be preserved by customization");
   const index = new Map([...model.index].map(([name, entry]) => [name, {...entry, node: clone(entry.node)}]));
   const runtimeAst = parseScript(runtime);
   for (const name of blockBindings(runtimeAst.body)) index.delete(name);

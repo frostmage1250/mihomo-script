@@ -11,10 +11,11 @@ const read = file => fs.readFileSync(path.join(root,file),"utf8");
 const snapshot = JSON.parse(read(".build/snapshot.json"));
 const manifest = snapshot.manifest;
 assert.equal(manifest.policy_group_type, "select", "manual policy-group customization");
+assert.equal(manifest.preserve_original_proxy_names, true, "original proxy-name customization");
 const report = JSON.parse(read(manifest.report));
 const upstream = extractModel(snapshot.upstream, manifest, snapshot.routingReference);
 const ss = (name, extra={}) => ({name,type:"ss",server:"node.example.com",port:443,cipher:"aes-128-gcm",password:"fixture-password",...extra});
-const fixture = {proxies:[ss("日本 01"),ss("日本 01",{server:"duplicate.example.com"}),ss("香港 01"),ss("新加坡 01"),ss("美国 01",{"dialer-proxy":"日本 01"}),ss("韩国 01"),ss("日本 0.5x"),ss("官网 剩余流量")],dns:{},hosts:{}};
+const fixture = {proxies:[ss("日本 01"),ss("日本 01",{server:"duplicate.example.com"}),ss("香港 01"),ss("新加坡 01"),ss("美国 01",{"dialer-proxy":"日本 01"}),ss("韩国 01"),ss("日本 0.5x"),ss("  日本   02  "),ss("日本 02"),ss("日本 02 🇯🇵"),ss("官网 剩余流量")],dns:{},hosts:{}};
 const outputFile=process.argv[2]||path.join(root,".build/mihomo-fixture.json");
 const inputFile=path.join(root,".build/import.input.json"), profile=snapshot.lock.validation.bettbox;
 fs.writeFileSync(inputFile,JSON.stringify(fixture));
@@ -112,7 +113,7 @@ console.log("Rule provenance verified: " + bettProviderCount + " Bett providers 
   Object.keys(customProviderAssets).length + " reviewed converter providers.");
 
 const names=output.proxies.map(proxy=>proxy.name);
-assert.deepEqual(names,["日本 01","香港 01","新加坡 01","美国 01","韩国 01","日本 0.5x","IPv4优先","IPv6优先"]);
+assert.deepEqual(names,["日本 01","香港 01","新加坡 01","美国 01","韩国 01","日本 0.5x","  日本   02  ","日本 02","日本 02 🇯🇵","IPv4优先","IPv6优先"]);
 assert.ok(output.proxies.every(proxy=>!("dialer-proxy" in proxy)));
 assert.deepEqual(groups.get("GitHub").proxies,["Proxy","订阅","AI"]);
 assert.deepEqual(groups.get("YouTube").proxies,["Proxy","香港","低倍率节点"]);
