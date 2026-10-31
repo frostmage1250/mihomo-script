@@ -1,5 +1,6 @@
 {
   "schema_version": 2,
+  "policy_group_type": "select",
   "upstream": {
     "repository": "AIsouler/MyClash",
     "branch": "main",

@@ -82,7 +82,7 @@ function buildProxyGroups(regionProxyMap, subscriptionProxies) {
   const availableRegions = regionOrder.filter((name) => regionProxyMap.has(name));
   const simpleSelect = (name, proxies) => ({
     name,
-    type: 'select',
+    type: policyGroupType,
     proxies,
     ...(groupTestUrl ? { url: groupTestUrl } : {}),
     interval: 0,

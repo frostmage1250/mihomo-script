@@ -33,6 +33,11 @@ reference validation.
 
 ## Retained policy
 
+`policy_group_type: "select"` is an explicit customization: every functional,
+regional, subscription, and other generated policy group uses manual selection.
+Upstream automatic selection, load balancing, and regional automatic-selection
+groups are not generated. Existing group candidates and their order are retained.
+
 The AI, geolocation-cn, Claude, porn, and MCDN converter sources
 remain explicit. AI retains Bett's base rules with the converter's supplements.
 Twitch and AppleTV remain additional Bett definitions. Their existing URLs remain

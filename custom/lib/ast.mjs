@@ -285,6 +285,8 @@ export function compileScript(model, manifest, plan, runtime, provenance) {
     declarations: [{...clone(model.index.get("rateRegionDefinitions").node.declarations[0]), init: ratesNode}]});
   setDeclaration("buildDnsAndHostsConfig", transformDns(model.index.get("buildDnsAndHostsConfig").node, manifest));
   setDeclaration("buildGlobalConfig", globalConfigFunction(model, manifest));
+  if (manifest.policy_group_type !== "select") throw new Error("Policy groups must use the manual select customization");
+  setValue("policyGroupType", manifest.policy_group_type);
   setValue("directProxies", manifest.direct_proxies);
   setValue("finalRuleProviders", plan.providers);
   // Retain the upstream conditional spread itself, rather than freezing its default.

@@ -10,6 +10,7 @@ const root = path.resolve(import.meta.dirname, "..");
 const read = file => fs.readFileSync(path.join(root,file),"utf8");
 const snapshot = JSON.parse(read(".build/snapshot.json"));
 const manifest = snapshot.manifest;
+assert.equal(manifest.policy_group_type, "select", "manual policy-group customization");
 const report = JSON.parse(read(manifest.report));
 const upstream = extractModel(snapshot.upstream, manifest, snapshot.routingReference);
 const ss = (name, extra={}) => ({name,type:"ss",server:"node.example.com",port:443,cipher:"aes-128-gcm",password:"fixture-password",...extra});
@@ -128,7 +129,7 @@ assert.deepEqual(groups.get("EHentai").proxies,["Proxy","美国","新加坡","�
 assert.ok(!groups.has("pron"));
 const noIconGroups=new Set(["Claude","媒体","porn"]);
 for(const group of groups.values()) {
-  assert.equal(group.type,"select");assert.equal(group.interval,0);assert.equal(group.url,upstream.groupTestUrl);
+  assert.equal(group.type,manifest.policy_group_type);assert.equal(group.interval,0);assert.equal(group.url,upstream.groupTestUrl);
   const sourceName=manifest.group_icon_sources[group.name]||group.name;
   const expectedIcon=noIconGroups.has(group.name)?undefined:upstream.icons[sourceName];
   assert.equal(group.icon,expectedIcon,"upstream icon: "+group.name);
