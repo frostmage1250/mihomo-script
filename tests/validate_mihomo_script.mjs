@@ -153,6 +153,11 @@ vm.runInContext(snapshot.upstream + "\nObject.assign(ruleOptionsEnable, " +
   JSON.stringify({...manifest.node_options}) + ");globalThis.__dns = buildDnsAndHostsConfig(" +
   JSON.stringify(fixture) + ", " + JSON.stringify(output.proxies) + ").dns;", dnsSandbox);
 const upstreamDns = JSON.parse(JSON.stringify(dnsSandbox.__dns));
+assert.deepEqual(output.dns.nameserver, upstreamDns.nameserver.map(value=>value.replace(/#默认代理(?=&|$)/, "#Proxy")));
+for (const value of output.dns.nameserver) {
+  const suffix = value.slice(value.lastIndexOf("#") + 1).split("&")[0];
+  assert.ok(groups.has(suffix), "foreign DNS references a missing proxy group: " + suffix);
+}
 for (const key of ["enhanced-mode", "fake-ip-range", "fake-ip-range6", "fake-ip-filter"]) {
   assert.deepEqual(output.dns[key], upstreamDns[key], "Fake-IP differs from upstream: " + key);
 }

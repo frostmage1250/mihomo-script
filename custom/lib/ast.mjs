@@ -267,6 +267,18 @@ export function globalConfigFunction(model, manifest) {
   return parseScript("function buildGlobalConfig(config, filteredProxies) { return " + generate(object) + "; }").body[0];
 }
 
+export function retargetDnsProxySuffix(value, aliases) {
+  if (typeof value !== "string") return value;
+  const hash = value.lastIndexOf("#");
+  if (hash < 0) return value;
+  const suffix = value.slice(hash + 1);
+  const separator = suffix.indexOf("&");
+  const name = separator < 0 ? suffix : suffix.slice(0, separator);
+  if (name === "DIRECT" || !Object.hasOwn(aliases, name)) return value;
+  return value.slice(0, hash + 1) + aliases[name] +
+    (separator < 0 ? "" : suffix.slice(separator));
+}
+
 export function compileScript(model, manifest, plan, runtime, provenance) {
   if (manifest.preserve_original_proxy_names !== true ||
       manifest.proxy_name_deduplication !== "exact-name-first") {
@@ -359,6 +371,14 @@ export function compileScript(model, manifest, plan, runtime, provenance) {
     globalOverrides: manifest.global_overrides,
     omittedGlobalFields: manifest.omitted_global_fields,
   };
+  for (const declaration of body) walk(declaration, node => {
+    if (node.type !== "Literal" || typeof node.value !== "string") return;
+    const value = retargetDnsProxySuffix(node.value, manifest.policy_aliases);
+    if (value !== node.value) {
+      node.value = value;
+      node.raw = JSON.stringify(value);
+    }
+  });
   const header = "/**\n * Mihomo single-subscription override; upstream author: AIsouler.\n" +
     " * Source: https://github.com/AIsouler/MyClash\n * Upstream commit: " + provenance.commit +
     "\n * Full upstream runtime with explicit customizations. MIT license retained.\n */\n";

@@ -77,7 +77,9 @@ Upstream names, ordinary provider fields, icons, and the complete region list
 follow upstream. Low-rate and high-rate group generation, high-rate filtering,
 home groups, proxy IPv4/IPv6 preferences, custom nodes, GLOBAL, minimal mode,
 group visibility, and service switches use the upstream implementations and
-defaults unless an explicit customization applies. Compatible_With_Bettbox keeps
+defaults unless an explicit customization applies. DNS proxy suffixes follow
+policy_aliases too: upstream #默认代理 becomes #Proxy, preserving connection
+parameters and the built-in #DIRECT target. Compatible_With_Bettbox keeps
 the upstream service policy-group metadata.
 
 The retained global differences are allow-lan=false, log-level=warning, and

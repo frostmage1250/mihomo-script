@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseScript, indexDeclarations, dependencyClosure, freeNames, transformDns, extractModel, globalConfigFunction, compileScript } from "../custom/lib/ast.mjs";
+import { parseScript, indexDeclarations, dependencyClosure, freeNames, transformDns, extractModel, globalConfigFunction, compileScript, retargetDnsProxySuffix } from "../custom/lib/ast.mjs";
 import { generate } from "astring";
 import { retargetRule, matchesRule, replaceProviderAsset, planRules } from "../custom/lib/rules.mjs";
 import fs from "node:fs";
@@ -287,6 +287,7 @@ test("upstream runtime features remain live around explicit customizations", () 
     自动选择:false,负载均衡:false,生成地区自动选择组:false});
   const native=JSON.parse(JSON.stringify(upstreamContext.run(input)));
   const expectedDns={...native.dns,...manifest.dns_overrides,
+    nameserver:native.dns.nameserver.map(value=>value.replace(/#默认代理(?=&|$)/, "#Proxy")),
     "nameserver-policy":{...native.dns["nameserver-policy"],...manifest.dns_policy_overrides}};
   assert.deepEqual(baseline.output.dns,expectedDns);
   const expectedHosts={...native.hosts,...manifest.host_overrides};
@@ -301,4 +302,15 @@ test("upstream runtime features remain live around explicit customizations", () 
     if(parent)delete parent[key];
   }
   assert.deepEqual(ordinary(baseline.output),expected);
+});
+
+test("DNS proxy suffixes follow group aliases without changing built-in DIRECT or connection parameters", () => {
+  assert.equal(retargetDnsProxySuffix("https://dns.example/dns-query#默认代理",manifest.policy_aliases),
+    "https://dns.example/dns-query#Proxy");
+  assert.equal(retargetDnsProxySuffix("https://dns.example/dns-query#默认代理&ecs=1.2.3.0/24&h3=true",manifest.policy_aliases),
+    "https://dns.example/dns-query#Proxy&ecs=1.2.3.0/24&h3=true");
+  for(const value of ["114.114.114.114#DIRECT","https://dns.example/dns-query#RULES",
+    "https://dns.example/dns-query#eth0"]) {
+    assert.equal(retargetDnsProxySuffix(value,manifest.policy_aliases),value);
+  }
 });
