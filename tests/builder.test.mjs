@@ -201,7 +201,7 @@ test("the pinned YAML controls business order and explicit extra-service anchors
   assert.ok(plan.rules.indexOf("RULE-SET,mcdn屏蔽,REJECT")<plan.rules.indexOf("RULE-SET,youtube,YouTube"));
   assert.deepEqual(plan.rules.slice(-4),[
     "RULE-SET,geolocation-!cn,Proxy","RULE-SET,cn_ip,Direct",
-    "RULE-SET,private_ip,Direct,no-resolve","MATCH,Final",
+    "RULE-SET,private_ip,Direct","MATCH,Final",
   ]);
   // Swapping two lines in the reference changes the generated order.
   const changed=reference.replace(

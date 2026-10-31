@@ -159,8 +159,7 @@
     },
     "private_ip": {
       "section": "fallback",
-      "order": 30,
-      "no_resolve": true
+      "order": 30
     }
   },
   "runtime": "custom/runtime.js",
