@@ -19,7 +19,7 @@
     "custom/lib/ast.mjs": "b5b2596d7f1b5754eace7789b65d960218a624351e8a822a80f9fafe9bde8839",
     "custom/lib/rules.mjs": "a11d14739cd99b03db961d4a454fa316f19af47a5f574ffdbf447abafa05def2",
     "custom/runtime.js": "c616b989ae22fbae405983546db4567cdfe7e66e34453fb38f9d1557e11d2fd1",
-    "custom/customizations.json": "06a2784b4d4a4140a95ae26656bcd87350a036f45bdfd81baca3800996c48906"
+    "custom/customizations.json": "de17cd54b8bc6f2bcf1288ac58918aeeb9cd743b351007881b0e4ccfc05d7842"
   },
   "dependency_lock_sha256": "4b4d0e6559790a82178f3238e5cb20cf440c86709ec87c380710a9e8187efdb0",
   "validation": {

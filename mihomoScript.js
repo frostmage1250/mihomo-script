@@ -1495,7 +1495,7 @@ const customizationPolicy = {
     "quic": ["AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn_additional),(RULE-SET,cn_ip,no-resolve)))))),REJECT"],
     "custom_reject": ["RULE-SET,mcdn屏蔽,REJECT"],
     "services": [],
-    "fallback": ["RULE-SET,geolocation-!cn,Proxy", "RULE-SET,cn_ip,Direct", "RULE-SET,private_ip,Direct,no-resolve"],
+    "fallback": ["RULE-SET,geolocation-!cn,Proxy", "RULE-SET,cn_ip,Direct", "RULE-SET,private_ip,Direct"],
     "final": ["MATCH,Final"]
   },
   "blockOrder": ["upstream_prefix", "quic", "custom_reject", "services", "fallback", "final"],
