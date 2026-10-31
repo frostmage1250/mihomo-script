@@ -212,3 +212,93 @@ test("the pinned YAML controls business order and explicit extra-service anchors
   const switched=planRules(extractModel(source,manifest,changed),manifest);
   assert.ok(switched.selectedServices.indexOf("Google")<switched.selectedServices.indexOf("YouTube"));
 });
+
+
+test("upstream runtime features remain live around explicit customizations", () => {
+  const source = fs.readFileSync(new URL("../Script/mihomoScript.js",import.meta.url),"utf8");
+  const reference = fs.readFileSync(new URL("../Config/mihomoConfig.yaml",import.meta.url),"utf8");
+  const runtime = fs.readFileSync(new URL("../custom/runtime.js",import.meta.url),"utf8");
+  const model = extractModel(source,manifest,reference);
+  const compiled = compileScript(model,manifest,planRules(model,manifest),runtime,{commit:"test"}).script;
+  const ss = (name, extra={}) => ({name,type:"ss",server:"node.example.com",port:443,
+    cipher:"aes-128-gcm",password:"fixture-password",...extra});
+  const input = {proxies:[ss("日本 01"),ss("日本 01",{server:"duplicate.example.com"}),
+    ss(" 美国  3x ",{"dialer-proxy":"日本 01"}),ss("日本 家宽"),ss("日本 0.5x"),
+    ss("无效引用 日本",{"dialer-proxy":"不存在"})],dns:{},hosts:{}};
+  const run = (options={}, custom=[]) => {
+    const context = vm.createContext({});
+    vm.runInContext(compiled + "\n" +
+      "globalThis.setup = (options, nodes) => {Object.assign(ruleOptionsEnable, options);" +
+      "customizeProxies.splice(0, customizeProxies.length, ...nodes);};" +
+      "globalThis.run = main; globalThis.optionNames = Object.keys(ruleOptionsEnable);" +
+      "globalThis.groupOptions = Compatible_With_Bettbox.policyGroupOptions;",context);
+    context.setup(options,custom);
+    return {output:JSON.parse(JSON.stringify(context.run(input))),
+      optionNames:Array.from(context.optionNames),groupOptions:Array.from(context.groupOptions)};
+  };
+  const baseline = run();
+  const groups = value => new Map(value["proxy-groups"].map(group=>[group.name,group]));
+  assert.ok(groups(baseline.output).has("GLOBAL"));
+  assert.ok(groups(baseline.output).has("高倍率节点"));
+  assert.ok(groups(baseline.output).has("家宽节点"));
+  assert.equal(baseline.output.proxies.find(proxy=>proxy.name===" 美国  3x ")["dialer-proxy"],"日本 01");
+  assert.equal(Object.hasOwn(baseline.output.proxies.find(proxy=>proxy.name==="无效引用 日本"),"dialer-proxy"),false);
+  assert.equal(baseline.output.proxies.filter(proxy=>proxy.name==="日本 01").length,1);
+  for(const name of ["过滤高倍率节点","生成家宽节点组","生成倍率组","代理IPV4优先","代理IPV6优先"]) {
+    assert.ok(baseline.optionNames.includes(name),name);
+  }
+  assert.ok(baseline.groupOptions.includes("Google"));
+  for(const group of baseline.output["proxy-groups"]) {
+    assert.equal(group.type,manifest.policy_group_type);
+    for(const field of manifest.omitted_policy_group_fields) assert.equal(Object.hasOwn(group,field),false);
+  }
+  const filtered=run({过滤高倍率节点:true}).output;
+  assert.equal(filtered.proxies.some(proxy=>proxy.name===" 美国  3x "),false);
+  const withoutGroups=run({生成倍率组:false,生成家宽节点组:false}).output;
+  for(const name of ["低倍率节点","高倍率节点","家宽节点"]) assert.equal(groups(withoutGroups).has(name),false);
+  assert.ok(withoutGroups.proxies.some(proxy=>proxy.name===" 美国  3x "));
+  const ipv4=run({代理IPV4优先:true,代理IPV6优先:false}).output;
+  assert.ok(ipv4.proxies.filter(proxy=>proxy.type!=="direct").every(proxy=>proxy["ip-version"]==="ipv4-prefer"));
+  const ipv6=run({代理IPV4优先:false,代理IPV6优先:true}).output;
+  assert.ok(ipv6.proxies.filter(proxy=>proxy.type!=="direct").every(proxy=>proxy["ip-version"]==="ipv6-prefer"));
+  const disabled=run({Google:false}).output;
+  assert.equal(groups(disabled).has("Google"),false);
+  assert.equal(Object.hasOwn(disabled["rule-providers"],"google"),false);
+  assert.equal(disabled.rules.some(rule=>rule.startsWith("RULE-SET,google,")),false);
+  const hidden=run({隐藏地区手动选择组:true}).output;
+  assert.equal(groups(hidden).get("日本").hidden,true);
+  assert.equal(groups(hidden).get("Direct").hidden,true);
+  const expanded=run({分流组添加所有节点:true}).output;
+  assert.ok(groups(expanded).get("AI").proxies.includes("日本 家宽"));
+  const minimal=run({极简模式:true}).output;
+  assert.equal(groups(minimal).has("AI"),false);
+  assert.equal(Object.hasOwn(minimal["rule-providers"],"ai"),false);
+  assert.equal(minimal.rules[minimal.rules.length-1],"MATCH,Proxy");
+  const custom=run({},[ss("  自建 日本  "),ss("日本 01")]).output;
+  assert.ok(groups(custom).has("自建节点"));
+  assert.ok(custom.proxies.some(proxy=>proxy.name==="  自建 日本  "));
+  assert.equal(custom.proxies.filter(proxy=>proxy.name==="日本 01").length,1);
+
+  // Independently compare ordinary output fields and DNS/hosts to the actual upstream entry point.
+  const upstreamContext=vm.createContext({});
+  vm.runInContext(source+"\nglobalThis.configure = value => Object.assign(ruleOptionsEnable,value);globalThis.run=main;",upstreamContext);
+  upstreamContext.configure({...manifest.node_options,
+    ...Object.fromEntries(manifest.excluded_services.map(name=>[name,false])),
+    自动选择:false,负载均衡:false,生成地区自动选择组:false});
+  const native=JSON.parse(JSON.stringify(upstreamContext.run(input)));
+  const expectedDns={...native.dns,...manifest.dns_overrides,
+    "nameserver-policy":{...native.dns["nameserver-policy"],...manifest.dns_policy_overrides}};
+  assert.deepEqual(baseline.output.dns,expectedDns);
+  const expectedHosts={...native.hosts,...manifest.host_overrides};
+  for(const name of manifest.excluded_hosts)delete expectedHosts[name];
+  assert.deepEqual(baseline.output.hosts,expectedHosts);
+  const ordinary=value=>Object.fromEntries(Object.entries(value).filter(([name])=>
+    !["dns","hosts","proxies","proxy-groups","rule-providers","rules"].includes(name)));
+  const expected=ordinary(native);
+  Object.assign(expected,manifest.global_overrides);
+  for(const path of manifest.omitted_global_fields) {
+    const parts=path.split("."),key=parts.pop(),parent=parts.reduce((value,name)=>value?.[name],expected);
+    if(parent)delete parent[key];
+  }
+  assert.deepEqual(ordinary(baseline.output),expected);
+});

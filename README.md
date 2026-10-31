@@ -25,25 +25,34 @@ repository history.
 - custom/sources.lock.json: immutable input commits, file digests, dependency lock and validation versions.
 - custom/upstream.json: source coverage, applied policies, retired customization keys, and output digest.
 
-The generator builds exclusively from independent sources. Acceptance checks use
-the pinned upstream input, the explicit customization policy, and the generated
-configuration. Rule and icon definitions are read directly from the fixed upstream
-source, with no upstream configuration constructed. Mihomo handles configuration syntax and
-reference validation.
+The generator retains the complete runtime from the fixed upstream script.
+The upstream entry point performs node filtering, rate/home classification,
+custom-node processing, dialer reference repair, proxy IP preference, service
+switches, minimal mode, DNS/hosts processing, and ordinary global configuration.
+Only the explicit customization manifest is applied around that runtime. Rule
+order comes from the fixed upstream YAML. Acceptance checks compare inherited
+behavior with the actual upstream entry point; Mihomo validates configuration
+syntax and references.
 
 ## Retained policy
 
 `policy_group_type: "select"` is an explicit customization: every functional,
 regional, subscription, and other generated policy group uses manual selection.
 Upstream automatic selection, load balancing, and regional automatic-selection
-groups are not generated. Existing group candidates and their order are retained.
+groups are not generated. Existing group candidates and their order are recorded
+in policy_group_candidates and policy_group_order. Group icon choices remain in
+group_icon_sources. Dynamic regional, rate and home groups follow upstream.
+policy_group_overrides retains interval=0. omitted_policy_group_fields explicitly
+removes timeout, lazy, max-failed-times and default-selected from every group.
 
 `preserve_original_proxy_names: true` is an explicit customization: subscription
 node names are retained exactly, including whitespace, flags, punctuation and
-invisible characters. Upstream name normalization is not applied: no flag is
+invisible characters. The same policy applies to custom nodes. Upstream name normalization is not applied: no flag is
 added or moved, and whitespace is not trimmed or collapsed. Only completely
-identical original names are deduplicated, retaining the first node. Temporary
-name cleanup for matching does not change the emitted node names.
+identical original names are deduplicated, retaining the first node, including
+collisions between subscription and custom nodes. This is recorded as
+proxy_name_deduplication=exact-name-first. Temporary name cleanup for matching
+does not change the emitted node names.
 
 The AI, geolocation-cn, Claude, porn, and MCDN converter sources
 remain explicit. AI retains Bett's base rules with the converter's supplements.
@@ -51,8 +60,9 @@ Twitch and AppleTV remain additional Bett definitions. Their existing URLs remai
 declared in the customization policy.
 
 Existing functional group choices, direct exceptions, Steam CN replacement,
-service exclusions, original node names, exact-name deduplication, dialer-proxy
-removal, and system DNS behavior remain in the source policy.
+service exclusions, original node names, exact-name deduplication, and system DNS
+behavior remain in the source policy. Valid dialer-proxy references are retained
+and invalid references are handled by the upstream repair workflow.
 The fixed upstream `Config/mihomoConfig.yaml` supplies routing order.
 Its download/private/domestic direct prefix precedes QUIC and MCDN rejection,
 then business services follow YAML order, then foreign-domain, domestic-IP,
@@ -64,7 +74,11 @@ removes the upstream QUIC reject rules and `cn_additional`; setting it to `true`
 restores both. The reject expression and provider definition follow upstream.
 Built-in service rule actions stay intact while group targets are mapped.
 Upstream names, ordinary provider fields, icons, and the complete region list
-follow upstream. The selected low-rate group remains the existing local choice.
+follow upstream. Low-rate and high-rate group generation, high-rate filtering,
+home groups, proxy IPv4/IPv6 preferences, custom nodes, GLOBAL, minimal mode,
+group visibility, and service switches use the upstream implementations and
+defaults unless an explicit customization applies. Compatible_With_Bettbox keeps
+the upstream service policy-group metadata.
 
 The retained global differences are allow-lan=false, log-level=warning, and
 omission of bind-address, NTP, and tun.auto-redirect. Other ordinary global fields
@@ -102,8 +116,9 @@ runs use the output acceptance checks. Dependency installation uses committed lo
 The validated output, source lock, compact report, and required build inputs are
 published to main in one commit. Upstream history is not merged or pushed.
 
-The report uses schema version 3. It links to custom/sources.lock.json for source
-and validation versions, and records rule blocks, coverage, effective icons,
+The report uses schema version 3 and runtime_mode=upstream-with-explicit-customizations.
+It links to custom/sources.lock.json for source and validation versions, and records
+rule blocks, coverage, effective icons,
 the upstream Fake-IP mode, and stale preferences. Full upstream definitions stay
 in Script/mihomoScript.js; source provenance stays in the source lock.
 

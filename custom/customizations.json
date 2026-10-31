@@ -39,7 +39,10 @@
     "美国": "美国",
     "其他节点": "其他节点",
     "低倍率节点": "低倍率节点",
-    "Final": "漏网之鱼"
+    "Final": "漏网之鱼",
+    "Claude": null,
+    "媒体": null,
+    "porn": null
   },
   "excluded_services": [
     "FCM",
@@ -211,7 +214,8 @@
     "直连": "Direct",
     "DIRECT": "Direct",
     "默认代理": "Proxy",
-    "漏网之鱼": "Final"
+    "漏网之鱼": "Final",
+    "手动选择": "订阅"
   },
   "excluded_rule_spreads": [],
   "excluded_rules": [
@@ -343,5 +347,109 @@
   "routing_reference": {
     "repository": "AIsouler/MyClash",
     "path": "Config/mihomoConfig.yaml"
-  }
+  },
+  "omitted_policy_group_fields": [
+    "timeout",
+    "lazy",
+    "max-failed-times",
+    "default-selected"
+  ],
+  "policy_group_overrides": {
+    "interval": 0
+  },
+  "proxy_name_deduplication": "exact-name-first",
+  "policy_group_candidates": {
+    "Proxy": [
+      "订阅",
+      "$regions",
+      "$custom_groups",
+      "$nodes"
+    ],
+    "订阅": [
+      "$nodes"
+    ],
+    "Direct": [
+      "DIRECT",
+      "$direct_proxies"
+    ],
+    "GitHub": [
+      "Proxy",
+      "订阅",
+      "AI"
+    ],
+    "Claude": [
+      "Proxy",
+      "订阅",
+      "日本",
+      "台湾",
+      "其他节点"
+    ],
+    "AI": [
+      "Proxy",
+      "日本",
+      "台湾",
+      "其他节点"
+    ],
+    "porn": [
+      "Proxy",
+      "新加坡",
+      "低倍率节点",
+      "美国"
+    ],
+    "Google": [
+      "Proxy",
+      "订阅"
+    ],
+    "媒体": [
+      "Proxy",
+      "低倍率节点",
+      "香港",
+      "美国"
+    ],
+    "YouTube": [
+      "Proxy",
+      "香港",
+      "低倍率节点"
+    ],
+    "Telegram": [
+      "Proxy",
+      "低倍率节点",
+      "香港"
+    ],
+    "PikPak": [
+      "Proxy",
+      "Direct",
+      "低倍率节点",
+      "香港"
+    ],
+    "EHentai": [
+      "Proxy",
+      "美国",
+      "新加坡",
+      "香港"
+    ],
+    "Final": [
+      "Proxy",
+      "Direct"
+    ]
+  },
+  "policy_group_order": [
+    "GLOBAL",
+    "Proxy",
+    "订阅",
+    "Direct",
+    "GitHub",
+    "Claude",
+    "AI",
+    "porn",
+    "Google",
+    "媒体",
+    "YouTube",
+    "Telegram",
+    "PikPak",
+    "EHentai",
+    "$regions",
+    "$remaining",
+    "Final"
+  ]
 }

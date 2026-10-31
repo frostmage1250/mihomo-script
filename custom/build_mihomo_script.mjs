@@ -15,6 +15,7 @@ export function render(snapshot) {
   const report = {
     schema_version: 3,
     source_mode: "fixed-upstream-snapshot",
+    runtime_mode: "upstream-with-explicit-customizations",
     source_lock: manifest.source_lock,
     routing_reference: lock.routing_reference,
     output_sha256: sha256(compiled.script),

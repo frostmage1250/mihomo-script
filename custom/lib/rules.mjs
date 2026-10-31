@@ -210,5 +210,14 @@ export function planRules(model, manifest) {
   }
   const defaults = plan.filter(entry => !Object.hasOwn(manifest.service_routing, entry.service.name))
     .map(entry => ({name: entry.service.name, target: entry.target, section: entry.section}));
-  return {providers, rules, blocks, coverage, stale, defaults, selectedServices: plan.map(entry => entry.service.name)};
+  const servicePlans = plan.map(entry => ({
+    name: entry.service.name, target: entry.target, section: entry.section,
+    rules: (entry.service.rules || []).map(rule => retargetRule(rule, entry.target)),
+  }));
+  const nonServiceBlocks = Object.fromEntries(Object.entries(blocks).map(([section, values]) => [
+    section, values.slice(servicePlans.filter(entry => entry.section === section)
+      .reduce((count, entry) => count + entry.rules.length, 0)),
+  ]));
+  return {providers, rules, blocks, coverage, stale, defaults, servicePlans, nonServiceBlocks,
+    selectedServices: plan.map(entry => entry.service.name)};
 }

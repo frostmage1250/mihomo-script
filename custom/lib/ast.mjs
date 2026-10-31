@@ -268,72 +268,107 @@ export function globalConfigFunction(model, manifest) {
 }
 
 export function compileScript(model, manifest, plan, runtime, provenance) {
-  if (manifest.preserve_original_proxy_names !== true) throw new Error("Original proxy names must be preserved by customization");
-  const index = new Map([...model.index].map(([name, entry]) => [name, {...entry, node: clone(entry.node)}]));
-  const runtimeAst = parseScript(runtime);
-  for (const name of blockBindings(runtimeAst.body)) index.delete(name);
-  let order = Math.max(...[...index.values()].map(entry => entry.order)) + 1;
-  const setDeclaration = (name, node) => index.set(name, {node, order: index.get(name)?.order ?? order++});
-  const setValue = (name, value) => setDeclaration(name, parseScript("const " + name + " = " + JSON.stringify(value) + ";").body[0]);
-  const regions = model.evaluate(model.index.get("regionDefinitions").node.declarations[0].init);
-  const ratesNode = clone(model.index.get("rateRegionDefinitions").node.declarations[0].init);
-  if (ratesNode.type !== "ArrayExpression") throw new Error("Expected upstream rate definitions array");
-  ratesNode.elements = ratesNode.elements.filter(node => {
-    const name = property(node, "name")?.value;
-    return name && model.evaluate(name) === model.lowRateRegionName;
-  });
-  setDeclaration("rateRegionDefinitions", {...clone(model.index.get("rateRegionDefinitions").node),
-    declarations: [{...clone(model.index.get("rateRegionDefinitions").node.declarations[0]), init: ratesNode}]});
-  setDeclaration("buildDnsAndHostsConfig", transformDns(model.index.get("buildDnsAndHostsConfig").node, manifest));
-  setDeclaration("buildGlobalConfig", globalConfigFunction(model, manifest));
-  if (manifest.policy_group_type !== "select") throw new Error("Policy groups must use the manual select customization");
-  setValue("policyGroupType", manifest.policy_group_type);
+  if (manifest.preserve_original_proxy_names !== true ||
+      manifest.proxy_name_deduplication !== "exact-name-first") {
+    throw new Error("Original proxy names and exact-name-first deduplication must be preserved");
+  }
+  if (manifest.policy_group_type !== "select") throw new Error("Policy groups must use manual select");
+  const body = clone(model.ast).body;
+  const replaceDeclaration = (name, replacement) => {
+    const position = body.findIndex(node =>
+      node.type === "FunctionDeclaration" ? node.id?.name === name :
+      node.type === "VariableDeclaration" && node.declarations.some(item => item.id.name === name));
+    if (position < 0) throw new Error("Missing upstream runtime declaration: " + name);
+    body[position] = replacement;
+  };
+  const setValue = (name, value) =>
+    replaceDeclaration(name, parseScript("const " + name + " = " + JSON.stringify(value) + ";").body[0]);
+  const options = {...model.nativeOptions, ...manifest.node_options};
+  for (const name of manifest.excluded_services) options[name] = false;
+  for (const name of Object.keys(manifest.additional_services)) {
+    if (!Object.hasOwn(options, name)) options[name] = true;
+  }
+  // Manual groups are an explicit customization, even when changed through the client UI.
+  options.自动选择 = false;
+  options.负载均衡 = false;
+  options.生成地区自动选择组 = false;
+  setValue("ruleOptionsEnable", options);
   setValue("directProxies", manifest.direct_proxies);
-  setValue("finalRuleProviders", plan.providers);
-  // Retain the upstream conditional spread itself, rather than freezing its default.
-  const quicSpread = model.ruleExpression.elements.find(node =>
-    node.type === "SpreadElement" && freeNames(node.argument).has("blockForeignQuic"));
-  if (!quicSpread) throw new Error("Missing upstream QUIC rule switch");
-  const prefixSection = manifest.base_rule_spread_routing.prefixRules;
-  const quicSection = manifest.base_rule_spread_routing.blockForeignQuic;
-  setValue("upstreamPrefixRules", plan.blocks[prefixSection]);
-  setValue("remainingRules", manifest.rule_blocks
-    .filter(section => section !== prefixSection && section !== quicSection)
-    .flatMap(section => plan.blocks[section]));
-  const buildRules = parseScript("function buildRules() { return [...upstreamPrefixRules, ...remainingRules]; }").body[0];
-  buildRules.body.body[0].argument.elements.splice(1, 0, clone(quicSpread));
-  setDeclaration("buildRules", buildRules);
-  setValue("groupTestUrl", model.groupTestUrl ?? null);
-  const aliases = {...Object.fromEntries(Array.from(regions, region => [region.name, region.name])), ...manifest.group_icon_sources};
-  const icons = Object.fromEntries(Object.entries(aliases).filter(([, source]) => model.icons[source] !== undefined)
-    .map(([name, source]) => [name, model.icons[source]]));
-  setValue("groupIcons", icons);
-  setValue("ruleOptionsEnable", manifest.node_options);
-  setValue("Compatible_With_Bettbox", {ruleOptionsEnable: true});
-  const selected = dependencyClosure(index, [...freeNames(runtimeAst), "Compatible_With_Bettbox"]);
-  const neededOptions = {...manifest.node_options};
-  for (const entry of [...selected, {node: runtimeAst}]) walk(entry.node, node => {
-    if (node.type === "MemberExpression" && node.object.type === "Identifier" &&
-        node.object.name === "ruleOptionsEnable") {
-      const name = keyOf(node);
-      if (name && Object.hasOwn(model.nativeOptions, name) && !Object.hasOwn(neededOptions, name)) neededOptions[name] = model.nativeOptions[name];
-    }
+  const baseProviders = {};
+  for (const name of Object.keys(model.baseRuleProviders)) {
+    if (manifest.excluded_base_rule_providers.includes(name)) continue;
+    const outputName = manifest.base_rule_provider_replacements[name]?.name || name;
+    baseProviders[outputName] = plan.providers[outputName];
+  }
+  Object.assign(baseProviders, manifest.additional_rule_providers);
+  setValue("baseRuleProviders", baseProviders);
+  const services = model.services
+    .filter(service => !manifest.excluded_services.includes(service.name) &&
+      !["自动选择", "负载均衡"].includes(service.name))
+    .map(service => ({...service, ...(service.providers && {
+      providers: Object.fromEntries(Object.keys(service.providers).map(name => [name, plan.providers[name]])),
+    })}));
+  const selectBase = JSON.parse(JSON.stringify(model.evaluate(expression("selectBaseOption"))));
+  for (const [name, value] of Object.entries(manifest.additional_services)) {
+    services.push({...value, name, baseOption: selectBase,
+      providers: Object.fromEntries(Object.keys(value.providers || {}).map(key => [key, plan.providers[key]]))});
+  }
+  setValue("serviceConfigs", services);
+  replaceDeclaration("normalizeProxyName",
+    parseScript("function normalizeProxyName(proxy) { return proxy; }").body[0]);
+  // Keep the upstream custom-node workflow, applying the same original-name deduplication policy.
+  const customize = clone(model.index.get("buildCustomizeGroups")?.node);
+  if (!customize) throw new Error("Missing upstream custom-node workflow");
+  let collisionRules = 0;
+  walk(customize, node => {
+    if (node.type !== "BlockStatement") return;
+    node.body = node.body.map(statement => {
+      if (statement.type !== "WhileStatement") return statement;
+      if (!freeNames(statement.test).has("usedNames")) return statement;
+      collisionRules++;
+      return {type: "IfStatement", test: statement.test,
+        consequent: {type: "ContinueStatement", label: null}, alternate: null};
+    });
   });
-  const options = selected.find(entry => entry.name === "ruleOptionsEnable");
-  if (options) options.node = parseScript("const ruleOptionsEnable = " + JSON.stringify(neededOptions) + ";").body[0];
-  for (const entry of selected) walk(entry.node, node => {
-    if (node.type === "Literal" && typeof node.value === "string" && node.value.includes("#")) {
-      const split = node.value.lastIndexOf("#"), target = node.value.slice(split + 1);
-      if (target !== "DIRECT" && manifest.policy_aliases[target]) {
-        node.value = node.value.slice(0, split + 1) + manifest.policy_aliases[target];
-        node.raw = JSON.stringify(node.value);
-      }
+  if (collisionRules !== 1) throw new Error("Upstream custom-node collision contract changed");
+  replaceDeclaration("buildCustomizeGroups", customize);
+  replaceDeclaration("buildDnsAndHostsConfig",
+    transformDns(model.index.get("buildDnsAndHostsConfig").node, manifest));
+  const mainIndex = body.findIndex(node => node.type === "FunctionDeclaration" && node.id.name === "main");
+  if (mainIndex < 0) throw new Error("Missing upstream main");
+  body[mainIndex].id.name = "upstreamMain";
+  const icons = {};
+  for (const [name, source] of Object.entries(manifest.group_icon_sources)) {
+    if (source === null) icons[name] = null;
+    else {
+      if (model.icons[source] === undefined) throw new Error("Missing upstream group icon: " + source);
+      icons[name] = model.icons[source];
     }
-  });
+  }
+  const policy = {
+    groupType: manifest.policy_group_type,
+    groupFields: manifest.policy_group_overrides,
+    omittedGroupFields: manifest.omitted_policy_group_fields,
+    groupCandidates: manifest.policy_group_candidates,
+    groupOrder: manifest.policy_group_order,
+    groupIcons: icons,
+    aliases: manifest.policy_aliases,
+    servicePlans: plan.servicePlans,
+    blocks: plan.nonServiceBlocks,
+    blockOrder: manifest.rule_blocks,
+    globalOverrides: manifest.global_overrides,
+    omittedGlobalFields: manifest.omitted_global_fields,
+  };
   const header = "/**\n * Mihomo single-subscription override; upstream author: AIsouler.\n" +
     " * Source: https://github.com/AIsouler/MyClash\n * Upstream commit: " + provenance.commit +
-    "\n * Generated from upstream AST and custom sources. MIT license retained.\n */\n";
-  const program = {type: "Program", sourceType: "script", body: [...selected.map(entry => entry.node), ...runtimeAst.body]};
+    "\n * Full upstream runtime with explicit customizations. MIT license retained.\n */\n";
+  const program = {type: "Program", sourceType: "script", body: [
+    ...body,
+    parseScript("const customizationPolicy = " + JSON.stringify(policy) + ";").body[0],
+    ...parseScript(runtime).body,
+  ]};
   const script = header + generate(program, {indent: "  "}).trimEnd() + "\n";
-  return {script, icons, emittedDeclarations: selected.map(entry => entry.name)};
+  return {script, icons, emittedDeclarations: body.flatMap(node =>
+    node.type === "FunctionDeclaration" ? [node.id.name] :
+    node.type === "VariableDeclaration" ? node.declarations.map(item => item.id.name) : [])};
 }
