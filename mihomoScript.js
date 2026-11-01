@@ -393,7 +393,7 @@ const serviceConfigs = [{
     }
   },
   "icon": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/OpenAI.svg",
-  "rules": ["RULE-SET,ai,AI"]
+  "rules": ["RULE-SET,ai,AI", "DOMAIN,cdn.usefathom.com,AI", "DOMAIN-SUFFIX,intercom.io,AI", "DOMAIN-SUFFIX,intercomcdn.com,AI"]
 }, {
   "name": "GitHub",
   "baseOption": {
@@ -1431,7 +1431,7 @@ const customizationPolicy = {
     "name": "AI",
     "target": "AI",
     "section": "services",
-    "rules": ["RULE-SET,ai,AI"]
+    "rules": ["RULE-SET,ai,AI", "DOMAIN,cdn.usefathom.com,AI", "DOMAIN-SUFFIX,intercom.io,AI", "DOMAIN-SUFFIX,intercomcdn.com,AI"]
   }, {
     "name": "GitHub",
     "target": "GitHub",
