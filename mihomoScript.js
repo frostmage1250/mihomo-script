@@ -50,7 +50,7 @@ const ruleOptionsEnable = {
   "Twitch": true,
   "Apple Podcasts": true
 };
-const prefixRules = ['DOMAIN,cdn.jsdmirror.com,直连', 'RULE-SET,private,直连', 'RULE-SET,geolocation-cn,直连', 'RULE-SET,games_cn,直连', 'RULE-SET,nvidia_cn,直连', 'RULE-SET,apple_cn,直连', 'RULE-SET,microsoft_cn,直连', 'DOMAIN,fsend.cn,直连', 'DOMAIN,international-gfe.download.nvidia.com,直连', 'DOMAIN-SUFFIX,ctaiot.com,直连'];
+const prefixRules = ['DOMAIN,cdn.jsdmirror.com,直连', 'RULE-SET,private,直连', 'RULE-SET,geolocation-cn,直连', 'RULE-SET,games_cn,直连', 'RULE-SET,synology,直连', 'RULE-SET,nvidia_cn,直连', 'RULE-SET,apple_cn,直连', 'RULE-SET,microsoft_cn,直连', 'DOMAIN,fsend.cn,直连', 'DOMAIN,international-gfe.download.nvidia.com,直连', 'DOMAIN-SUFFIX,ctaiot.com,直连'];
 const customizeProxies = [];
 const excludeFilter = /群|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|电报|无法|说明|提示|访问|支持|教程|关注|更新|作者|加入|超时|收藏|优惠|福利|邀请|好友|失联|选择|剩余|公益|发布|DIZTNA|通路|登录|禁止|定时|渠道|牢记|永久|余额|阁下|本站|刷新|导航|建议|重置|以下|过滤|⚠️|@|t\.me\/\+|\bexpire\b|\bhttps?:\/\/|\.com|\btraffic\b/iu;
 const blockForeignQuic = ['AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn_additional),(RULE-SET,cn_ip,no-resolve)))))),REJECT'];
@@ -148,6 +148,15 @@ const baseRuleProviders = {
     "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/steam@cn.mrs",
     "path": "./ruleset/steam@cn.mrs",
     "path-in-bundle": "geo/geosite/steam@cn.mrs"
+  },
+  "synology": {
+    "type": "http",
+    "format": "mrs",
+    "interval": 86400,
+    "behavior": "domain",
+    "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/synology.mrs",
+    "path": "./ruleset/synology.mrs",
+    "path-in-bundle": "geo/geosite/synology.mrs"
   },
   "nvidia_cn": {
     "type": "http",
@@ -1490,7 +1499,7 @@ const customizationPolicy = {
     "rules": ["RULE-SET,porn,porn"]
   }],
   "blocks": {
-    "upstream_prefix": ["DOMAIN,cdn.jsdmirror.com,Direct", "RULE-SET,private,Direct", "RULE-SET,geolocation-cn,Direct", "RULE-SET,steam_cn,Direct", "RULE-SET,nvidia_cn,Direct", "RULE-SET,apple_cn,Direct", "RULE-SET,microsoft_cn,Direct", "DOMAIN,international-gfe.download.nvidia.com,Direct", "DOMAIN-SUFFIX,ctaiot.com,Direct"],
+    "upstream_prefix": ["DOMAIN,cdn.jsdmirror.com,Direct", "RULE-SET,private,Direct", "RULE-SET,geolocation-cn,Direct", "RULE-SET,steam_cn,Direct", "RULE-SET,synology,Direct", "RULE-SET,nvidia_cn,Direct", "RULE-SET,apple_cn,Direct", "RULE-SET,microsoft_cn,Direct", "DOMAIN,international-gfe.download.nvidia.com,Direct", "DOMAIN-SUFFIX,ctaiot.com,Direct"],
     "quic": ["AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn_additional),(RULE-SET,cn_ip,no-resolve)))))),REJECT"],
     "custom_reject": ["RULE-SET,mcdn屏蔽,REJECT"],
     "services": [],
