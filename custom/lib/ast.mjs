@@ -311,6 +311,7 @@ export function compileScript(model, manifest, plan, runtime) {
       .map(([name, replacement]) => [name, replacement.name])),
     excludedRules: manifest.excluded_rules,
     additionalRules: manifest.additional_rules,
+    ruleOrderOverrides: manifest.rule_order_overrides || {},
     globalOverrides: manifest.global_overrides,
     omittedGlobalFields: manifest.omitted_global_fields,
   };

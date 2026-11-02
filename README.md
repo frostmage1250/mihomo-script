@@ -46,8 +46,8 @@ does not change the emitted node names.
 
 The AI, geolocation-cn, Claude, porn, and MCDN converter sources
 remain explicit. AI retains Bett's base rules with the converter's supplements.
-Twitch and AppleTV remain additional Bett definitions. Their existing URLs remain
-declared in the customization policy.
+AppleTV remains an additional Bett definition with its source URL declared in
+the customization policy. Twitch's standalone rules and provider are removed.
 
 Existing functional group choices, direct exceptions, Steam CN replacement,
 service exclusions, original node names, exact-name deduplication, and system DNS
@@ -58,8 +58,14 @@ The generator does not reconstruct, regroup, or sort upstream routing rules.
 Upstream `rules` and `ipRules`, their flags, service switches, and relative order
 are retained by the complete upstream runtime. Policy names, provider names,
 and explicit exclusions are rewritten in place after upstream generation.
-Additional services are appended to the native service list in declaration order;
-there are no custom service-order anchors. The retained MCDN reject rule is
+Additional services first enter the native service list in declaration order.
+After upstream rule generation and explicit name substitutions, only
+\`rule_order_overrides\` from the customization manifest are applied: AppleTV and
+Apple Podcasts before Apple's domain rules, Claude before AI's domain rules,
+and porn immediately after EHentai. These overrides move only service domain
+rules; upstream IP rules retain their original position and flags. If an anchor
+service is disabled or absent, the additional rules retain their generated position.
+The retained MCDN reject rule is
 inserted immediately before the native functional-rule spread without reordering
 any upstream rule. The QUIC switch and its default come
 directly from upstream `ruleOptionsEnable.屏蔽国外QUIC`. Setting it to `false`

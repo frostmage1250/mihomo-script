@@ -81,9 +81,29 @@ function customizePolicyGroups(config) {
 }
 
 function customizeRouting(config) {
-  // Preserve upstream order and flags; only apply explicit substitutions/removals.
-  config.rules = config.rules.map(rule => rewriteRule(rule, customizationPolicy))
+  const policy = customizationPolicy;
+  // Start with the complete upstream output, preserving its order and flags.
+  config.rules = config.rules.map(rule => rewriteRule(rule, policy))
     .filter(rule => rule !== null);
+  // Apply only the explicitly declared domain-rule placements afterwards.
+  const rulesFor = service => new Set((service.rules || [])
+    .map(rule => rewriteRule(rule, policy)).filter(rule => rule !== null));
+  for (const [name, placement] of Object.entries(policy.ruleOrderOverrides)) {
+    const service = serviceConfigs.find(item => item.name === name);
+    const anchor = serviceConfigs.find(item => item.name === (placement.before || placement.after));
+    if (!service || !anchor || !ruleOptionsEnable[name] || !ruleOptionsEnable[anchor.name]) continue;
+    const selected = rulesFor(service), anchorRules = rulesFor(anchor);
+    const moving = config.rules.filter(rule => selected.has(rule));
+    if (!moving.length) continue;
+    const remaining = config.rules.filter(rule => !selected.has(rule));
+    const index = placement.before
+      ? remaining.findIndex(rule => anchorRules.has(rule))
+      : remaining.reduce((last, rule, i) => anchorRules.has(rule) ? i : last, -1);
+    // If an anchor is absent, retain the original upstream-generated placement.
+    if (index < 0) continue;
+    remaining.splice(index + (placement.before ? 0 : 1), 0, ...moving);
+    config.rules = remaining;
+  }
 }
 
 function main(config) {
