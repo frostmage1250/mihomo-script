@@ -170,22 +170,6 @@
         "RULE-SET,claude,Claude"
       ]
     },
-    "Twitch": {
-      "providers": {
-        "twitch": {
-          "type": "http",
-          "format": "mrs",
-          "interval": 86400,
-          "behavior": "domain",
-          "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/twitch.mrs",
-          "path": "./ruleset/twitch.mrs",
-          "path-in-bundle": "geo/geosite/twitch.mrs"
-        }
-      },
-      "rules": [
-        "RULE-SET,twitch,Twitch"
-      ]
-    },
     "Apple Podcasts": {
       "providers": {
         "apple_podcasts": {
@@ -323,7 +307,6 @@
     "GitHub": "GitHub",
     "Telegram": "Telegram",
     "AppleTV": "媒体",
-    "Twitch": "媒体",
     "Twitter": "媒体",
     "TikTok": "媒体",
     "YouTube": "YouTube",
@@ -340,5 +323,19 @@
   "default_service_target": "Proxy",
   "additional_rules": [
     "RULE-SET,mcdn屏蔽,REJECT"
-  ]
+  ],
+  "rule_order_overrides": {
+    "AppleTV": {
+      "before": "Apple"
+    },
+    "Apple Podcasts": {
+      "before": "Apple"
+    },
+    "Claude": {
+      "before": "AI"
+    },
+    "porn": {
+      "after": "EHentai"
+    }
+  }
 }
