@@ -47,7 +47,6 @@ const ruleOptionsEnable = {
   "AppleTV": true,
   "porn": true,
   "Claude": true,
-  "Twitch": true,
   "Apple Podcasts": true
 };
 const prefixRules = ['DOMAIN,cdn.jsdmirror.com,直连', 'RULE-SET,private,直连', 'RULE-SET,geolocation-cn,直连', 'RULE-SET,games_cn,直连', 'RULE-SET,synology,直连', 'RULE-SET,nvidia_cn,直连', 'RULE-SET,apple_cn,直连', 'RULE-SET,microsoft_cn,直连', 'DOMAIN,fsend.cn,直连', 'DOMAIN,international-gfe.download.nvidia.com,直连', 'DOMAIN-SUFFIX,ctaiot.com,直连'];
@@ -781,29 +780,6 @@ const serviceConfigs = [{
   }
 }, {
   "providers": {
-    "twitch": {
-      "type": "http",
-      "format": "mrs",
-      "interval": 86400,
-      "behavior": "domain",
-      "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/twitch.mrs",
-      "path": "./ruleset/twitch.mrs",
-      "path-in-bundle": "geo/geosite/twitch.mrs"
-    }
-  },
-  "rules": ["RULE-SET,twitch,Twitch"],
-  "name": "Twitch",
-  "baseOption": {
-    "interval": 600,
-    "timeout": 3000,
-    "url": "https://www.apple.com/library/test/success.html",
-    "lazy": true,
-    "max-failed-times": 3,
-    "empty-fallback": "REJECT",
-    "type": "select"
-  }
-}, {
-  "providers": {
     "apple_podcasts": {
       "type": "http",
       "format": "mrs",
@@ -1509,9 +1485,6 @@ const customizationPolicy = {
     "name": "Claude",
     "target": "Claude"
   }, {
-    "name": "Twitch",
-    "target": "媒体"
-  }, {
     "name": "Apple Podcasts",
     "target": "媒体"
   }],
@@ -1532,7 +1505,6 @@ const customizationPolicy = {
     "AppleTV": "媒体",
     "porn": "porn",
     "Claude": "Claude",
-    "Twitch": "媒体",
     "Apple Podcasts": "媒体"
   },
   "providerReplacements": {
