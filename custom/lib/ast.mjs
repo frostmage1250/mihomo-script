@@ -1,6 +1,7 @@
 import { parse } from "acorn";
 import { generate } from "astring";
 import vm from "node:vm";
+import { FLAGS, BUILTIN_ACTIONS, splitRule, policyIndex, rewriteRule } from "./rules.mjs";
 
 export const parseScript = source => parse(source, {ecmaVersion: "latest", sourceType: "script"});
 export const expression = source => parseScript("(" + source + ")").body[0].expression;
@@ -162,18 +163,7 @@ function assignments(main) {
   return entries;
 }
 
-export function referenceRules(source) {
-  const block = source.match(/^rules:\s*\r?\n([\s\S]*)$/m);
-  if (!block) throw new Error("Missing YAML routing reference");
-  const rules = block[1].split(/\r?\n/).flatMap(line => {
-    const match = line.match(/^\s+-\s+(.+?)\s*$/);
-    return match ? [match[1].replace(/\s+#.*$/, "").trim()] : [];
-  });
-  if (!rules.length) throw new Error("Empty YAML routing reference");
-  return rules;
-}
-
-export function extractModel(source, manifest, routingReference) {
+export function extractModel(source) {
   const ast = parseScript(source), index = indexDeclarations(ast);
   const context = vm.createContext({});
   new vm.Script(source).runInContext(context, {timeout: 3000});
@@ -186,34 +176,7 @@ export function extractModel(source, manifest, routingReference) {
   if (main?.type !== "FunctionDeclaration") throw new Error("Missing upstream main function");
   const ruleExpression = assignments(main).find(entry => entry.key === "rules")?.value;
   if (ruleExpression?.type !== "ArrayExpression") throw new Error("Expected upstream main rule array");
-  let position = "before_services";
-  const baseRules = [];
-  for (let i = 0; i < ruleExpression.elements.length; i++) {
-    const node = ruleExpression.elements[i];
-    if (node.type === "SpreadElement" && node.argument.type === "Identifier" && node.argument.name === "functionalRules") {
-      position = "after_services"; continue;
-    }
-    const value = node.type === "SpreadElement" ? node.argument : node;
-    const dependencies = [...freeNames(value)];
-    const declaration = dependencies.find(name => manifest.excluded_rule_spreads.includes(name) ||
-      Object.hasOwn(manifest.base_rule_spread_routing || {}, name)) ||
-      (value.type === "Identifier" ? value.name : "main.rules[" + i + "]");
-    // Keep both switch states available, including when upstream changes its default.
-    const rules = declaration === "blockForeignQuic" ? read(declaration) : evaluate(value);
-    baseRules.push({
-      source: declaration, position, excluded: dependencies.some(name => manifest.excluded_rule_spreads.includes(name)),
-      rules: Array.isArray(rules) ? Array.from(rules) : [rules],
-    });
-  }
   const services = JSON.parse(JSON.stringify(read("serviceConfigs")));
-  const reference = routingReference === undefined ? [] : referenceRules(routingReference);
-  const referenceRuleRanks = Object.fromEntries(reference.map((rule, index) => [rule, index]));
-  const serviceRanks = {};
-  for (const service of services) {
-    const ranks = (service.rules || []).filter(rule => Object.hasOwn(referenceRuleRanks, rule))
-      .map(rule => referenceRuleRanks[rule]);
-    if (ranks.length) serviceRanks[service.name] = Math.min(...ranks);
-  }
   const regions = read("regionDefinitions"), rates = read("rateRegionDefinitions");
   const icons = {};
   for (const item of [...services, ...regions, ...rates]) if (item.icon !== undefined) icons[item.name] = item.icon;
@@ -228,7 +191,7 @@ export function extractModel(source, manifest, routingReference) {
     }
   });
   return {
-    ast, index, evaluate, main, ruleExpression, baseRules, services, icons, serviceRanks, referenceRuleRanks,
+    ast, index, evaluate, main, services, icons,
     baseRuleProviders: JSON.parse(JSON.stringify(read("baseRuleProviders"))),
     ruleSetBaseUrl: read("ruleSetBaseUrl"),
     nativeOptions: JSON.parse(JSON.stringify(read("ruleOptionsEnable"))),
@@ -317,6 +280,15 @@ export function compileScript(model, manifest, plan, runtime) {
   const mainIndex = body.findIndex(node => node.type === "FunctionDeclaration" && node.id.name === "main");
   if (mainIndex < 0) throw new Error("Missing upstream main");
   body[mainIndex].id.name = "upstreamMain";
+  // Insert only the retained additional reject rules. Upstream owns the complete
+  // rule expression, including every domain/IP phase and its original order.
+  const nativeRules = assignments(body[mainIndex]).find(entry => entry.key === "rules").value;
+  const serviceIndex = nativeRules.elements.findIndex(node => node.type === "SpreadElement" &&
+    node.argument.type === "Identifier" && node.argument.name === "functionalRules");
+  if (serviceIndex < 0) throw new Error("Missing upstream service-rule insertion point");
+  nativeRules.elements.splice(serviceIndex, 0, {
+    type: "SpreadElement", argument: expression("customizationPolicy.additionalRules"),
+  });
   const icons = {};
   for (const [name, source] of Object.entries(manifest.group_icon_sources)) {
     if (source === null) icons[name] = null;
@@ -334,8 +306,11 @@ export function compileScript(model, manifest, plan, runtime) {
     groupIcons: icons,
     aliases: manifest.policy_aliases,
     servicePlans: plan.servicePlans,
-    blocks: plan.nonServiceBlocks,
-    blockOrder: manifest.rule_blocks,
+    serviceTargets: Object.fromEntries(plan.servicePlans.map(service => [service.name, service.target])),
+    providerReplacements: Object.fromEntries(Object.entries(manifest.base_rule_provider_replacements)
+      .map(([name, replacement]) => [name, replacement.name])),
+    excludedRules: manifest.excluded_rules,
+    additionalRules: manifest.additional_rules,
     globalOverrides: manifest.global_overrides,
     omittedGlobalFields: manifest.omitted_global_fields,
   };
@@ -350,8 +325,17 @@ export function compileScript(model, manifest, plan, runtime) {
   const header = "/**\n * Mihomo single-subscription override; upstream author: AIsouler.\n" +
     " * Source: https://github.com/AIsouler/MyClash\n" +
     " * Full upstream runtime with explicit customizations. MIT license retained.\n */\n";
+  for (const name of ["FLAGS", "BUILTIN_ACTIONS", "customizationPolicy"]) {
+    if (model.index.has(name)) throw new Error("Customization binding conflicts with upstream: " + name);
+  }
   const program = {type: "Program", sourceType: "script", body: [
     ...body,
+    ...parseScript("const FLAGS = new Set(" + JSON.stringify([...FLAGS]) + ");\n" +
+      "const BUILTIN_ACTIONS = new Set(" + JSON.stringify([...BUILTIN_ACTIONS]) + ");").body,
+    ...[splitRule, policyIndex, rewriteRule].flatMap(fn => {
+      if (model.index.has(fn.name)) throw new Error("Customization helper conflicts with upstream: " + fn.name);
+      return parseScript(fn.toString()).body;
+    }),
     parseScript("const customizationPolicy = " + JSON.stringify(policy) + ";").body[0],
     ...parseScript(runtime).body,
   ]};

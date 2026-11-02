@@ -9,7 +9,7 @@ on:
       - "custom/**"
       - "package*.json"
   schedule:
-    - cron: "0 5,11,17,23 * * *"
+    - cron: "0 */2 * * *"
 
 permissions:
   contents: write
@@ -35,7 +35,7 @@ jobs:
           curl --fail --silent --show-error --location \
             "https://codeload.github.com/AIsouler/MyClash/tar.gz/refs/heads/main" |
             tar --extract --gzip --directory "$upstream_dir" --strip-components=1 --wildcards \
-              '*/Script/mihomoScript.js' '*/Config/mihomoConfig.yaml' '*/LICENSE'
+              '*/Script/mihomoScript.js' '*/LICENSE'
           npm ci --ignore-scripts --no-audit --no-fund --silent
           UPSTREAM_DIR="$upstream_dir" node custom/build_mihomo_script.mjs
           if git diff --quiet -- mihomoScript.js LICENSE; then

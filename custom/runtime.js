@@ -81,28 +81,9 @@ function customizePolicyGroups(config) {
 }
 
 function customizeRouting(config) {
-  const policy = customizationPolicy;
-  const minimal = ruleOptionsEnable.极简模式;
-  const blocks = Object.fromEntries(Object.entries(policy.blocks).map(([name, rules]) => [name, rules.slice()]));
-  if (!minimal) {
-    // Service order is captured from the fixed YAML; only the upstream service switches are applied here.
-    for (const section of policy.blockOrder) {
-      const rules = policy.servicePlans.filter(service =>
-        service.section === section && ruleOptionsEnable[service.name]).flatMap(service => service.rules);
-      blocks[section] = [...rules, ...blocks[section]];
-    }
-  }
-  const rules = [];
-  for (const section of policy.blockOrder) {
-    if (section === 'quic') {
-      if (ruleOptionsEnable.屏蔽国外QUIC) rules.push(...blockForeignQuic);
-    } else if (minimal && section === 'final') {
-      const upstreamRules = config.rules;
-      const final = upstreamRules[upstreamRules.length - 1];
-      rules.push(final.replace(/,默认代理$/, ',Proxy').replace(/,漏网之鱼$/, ',Final'));
-    } else rules.push(...blocks[section]);
-  }
-  config.rules = rules;
+  // Preserve upstream order and flags; only apply explicit substitutions/removals.
+  config.rules = config.rules.map(rule => rewriteRule(rule, customizationPolicy))
+    .filter(rule => rule !== null);
 }
 
 function main(config) {

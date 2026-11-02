@@ -9,10 +9,10 @@ https://raw.githubusercontent.com/frostmage1250/mihomo-script/main/mihomoScript.
 
 ## Generation
 
-On a relevant push, manual dispatch, or the six-hour schedule:
+On a relevant push, manual dispatch, or the two-hour schedule:
 
 1. Download the latest upstream `main` source archive once.
-2. Read its script and routing YAML, then apply `custom/customizations.json` once.
+2. Read its script, then apply `custom/customizations.json` once.
 3. Generate and publish `mihomoScript.js`, retaining the upstream MIT license.
 
 The upstream files exist only in a temporary runner directory, which is removed
@@ -53,12 +53,15 @@ Existing functional group choices, direct exceptions, Steam CN replacement,
 service exclusions, original node names, exact-name deduplication, and system DNS
 behavior remain in the source policy. Valid dialer-proxy references are retained
 and invalid references are handled by the upstream repair workflow.
-The fixed upstream `Config/mihomoConfig.yaml` supplies routing order.
-Its download/private/domestic direct prefix precedes QUIC and MCDN rejection,
-then business services follow YAML order, then foreign-domain, domestic-IP,
-private-IP and final fallbacks. Extra services use explicit insertion anchors:
-Claude before AI, AppleTV and Podcasts before Apple, and Twitch after YouTube.
-The YAML and script come from the same downloaded upstream archive. The QUIC switch and its default come
+Rule order comes directly from the upstream script's `main()` and service list.
+The generator does not reconstruct, regroup, or sort upstream routing rules.
+Upstream `rules` and `ipRules`, their flags, service switches, and relative order
+are retained by the complete upstream runtime. Policy names, provider names,
+and explicit exclusions are rewritten in place after upstream generation.
+Additional services are appended to the native service list in declaration order;
+there are no custom service-order anchors. The retained MCDN reject rule is
+inserted immediately before the native functional-rule spread without reordering
+any upstream rule. The QUIC switch and its default come
 directly from upstream `ruleOptionsEnable.屏蔽国外QUIC`. Setting it to `false`
 removes the upstream QUIC reject rules and `cn_additional`; setting it to `true`
 restores both. The reject expression and provider definition follow upstream.

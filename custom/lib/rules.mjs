@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 
 export const BUILTIN_ACTIONS = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE"]);
-const FLAGS = new Set(["no-resolve", "src", "dst", "extended-matching"]);
+export const FLAGS = new Set(["no-resolve", "src", "dst", "extended-matching"]);
 
 export function splitRule(text) {
   const parts = [];
@@ -27,17 +27,21 @@ export function policyIndex(parts) {
   return i;
 }
 
-export function retargetRule(rule, target, preserveActions = true) {
-  const parts = splitRule(rule), index = policyIndex(parts);
-  if (parts[0].trim() === "SUB-RULE") return rule;
-  if (!preserveActions || !BUILTIN_ACTIONS.has(parts[index].trim())) parts[index] = target;
-  return parts.join(",");
-}
-
-export function matchesRule(rule, selector) {
+// Rewrite each emitted upstream rule in place; never regroup or sort routing.
+export function rewriteRule(rule, policy) {
   const parts = splitRule(rule);
-  return parts[0].trim() === selector.type &&
-    (selector.value === undefined || parts[1]?.trim() === selector.value);
+  if (policy.excludedRules.some(selector => parts[0].trim() === selector.type &&
+      (selector.value === undefined || parts[1]?.trim() === selector.value))) return null;
+  if (parts[0].trim() === "RULE-SET") {
+    parts[1] = policy.providerReplacements[parts[1].trim()] || parts[1];
+  }
+  if (parts[0].trim() !== "SUB-RULE") {
+    const index = policyIndex(parts), target = parts[index].trim();
+    if (!BUILTIN_ACTIONS.has(target)) {
+      parts[index] = policy.serviceTargets[target] || policy.aliases[target] || parts[index];
+    }
+  }
+  return parts.join(",");
 }
 
 export function overrideUrl(provider, url) {
@@ -100,7 +104,7 @@ export function planRules(model, manifest) {
   for (const service of model.services) {
     if (seen.has(service.name)) throw new Error("Duplicate upstream service: " + service.name);
     seen.add(service.name);
-    if (excludedServices.has(service.name) || !service.rules?.length) {
+    if (excludedServices.has(service.name) || (!service.rules?.length && !service.ipRules?.length)) {
       continue;
     }
     services[service.name] = service;
@@ -123,69 +127,8 @@ export function planRules(model, manifest) {
   }
   for (const [name, provider] of Object.entries(manifest.additional_rule_providers)) addProvider(name, provider, "additional");
 
-  const blocks = Object.fromEntries(manifest.rule_blocks.map(name => [name, []]));
-  const plan = Object.values(services).map((service, sequence) => ({
-    service, sequence, ...manifest.default_service_routing, ...manifest.service_routing[service.name],
-  })).map(entry => {
-    const ranks = model.serviceRanks || {};
-    if (entry.relative_to && Object.hasOwn(ranks, entry.relative_to)) {
-      entry.order = ranks[entry.relative_to] + entry.offset;
-    } else if (Object.hasOwn(ranks, entry.service.name)) {
-      entry.order = ranks[entry.service.name];
-    }
-    return entry;
-  }).sort((a, b) => a.order - b.order || a.sequence - b.sequence);
-  for (const entry of plan) {
-    if (!blocks[entry.section]) throw new Error("Unknown routing section: " + entry.section);
-    for (const rule of entry.service.rules || []) {
-      const output = retargetRule(rule, entry.target);
-      blocks[entry.section].push(output);
-    }
-  }
-
-  const providerHosts = new Set(Object.values(model.baseRuleProviders)
-    .filter(provider => provider.url).map(provider => new URL(provider.url).hostname));
-  const baseEntries = {}, seenBaseRules = new Set();
-  let sequence = 0;
-  for (const native of model.baseRules) {
-    for (const rule of native.rules) {
-      if (native.excluded || manifest.excluded_rules.some(selector => matchesRule(rule, selector))) {
-        continue;
-      }
-      const parts = splitRule(rule);
-      if (parts[0] === "MATCH") {
-        continue;
-      }
-      const name = parts[0] === "RULE-SET" ? parts[1] : undefined;
-      const placement = manifest.base_rule_routing[name] || {};
-      const spreadSection = manifest.base_rule_spread_routing?.[native.source];
-      let section = spreadSection || placement.section || (native.position === "before_services" ? "direct" : "fallback");
-      if (!spreadSection && parts[0] === "DOMAIN" && providerHosts.has(parts[1])) section = "bootstrap";
-      if (name) parts[1] = manifest.base_rule_provider_replacements[name]?.name || name;
-      const index = policyIndex(parts);
-      parts[index] = manifest.policy_aliases[parts[index]] || parts[index];
-      if (placement.no_resolve && !parts.slice(index + 1).includes("no-resolve")) parts.push("no-resolve");
-      const output = parts.join(",");
-      if (seenBaseRules.has(output)) continue;
-      seenBaseRules.add(output);
-      (baseEntries[section] ||= []).push({order: model.referenceRuleRanks?.[rule] ?? (spreadSection ? sequence : placement.order ?? sequence + 100), sequence, output});
-      sequence++;
-    }
-  }
-  for (const [section, entries] of Object.entries(baseEntries)) {
-    if (!blocks[section]) throw new Error("Unknown base rule section: " + section);
-    blocks[section].push(...entries.sort((a, b) => a.order - b.order || a.sequence - b.sequence).map(entry => entry.output));
-  }
-  for (const [section, rules] of Object.entries(manifest.custom_rules)) blocks[section].push(...rules);
-  const rules = manifest.rule_blocks.flatMap(section => blocks[section]);
-  if (new Set(rules).size !== rules.length) throw new Error("Duplicate final routing rules");
-  const servicePlans = plan.map(entry => ({
-    name: entry.service.name, target: entry.target, section: entry.section,
-    rules: (entry.service.rules || []).map(rule => retargetRule(rule, entry.target)),
+  const servicePlans = Object.values(services).map(service => ({
+    name: service.name, target: manifest.service_targets[service.name] || manifest.default_service_target,
   }));
-  const nonServiceBlocks = Object.fromEntries(Object.entries(blocks).map(([section, values]) => [
-    section, values.slice(servicePlans.filter(entry => entry.section === section)
-      .reduce((count, entry) => count + entry.rules.length, 0)),
-  ]));
-  return {providers, servicePlans, nonServiceBlocks};
+  return {providers, servicePlans};
 }

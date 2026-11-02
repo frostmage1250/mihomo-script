@@ -60,107 +60,6 @@
   "base_rule_provider_url_overrides": {
     "geolocation-cn": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs"
   },
-  "service_routing": {
-    "Claude": {
-      "target": "Claude",
-      "section": "services",
-      "relative_to": "AI",
-      "offset": -0.1
-    },
-    "AI": {
-      "target": "AI",
-      "section": "services"
-    },
-    "GitHub": {
-      "target": "GitHub",
-      "section": "services"
-    },
-    "Telegram": {
-      "target": "Telegram",
-      "section": "services"
-    },
-    "AppleTV": {
-      "target": "媒体",
-      "section": "services",
-      "relative_to": "Apple",
-      "offset": -0.2
-    },
-    "Twitch": {
-      "target": "媒体",
-      "section": "services",
-      "relative_to": "YouTube",
-      "offset": 0.1
-    },
-    "Twitter": {
-      "target": "媒体",
-      "section": "services"
-    },
-    "TikTok": {
-      "target": "媒体",
-      "section": "services"
-    },
-    "YouTube": {
-      "target": "YouTube",
-      "section": "services"
-    },
-    "Meta": {
-      "target": "媒体",
-      "section": "services"
-    },
-    "Steam": {
-      "target": "Proxy",
-      "section": "services"
-    },
-    "PikPak": {
-      "target": "PikPak",
-      "section": "services"
-    },
-    "EHentai": {
-      "target": "EHentai",
-      "section": "services"
-    },
-    "porn": {
-      "target": "porn",
-      "section": "services"
-    },
-    "Google": {
-      "target": "Google",
-      "section": "services"
-    },
-    "Apple": {
-      "target": "Proxy",
-      "section": "services"
-    },
-    "Microsoft": {
-      "target": "Proxy",
-      "section": "services"
-    },
-    "Apple Podcasts": {
-      "target": "媒体",
-      "section": "services",
-      "relative_to": "Apple",
-      "offset": -0.1
-    }
-  },
-  "default_service_routing": {
-    "target": "Proxy",
-    "section": "services",
-    "order": 1000
-  },
-  "base_rule_routing": {
-    "geolocation-!cn": {
-      "section": "fallback",
-      "order": 10
-    },
-    "cn_ip": {
-      "section": "fallback",
-      "order": 20
-    },
-    "private_ip": {
-      "section": "fallback",
-      "order": 30
-    }
-  },
   "runtime": "custom/runtime.js",
   "node_options": {
     "过滤低倍率节点": false,
@@ -214,7 +113,6 @@
     "漏网之鱼": "Final",
     "手动选择": "订阅"
   },
-  "excluded_rule_spreads": [],
   "excluded_rules": [
     {
       "type": "DOMAIN",
@@ -314,30 +212,6 @@
       "url": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/mcdn-block.mrs",
       "path": "./ruleset/mcdn-block.mrs"
     }
-  },
-  "rule_blocks": [
-    "upstream_prefix",
-    "quic",
-    "custom_reject",
-    "services",
-    "fallback",
-    "final"
-  ],
-  "custom_rules": {
-    "custom_reject": [
-      "RULE-SET,mcdn屏蔽,REJECT"
-    ],
-    "final": [
-      "MATCH,Final"
-    ]
-  },
-  "base_rule_spread_routing": {
-    "prefixRules": "upstream_prefix",
-    "blockForeignQuic": "quic"
-  },
-  "routing_reference": {
-    "repository": "AIsouler/MyClash",
-    "path": "Config/mihomoConfig.yaml"
   },
   "omitted_policy_group_fields": [
     "timeout",
@@ -442,5 +316,29 @@
     "$regions",
     "$remaining",
     "Final"
+  ],
+  "service_targets": {
+    "Claude": "Claude",
+    "AI": "AI",
+    "GitHub": "GitHub",
+    "Telegram": "Telegram",
+    "AppleTV": "媒体",
+    "Twitch": "媒体",
+    "Twitter": "媒体",
+    "TikTok": "媒体",
+    "YouTube": "YouTube",
+    "Meta": "媒体",
+    "Steam": "Proxy",
+    "PikPak": "PikPak",
+    "EHentai": "EHentai",
+    "porn": "porn",
+    "Google": "Google",
+    "Apple": "Proxy",
+    "Microsoft": "Proxy",
+    "Apple Podcasts": "媒体"
+  },
+  "default_service_target": "Proxy",
+  "additional_rules": [
+    "RULE-SET,mcdn屏蔽,REJECT"
   ]
 }
