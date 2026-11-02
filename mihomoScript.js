@@ -1518,6 +1518,20 @@ const customizationPolicy = {
     "value": "epicgames"
   }],
   "additionalRules": ["RULE-SET,mcdn屏蔽,REJECT"],
+  "ruleOrderOverrides": {
+    "AppleTV": {
+      "before": "Apple"
+    },
+    "Apple Podcasts": {
+      "before": "Apple"
+    },
+    "Claude": {
+      "before": "AI"
+    },
+    "porn": {
+      "after": "EHentai"
+    }
+  },
   "globalOverrides": {
     "allow-lan": false,
     "log-level": "warning"
@@ -1600,7 +1614,22 @@ function customizePolicyGroups(config) {
   config['proxy-groups'] = ordered;
 }
 function customizeRouting(config) {
-  config.rules = config.rules.map(rule => rewriteRule(rule, customizationPolicy)).filter(rule => rule !== null);
+  const policy = customizationPolicy;
+  config.rules = config.rules.map(rule => rewriteRule(rule, policy)).filter(rule => rule !== null);
+  const rulesFor = service => new Set((service.rules || []).map(rule => rewriteRule(rule, policy)).filter(rule => rule !== null));
+  for (const [name, placement] of Object.entries(policy.ruleOrderOverrides)) {
+    const service = serviceConfigs.find(item => item.name === name);
+    const anchor = serviceConfigs.find(item => item.name === (placement.before || placement.after));
+    if (!service || !anchor || !ruleOptionsEnable[name] || !ruleOptionsEnable[anchor.name]) continue;
+    const selected = rulesFor(service), anchorRules = rulesFor(anchor);
+    const moving = config.rules.filter(rule => selected.has(rule));
+    if (!moving.length) continue;
+    const remaining = config.rules.filter(rule => !selected.has(rule));
+    const index = placement.before ? remaining.findIndex(rule => anchorRules.has(rule)) : remaining.reduce((last, rule, i) => anchorRules.has(rule) ? i : last, -1);
+    if (index < 0) continue;
+    remaining.splice(index + (placement.before ? 0 : 1), 0, ...moving);
+    config.rules = remaining;
+  }
 }
 function main(config) {
   ruleOptionsEnable.自动选择 = false;
