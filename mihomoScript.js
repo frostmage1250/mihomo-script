@@ -369,7 +369,8 @@ const serviceConfigs = [{
     }
   },
   "icon": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Google.svg",
-  "rules": ["RULE-SET,google,Google", "RULE-SET,google_ip,Google,no-resolve"]
+  "rules": ["RULE-SET,google,Google"],
+  "ipRules": ["RULE-SET,google_ip,Google"]
 }, {
   "name": "AI",
   "baseOption": {
@@ -451,7 +452,8 @@ const serviceConfigs = [{
     }
   },
   "icon": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Microsoft.svg",
-  "rules": ["RULE-SET,microsoft,Microsoft", "RULE-SET,microsoft_ip,Microsoft,no-resolve"]
+  "rules": ["RULE-SET,microsoft,Microsoft"],
+  "ipRules": ["RULE-SET,microsoft_ip,Microsoft"]
 }, {
   "name": "Apple",
   "baseOption": {
@@ -485,7 +487,8 @@ const serviceConfigs = [{
     }
   },
   "icon": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Apple.svg",
-  "rules": ["RULE-SET,apple,Apple", "RULE-SET,apple_ip,Apple,no-resolve"]
+  "rules": ["RULE-SET,apple,Apple"],
+  "ipRules": ["RULE-SET,apple_ip,Apple"]
 }, {
   "name": "Telegram",
   "baseOption": {
@@ -518,7 +521,8 @@ const serviceConfigs = [{
     }
   },
   "icon": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Telegram.svg",
-  "rules": ["RULE-SET,telegram,Telegram", "RULE-SET,telegram_ip,Telegram,no-resolve"]
+  "rules": ["RULE-SET,telegram,Telegram"],
+  "ipRules": ["RULE-SET,telegram_ip,Telegram"]
 }, {
   "name": "Steam",
   "baseOption": {
@@ -552,7 +556,8 @@ const serviceConfigs = [{
     }
   },
   "icon": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Steam.svg",
-  "rules": ["RULE-SET,steam,Steam", "RULE-SET,steam_ip,Steam,no-resolve"]
+  "rules": ["RULE-SET,steam,Steam"],
+  "ipRules": ["RULE-SET,steam_ip,Steam"]
 }, {
   "name": "TikTok",
   "baseOption": {
@@ -586,7 +591,8 @@ const serviceConfigs = [{
     }
   },
   "icon": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/TikTok.svg",
-  "rules": ["RULE-SET,tiktok,TikTok", "RULE-SET,tiktok_ip,TikTok,no-resolve"]
+  "rules": ["RULE-SET,tiktok,TikTok"],
+  "ipRules": ["RULE-SET,tiktok_ip,TikTok"]
 }, {
   "name": "Twitter",
   "baseOption": {
@@ -619,7 +625,8 @@ const serviceConfigs = [{
     }
   },
   "icon": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Twitter.svg",
-  "rules": ["RULE-SET,twitter,Twitter", "RULE-SET,twitter_ip,Twitter,no-resolve"]
+  "rules": ["RULE-SET,twitter,Twitter"],
+  "ipRules": ["RULE-SET,twitter_ip,Twitter"]
 }, {
   "name": "Meta",
   "baseOption": {
@@ -652,7 +659,8 @@ const serviceConfigs = [{
     }
   },
   "icon": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/Meta.svg",
-  "rules": ["RULE-SET,meta,Meta", "RULE-SET,facebook_ip,Meta,no-resolve"]
+  "rules": ["RULE-SET,meta,Meta"],
+  "ipRules": ["RULE-SET,facebook_ip,Meta"]
 }, {
   "name": "PikPak",
   "baseOption": {
@@ -993,6 +1001,7 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
   const hideManualSelectGroupEnabled = ruleOptionsEnable.隐藏地区手动选择组;
   const functionalGroups = [];
   const functionalRules = [];
+  const functionalIpRules = [];
   const finalRuleProviders = {
     ...baseRuleProviders
   };
@@ -1040,6 +1049,7 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
       globalGroup,
       functionalGroups: [defaultGroup, ...autoSelectGroupEnabled ? [autoSelectGroup] : []],
       functionalRules: [],
+      functionalIpRules: [],
       finalRuleProviders,
       directGroup
     };
@@ -1054,6 +1064,7 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
   for (const svc of orderedServiceConfigs) {
     if (!ruleOptionsEnable[svc.name]) continue;
     functionalRules.push(...svc.rules || []);
+    functionalIpRules.push(...svc.ipRules || []);
     Object.assign(finalRuleProviders, svc.providers || ({}));
   }
   for (const svc of serviceConfigs) {
@@ -1099,6 +1110,7 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
     globalGroup,
     functionalGroups,
     functionalRules,
+    functionalIpRules,
     finalRuleProviders,
     directGroup
   };
@@ -1308,7 +1320,7 @@ function upstreamMain(config) {
   const filteredProxies = filterAndNormalizeProxies(config);
   const {customProxies, customProxyNames, customGroup} = buildCustomizeGroups(filteredProxies);
   const generatedRegionGroups = ruleOptionsEnable.极简模式 ? [] : buildRegionGroups(filteredProxies, customProxies);
-  const {globalGroup, functionalGroups, functionalRules, finalRuleProviders, directGroup} = buildFunctionalGroups(filteredProxies, generatedRegionGroups, {
+  const {globalGroup, functionalGroups, functionalRules, functionalIpRules, finalRuleProviders, directGroup} = buildFunctionalGroups(filteredProxies, generatedRegionGroups, {
     customProxyNames,
     customGroup
   });
@@ -1351,8 +1363,49 @@ function upstreamMain(config) {
   newConfig['proxies'] = [...mappedProxies, ...customProxies, ...directProxies];
   newConfig['proxy-groups'] = [globalGroup, ...functionalGroups, ...customGroup ? [customGroup] : [], directGroup, ...generatedRegionGroups];
   newConfig['rule-providers'] = finalRuleProviders;
-  newConfig['rules'] = [...prefixRules, ...ruleOptionsEnable.屏蔽国外QUIC ? blockForeignQuic : [], ...functionalRules, 'RULE-SET,geolocation-!cn,默认代理', 'RULE-SET,cn_ip,直连', 'RULE-SET,private_ip,直连', `MATCH,${ruleOptionsEnable.极简模式 ? '默认代理' : '漏网之鱼'}`];
+  newConfig['rules'] = [...prefixRules, ...ruleOptionsEnable.屏蔽国外QUIC ? blockForeignQuic : [], ...customizationPolicy.additionalRules, ...functionalRules, 'RULE-SET,geolocation-!cn,默认代理', ...functionalIpRules, 'RULE-SET,cn_ip,直连', 'RULE-SET,private_ip,直连', `MATCH,${ruleOptionsEnable.极简模式 ? '默认代理' : '漏网之鱼'}`];
   return newConfig;
+}
+const FLAGS = new Set(["no-resolve", "src", "dst", "extended-matching"]);
+const BUILTIN_ACTIONS = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE"]);
+function splitRule(text) {
+  const parts = [];
+  let start = 0, depth = 0, escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\") escaped = true; else if (ch === "(") depth++; else if (ch === ")") depth--; else if (ch === "," && depth === 0) {
+      parts.push(text.slice(start, i));
+      start = i + 1;
+    }
+    if (depth < 0) throw new Error("Unbalanced rule: " + text);
+  }
+  if (depth) throw new Error("Unbalanced rule: " + text);
+  parts.push(text.slice(start));
+  return parts;
+}
+function policyIndex(parts) {
+  let i = parts.length - 1;
+  while (i > 0 && FLAGS.has(parts[i].trim())) i--;
+  if (i < (parts[0].trim() === "MATCH" ? 1 : 2)) throw new Error("Rule requires a policy: " + parts.join(","));
+  return i;
+}
+function rewriteRule(rule, policy) {
+  const parts = splitRule(rule);
+  if (policy.excludedRules.some(selector => parts[0].trim() === selector.type && (selector.value === undefined || parts[1]?.trim() === selector.value))) return null;
+  if (parts[0].trim() === "RULE-SET") {
+    parts[1] = policy.providerReplacements[parts[1].trim()] || parts[1];
+  }
+  if (parts[0].trim() !== "SUB-RULE") {
+    const index = policyIndex(parts), target = parts[index].trim();
+    if (!BUILTIN_ACTIONS.has(target)) {
+      parts[index] = policy.serviceTargets[target] || policy.aliases[target] || parts[index];
+    }
+  }
+  return parts.join(",");
 }
 const customizationPolicy = {
   "groupType": "select",
@@ -1409,104 +1462,90 @@ const customizationPolicy = {
   },
   "servicePlans": [{
     "name": "YouTube",
-    "target": "YouTube",
-    "section": "services",
-    "rules": ["RULE-SET,youtube,YouTube"]
-  }, {
-    "name": "Twitch",
-    "target": "媒体",
-    "section": "services",
-    "rules": ["RULE-SET,twitch,媒体"]
+    "target": "YouTube"
   }, {
     "name": "Google",
-    "target": "Google",
-    "section": "services",
-    "rules": ["RULE-SET,google,Google", "RULE-SET,google_ip,Google,no-resolve"]
-  }, {
-    "name": "Claude",
-    "target": "Claude",
-    "section": "services",
-    "rules": ["RULE-SET,claude,Claude"]
+    "target": "Google"
   }, {
     "name": "AI",
-    "target": "AI",
-    "section": "services",
-    "rules": ["RULE-SET,ai,AI", "DOMAIN,cdn.usefathom.com,AI", "DOMAIN-SUFFIX,intercom.io,AI", "DOMAIN-SUFFIX,intercomcdn.com,AI"]
+    "target": "AI"
   }, {
     "name": "GitHub",
-    "target": "GitHub",
-    "section": "services",
-    "rules": ["RULE-SET,github,GitHub"]
+    "target": "GitHub"
   }, {
     "name": "Microsoft",
-    "target": "Proxy",
-    "section": "services",
-    "rules": ["RULE-SET,microsoft,Proxy", "RULE-SET,microsoft_ip,Proxy,no-resolve"]
-  }, {
-    "name": "AppleTV",
-    "target": "媒体",
-    "section": "services",
-    "rules": ["RULE-SET,appletv,媒体"]
-  }, {
-    "name": "Apple Podcasts",
-    "target": "媒体",
-    "section": "services",
-    "rules": ["RULE-SET,apple_podcasts,媒体"]
+    "target": "Proxy"
   }, {
     "name": "Apple",
-    "target": "Proxy",
-    "section": "services",
-    "rules": ["RULE-SET,apple,Proxy", "RULE-SET,apple_ip,Proxy,no-resolve"]
+    "target": "Proxy"
   }, {
     "name": "Telegram",
-    "target": "Telegram",
-    "section": "services",
-    "rules": ["RULE-SET,telegram,Telegram", "RULE-SET,telegram_ip,Telegram,no-resolve"]
+    "target": "Telegram"
   }, {
     "name": "Steam",
-    "target": "Proxy",
-    "section": "services",
-    "rules": ["RULE-SET,steam,Proxy", "RULE-SET,steam_ip,Proxy,no-resolve"]
+    "target": "Proxy"
   }, {
     "name": "TikTok",
-    "target": "媒体",
-    "section": "services",
-    "rules": ["RULE-SET,tiktok,媒体", "RULE-SET,tiktok_ip,媒体,no-resolve"]
+    "target": "媒体"
   }, {
     "name": "Twitter",
-    "target": "媒体",
-    "section": "services",
-    "rules": ["RULE-SET,twitter,媒体", "RULE-SET,twitter_ip,媒体,no-resolve"]
+    "target": "媒体"
   }, {
     "name": "Meta",
-    "target": "媒体",
-    "section": "services",
-    "rules": ["RULE-SET,meta,媒体", "RULE-SET,facebook_ip,媒体,no-resolve"]
+    "target": "媒体"
   }, {
     "name": "PikPak",
-    "target": "PikPak",
-    "section": "services",
-    "rules": ["RULE-SET,pikpak,PikPak"]
+    "target": "PikPak"
   }, {
     "name": "EHentai",
-    "target": "EHentai",
-    "section": "services",
-    "rules": ["RULE-SET,ehentai,EHentai"]
+    "target": "EHentai"
+  }, {
+    "name": "AppleTV",
+    "target": "媒体"
   }, {
     "name": "porn",
-    "target": "porn",
-    "section": "services",
-    "rules": ["RULE-SET,porn,porn"]
+    "target": "porn"
+  }, {
+    "name": "Claude",
+    "target": "Claude"
+  }, {
+    "name": "Twitch",
+    "target": "媒体"
+  }, {
+    "name": "Apple Podcasts",
+    "target": "媒体"
   }],
-  "blocks": {
-    "upstream_prefix": ["DOMAIN,cdn.jsdmirror.com,Direct", "RULE-SET,private,Direct", "RULE-SET,geolocation-cn,Direct", "RULE-SET,steam_cn,Direct", "RULE-SET,synology,Direct", "RULE-SET,nvidia_cn,Direct", "RULE-SET,apple_cn,Direct", "RULE-SET,microsoft_cn,Direct", "DOMAIN,international-gfe.download.nvidia.com,Direct", "DOMAIN-SUFFIX,ctaiot.com,Direct"],
-    "quic": ["AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn_additional),(RULE-SET,cn_ip,no-resolve)))))),REJECT"],
-    "custom_reject": ["RULE-SET,mcdn屏蔽,REJECT"],
-    "services": [],
-    "fallback": ["RULE-SET,geolocation-!cn,Proxy", "RULE-SET,cn_ip,Direct", "RULE-SET,private_ip,Direct"],
-    "final": ["MATCH,Final"]
+  "serviceTargets": {
+    "YouTube": "YouTube",
+    "Google": "Google",
+    "AI": "AI",
+    "GitHub": "GitHub",
+    "Microsoft": "Proxy",
+    "Apple": "Proxy",
+    "Telegram": "Telegram",
+    "Steam": "Proxy",
+    "TikTok": "媒体",
+    "Twitter": "媒体",
+    "Meta": "媒体",
+    "PikPak": "PikPak",
+    "EHentai": "EHentai",
+    "AppleTV": "媒体",
+    "porn": "porn",
+    "Claude": "Claude",
+    "Twitch": "媒体",
+    "Apple Podcasts": "媒体"
   },
-  "blockOrder": ["upstream_prefix", "quic", "custom_reject", "services", "fallback", "final"],
+  "providerReplacements": {
+    "games_cn": "steam_cn"
+  },
+  "excludedRules": [{
+    "type": "DOMAIN",
+    "value": "fsend.cn"
+  }, {
+    "type": "RULE-SET",
+    "value": "epicgames"
+  }],
+  "additionalRules": ["RULE-SET,mcdn屏蔽,REJECT"],
   "globalOverrides": {
     "allow-lan": false,
     "log-level": "warning"
@@ -1589,26 +1628,7 @@ function customizePolicyGroups(config) {
   config['proxy-groups'] = ordered;
 }
 function customizeRouting(config) {
-  const policy = customizationPolicy;
-  const minimal = ruleOptionsEnable.极简模式;
-  const blocks = Object.fromEntries(Object.entries(policy.blocks).map(([name, rules]) => [name, rules.slice()]));
-  if (!minimal) {
-    for (const section of policy.blockOrder) {
-      const rules = policy.servicePlans.filter(service => service.section === section && ruleOptionsEnable[service.name]).flatMap(service => service.rules);
-      blocks[section] = [...rules, ...blocks[section]];
-    }
-  }
-  const rules = [];
-  for (const section of policy.blockOrder) {
-    if (section === 'quic') {
-      if (ruleOptionsEnable.屏蔽国外QUIC) rules.push(...blockForeignQuic);
-    } else if (minimal && section === 'final') {
-      const upstreamRules = config.rules;
-      const final = upstreamRules[upstreamRules.length - 1];
-      rules.push(final.replace(/,默认代理$/, ',Proxy').replace(/,漏网之鱼$/, ',Final'));
-    } else rules.push(...blocks[section]);
-  }
-  config.rules = rules;
+  config.rules = config.rules.map(rule => rewriteRule(rule, customizationPolicy)).filter(rule => rule !== null);
 }
 function main(config) {
   ruleOptionsEnable.自动选择 = false;
