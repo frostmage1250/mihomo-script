@@ -41,7 +41,7 @@ const ruleOptionsEnable = {
   "过滤低倍率节点": false,
   "过滤高倍率节点": false,
   "过滤非地区节点": true,
-  "屏蔽国外QUIC": true,
+  "屏蔽国外QUIC": false,
   "代理IPV4优先": false,
   "代理IPV6优先": false,
   "链式代理": false,
@@ -54,7 +54,7 @@ const prefixRules = ['DOMAIN,cdn.jsdmirror.com,直连', 'RULE-SET,private,直连
 const customizeProxies = [];
 const dialerProxyName = '链式中转';
 const excludeFilter = /群|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|电报|无法|说明|提示|访问|支持|教程|关注|更新|作者|加入|超时|收藏|优惠|福利|邀请|好友|失联|选择|剩余|公益|发布|DIZTNA|通路|登录|禁止|定时|渠道|牢记|永久|余额|阁下|本站|刷新|导航|建议|重置|以下|过滤|⚠️|@|t\.me\/\+|\bexpire\b|\bhttps?:\/\/|\.com|\btraffic\b/iu;
-const blockForeignQuic = ['AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn_additional),(RULE-SET,cn_ip,no-resolve)))))),REJECT'];
+const blockForeignQuic = ['AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,geolocation-!cn)),REJECT'];
 const directProxies = [{
   "name": "IPv4优先",
   "type": "direct",
@@ -220,15 +220,6 @@ const baseRuleProviders = {
     "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/fakeip-filter.mrs",
     "path": "./ruleset/fakeip-filter.mrs",
     "path-in-bundle": "geo/geosite/fakeip-filter.mrs"
-  },
-  "cn_additional": {
-    "type": "http",
-    "format": "mrs",
-    "interval": 86400,
-    "behavior": "domain",
-    "url": "https://static-file-global.353355.xyz/rules/cn-additional-list.mrs",
-    "path": "./ruleset/cn-additional-list.mrs",
-    "path-in-bundle": "geo/geosite/cn.mrs"
   },
   "cn": {
     "type": "http",
@@ -985,7 +976,6 @@ function buildCustomizeGroups(filteredProxies, customizeList = customizeProxies)
 }
 function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customizeInfo) {
   const minimalModeEnabled = ruleOptionsEnable.极简模式;
-  const blockForeignQuicEnabled = ruleOptionsEnable.屏蔽国外QUIC;
   const addAllNodesToServiceGroupsEnabled = ruleOptionsEnable.分流组添加所有节点;
   const chainEnabled = ruleOptionsEnable.链式代理;
   const hideManualSelectGroupEnabled = ruleOptionsEnable.隐藏地区手动选择组;
@@ -995,9 +985,6 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
   const finalRuleProviders = {
     ...baseRuleProviders
   };
-  if (!blockForeignQuicEnabled) {
-    delete finalRuleProviders.cn_additional;
-  }
   const {customProxyNames = [], customGroup = null} = customizeInfo || ({});
   const filteredProxyNames = filteredProxies.map(p => p.name);
   const allProxiesNames = [...filteredProxyNames, ...customProxyNames];
@@ -1015,7 +1002,6 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
     const finalRuleProviders = {
       ...baseRuleProviders
     };
-    if (!blockForeignQuicEnabled) delete finalRuleProviders.cn_additional;
     const defaultGroup = {
       ...selectBaseOption,
       name: '默认代理',
