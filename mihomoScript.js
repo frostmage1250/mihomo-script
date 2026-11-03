@@ -44,6 +44,7 @@ const ruleOptionsEnable = {
   "屏蔽国外QUIC": true,
   "代理IPV4优先": false,
   "代理IPV6优先": false,
+  "链式代理": false,
   "AppleTV": true,
   "porn": true,
   "Claude": true,
@@ -51,6 +52,7 @@ const ruleOptionsEnable = {
 };
 const prefixRules = ['DOMAIN,cdn.jsdmirror.com,直连', 'RULE-SET,private,直连', 'RULE-SET,geolocation-cn,直连', 'RULE-SET,games_cn,直连', 'RULE-SET,synology,直连', 'RULE-SET,nvidia_cn,直连', 'RULE-SET,apple_cn,直连', 'RULE-SET,microsoft_cn,直连', 'DOMAIN,fsend.cn,直连', 'DOMAIN,international-gfe.download.nvidia.com,直连', 'DOMAIN-SUFFIX,ctaiot.com,直连'];
 const customizeProxies = [];
+const dialerProxyName = '链式中转';
 const excludeFilter = /群|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|电报|无法|说明|提示|访问|支持|教程|关注|更新|作者|加入|超时|收藏|优惠|福利|邀请|好友|失联|选择|剩余|公益|发布|DIZTNA|通路|登录|禁止|定时|渠道|牢记|永久|余额|阁下|本站|刷新|导航|建议|重置|以下|过滤|⚠️|@|t\.me\/\+|\bexpire\b|\bhttps?:\/\/|\.com|\btraffic\b/iu;
 const blockForeignQuic = ['AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn_additional),(RULE-SET,cn_ip,no-resolve)))))),REJECT'];
 const directProxies = [{
@@ -937,7 +939,11 @@ function buildRegionGroups(filteredProxies, customProxies) {
   return generatedRegionGroups;
 }
 function buildCustomizeGroups(filteredProxies, customizeList = customizeProxies) {
+  const chainEnabled = ruleOptionsEnable.链式代理;
   if (!customizeList.length) {
+    if (chainEnabled) {
+      throw new Error('启用失败，请在脚本中添加自定义节点后尝试');
+    }
     return {
       customProxies: [],
       customProxyNames: [],
@@ -952,15 +958,22 @@ function buildCustomizeGroups(filteredProxies, customizeList = customizeProxies)
     let name = normalized.name;
     if (usedNames.has(name)) continue;
     usedNames.add(name);
-    customProxies.push(name === normalized.name ? normalized : {
+    let customProxy = name === normalized.name ? normalized : {
       ...normalized,
       name
-    });
+    };
+    if (chainEnabled && customProxy['dialer-proxy'] !== dialerProxyName) {
+      customProxy = {
+        ...customProxy,
+        'dialer-proxy': dialerProxyName
+      };
+    }
+    customProxies.push(customProxy);
   }
   const customProxyNames = customProxies.map(p => p.name);
   const customGroup = {
     ...selectBaseOption,
-    name: '自建节点',
+    name: chainEnabled ? '链式落地' : '自建节点',
     proxies: customProxyNames,
     icon: `${iconBaseUrl}Server.svg`
   };
@@ -974,6 +987,7 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
   const minimalModeEnabled = ruleOptionsEnable.极简模式;
   const blockForeignQuicEnabled = ruleOptionsEnable.屏蔽国外QUIC;
   const addAllNodesToServiceGroupsEnabled = ruleOptionsEnable.分流组添加所有节点;
+  const chainEnabled = ruleOptionsEnable.链式代理;
   const hideManualSelectGroupEnabled = ruleOptionsEnable.隐藏地区手动选择组;
   const functionalGroups = [];
   const functionalRules = [];
@@ -990,6 +1004,12 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
   const groupNamesOfSelect = generatedRegionGroups.filter(g => g.type === 'select').map(g => g.name);
   const baseGroupNames = baseGroups.filter(g => ruleOptionsEnable[g.name]).map(g => g.name);
   const customGroupNames = customGroup ? [customGroup.name] : [];
+  const chainGroup = chainEnabled && customGroup ? {
+    ...selectBaseOption,
+    name: dialerProxyName,
+    proxies: filteredProxyNames,
+    icon: `${iconBaseUrl}Bypass.svg`
+  } : null;
   if (minimalModeEnabled) {
     const autoSelectGroupEnabled = ruleOptionsEnable.自动选择;
     const finalRuleProviders = {
@@ -1018,7 +1038,7 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
     const globalGroup = {
       ...selectBaseOption,
       name: 'GLOBAL',
-      proxies: ['默认代理', ...customGroupNames, ...autoSelectGroupEnabled ? [autoSelectGroup.name] : [], '直连'],
+      proxies: ['默认代理', ...customGroupNames, ...chainGroup ? [chainGroup.name] : [], ...autoSelectGroupEnabled ? [autoSelectGroup.name] : [], '直连'],
       icon: `${iconBaseUrl}Global.svg`
     };
     return {
@@ -1027,6 +1047,7 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
       functionalRules: [],
       functionalIpRules: [],
       finalRuleProviders,
+      chainGroup,
       directGroup
     };
   }
@@ -1079,7 +1100,7 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
   const globalGroup = {
     ...selectBaseOption,
     name: 'GLOBAL',
-    proxies: [...functionalGroups.map(g => g.name), ...customGroupNames, directGroup.name, ...generatedRegionGroups.map(g => g.name)],
+    proxies: [...functionalGroups.map(g => g.name), ...customGroupNames, ...chainGroup ? [chainGroup.name] : [], directGroup.name, ...generatedRegionGroups.map(g => g.name)],
     icon: `${iconBaseUrl}Global.svg`
   };
   return {
@@ -1088,6 +1109,7 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
     functionalRules,
     functionalIpRules,
     finalRuleProviders,
+    chainGroup,
     directGroup
   };
 }
@@ -1296,7 +1318,7 @@ function upstreamMain(config) {
   const filteredProxies = filterAndNormalizeProxies(config);
   const {customProxies, customProxyNames, customGroup} = buildCustomizeGroups(filteredProxies);
   const generatedRegionGroups = ruleOptionsEnable.极简模式 ? [] : buildRegionGroups(filteredProxies, customProxies);
-  const {globalGroup, functionalGroups, functionalRules, functionalIpRules, finalRuleProviders, directGroup} = buildFunctionalGroups(filteredProxies, generatedRegionGroups, {
+  const {globalGroup, functionalGroups, functionalRules, functionalIpRules, finalRuleProviders, chainGroup, directGroup} = buildFunctionalGroups(filteredProxies, generatedRegionGroups, {
     customProxyNames,
     customGroup
   });
@@ -1337,7 +1359,7 @@ function upstreamMain(config) {
     'dns-hijack': ['any:53', 'tcp://any:53']
   };
   newConfig['proxies'] = [...mappedProxies, ...customProxies, ...directProxies];
-  newConfig['proxy-groups'] = [globalGroup, ...functionalGroups, ...customGroup ? [customGroup] : [], directGroup, ...generatedRegionGroups];
+  newConfig['proxy-groups'] = [globalGroup, ...functionalGroups, ...customGroup ? [customGroup] : [], ...chainGroup ? [chainGroup] : [], directGroup, ...generatedRegionGroups];
   newConfig['rule-providers'] = finalRuleProviders;
   newConfig['rules'] = [...prefixRules, ...ruleOptionsEnable.屏蔽国外QUIC ? blockForeignQuic : [], ...customizationPolicy.additionalRules, ...functionalRules, 'RULE-SET,geolocation-!cn,默认代理', ...functionalIpRules, 'RULE-SET,cn_ip,直连', 'RULE-SET,private_ip,直连', `MATCH,${ruleOptionsEnable.极简模式 ? '默认代理' : '漏网之鱼'}`];
   return newConfig;
@@ -1395,7 +1417,7 @@ const customizationPolicy = {
     "Direct": ["DIRECT", "$direct_proxies"],
     "GitHub": ["Proxy", "订阅", "AI"],
     "Claude": ["Proxy", "订阅", "日本", "台湾", "其他节点"],
-    "AI": ["Proxy", "日本", "台湾", "其他节点"],
+    "AI": ["Proxy", "订阅", "日本", "台湾", "其他节点"],
     "porn": ["Proxy", "新加坡", "低倍率节点", "美国"],
     "Google": ["Proxy", "订阅"],
     "媒体": ["Proxy", "低倍率节点", "香港", "美国"],
