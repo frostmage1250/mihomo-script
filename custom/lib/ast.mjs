@@ -1,345 +1,101 @@
 import { parse } from "acorn";
 import { generate } from "astring";
-import vm from "node:vm";
-import { FLAGS, BUILTIN_ACTIONS, splitRule, policyIndex, rewriteRule } from "./rules.mjs";
 
-export const parseScript = source => parse(source, {ecmaVersion: "latest", sourceType: "script"});
-export const expression = source => parseScript("(" + source + ")").body[0].expression;
-export const literal = value => expression(JSON.stringify(value));
-export const clone = node => structuredClone(node);
+const parseScript = source => parse(source, {ecmaVersion: "latest", sourceType: "script"});
+const expression = source => parseScript("(" + source + ")").body[0].expression;
+const literal = value => expression(JSON.stringify(value));
+const keyOf = property => property.key.type === "Identifier" ? property.key.name : property.key.value;
 
-export function keyOf(node) {
-  const key = node.type === "MemberExpression" ? node.property : node.key;
-  if (!key) return undefined;
-  if (key.type === "Literal") return String(key.value);
-  if (!node.computed && key.type === "Identifier") return key.name;
-  return undefined;
-}
-
-export function walk(node, visitor) {
-  if (!node || typeof node !== "object") return;
-  if (node.type) visitor(node);
-  for (const value of Object.values(node)) {
-    if (Array.isArray(value)) {
-      for (const child of value) if (child?.type) walk(child, visitor);
-    } else if (value?.type) walk(value, visitor);
-  }
-}
-
-// Scope-aware dependency collection; property labels and locally bound names stay local.
-function bindings(pattern, result) {
-  if (!pattern) return;
-  if (pattern.type === "Identifier") result.add(pattern.name);
-  else if (pattern.type === "RestElement") bindings(pattern.argument, result);
-  else if (pattern.type === "AssignmentPattern") bindings(pattern.left, result);
-  else if (pattern.type === "ArrayPattern") for (const item of pattern.elements) bindings(item, result);
-  else if (pattern.type === "ObjectPattern") for (const item of pattern.properties) bindings(item.value || item.argument, result);
-}
-
-function blockBindings(body) {
-  const names = new Set();
-  for (const node of body) {
-    if (node.type === "VariableDeclaration") for (const item of node.declarations) bindings(item.id, names);
-    else if (node.type === "FunctionDeclaration" || node.type === "ClassDeclaration") if (node.id) names.add(node.id.name);
-  }
-  return names;
-}
-
-export function freeNames(root) {
-  const free = new Set();
-  const isBound = (name, scopes) => scopes.some(scope => scope.has(name));
-  function visit(node, scopes) {
-    if (!node?.type) return;
-    if (node.type === "Identifier") { if (!isBound(node.name, scopes)) free.add(node.name); return; }
-    if (node.type === "Program" || node.type === "BlockStatement") {
-      const nested = [...scopes, blockBindings(node.body)];
-      for (const item of node.body) visit(item, nested);
-      return;
-    }
-    if (["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"].includes(node.type)) {
-      const local = new Set();
-      if (node.id) local.add(node.id.name);
-      for (const param of node.params) bindings(param, local);
-      const nested = [...scopes, local];
-      for (const param of node.params) if (param.type === "AssignmentPattern") visit(param.right, nested);
-      visit(node.body, nested);
-      return;
-    }
-    if (node.type === "VariableDeclaration") {
-      for (const item of node.declarations) visit(item.init, scopes);
-      return;
-    }
-    if (node.type === "MemberExpression") {
-      visit(node.object, scopes);
-      if (node.computed) visit(node.property, scopes);
-      return;
-    }
-    if (node.type === "Property") {
-      if (node.computed) visit(node.key, scopes);
-      visit(node.value, scopes);
-      return;
-    }
-    if (node.type === "ForOfStatement" || node.type === "ForInStatement" || node.type === "ForStatement") {
-      const local = new Set(), declaration = node.left || node.init;
-      if (declaration?.type === "VariableDeclaration") for (const item of declaration.declarations) bindings(item.id, local);
-      const nested = [...scopes, local];
-      for (const key of ["left", "right", "init", "test", "update", "body"]) visit(node[key], nested);
-      return;
-    }
-    if (node.type === "CatchClause") {
-      const local = new Set(); bindings(node.param, local); visit(node.body, [...scopes, local]); return;
-    }
-    for (const [key, value] of Object.entries(node)) {
-      if (["id", "label", "key", "property"].includes(key)) continue;
-      if (Array.isArray(value)) for (const child of value) visit(child, scopes);
-      else if (value?.type) visit(value, scopes);
-    }
-  }
-  visit(root, []);
-  return free;
-}
-
-export function indexDeclarations(ast) {
-  const index = new Map();
-  let order = 0;
+export function compileScript(source, manifest, runtime) {
+  if (manifest.schema_version !== 3) throw new Error("Unsupported customization schema");
+  const ast = parseScript(source);
+  const declarations = new Map();
   for (const statement of ast.body) {
     if (statement.type === "VariableDeclaration") {
-      for (const item of statement.declarations) {
-        if (item.id.type !== "Identifier") continue;
-        if (index.has(item.id.name)) throw new Error("Duplicate top-level declaration: " + item.id.name);
-        index.set(item.id.name, {node: {...statement, declarations: [item]}, order: order++});
-      }
-    } else if (statement.type === "FunctionDeclaration" && statement.id) {
-      index.set(statement.id.name, {node: statement, order: order++});
+      for (const item of statement.declarations) declarations.set(item.id.name, item.init);
     }
   }
-  return index;
-}
-
-function objectVariable(fn, name) {
-  let object;
-  walk(fn.body, node => {
-    if (node.type === "VariableDeclarator" && node.id.type === "Identifier" &&
-        node.id.name === name && node.init?.type === "ObjectExpression") object = node.init;
-  });
-  if (!object) throw new Error("Expected upstream object binding: " + name);
-  return object;
-}
-
-function property(object, key) { return object.properties.find(item => item.type === "Property" && keyOf(item) === key); }
-export function put(object, key, value) {
-  const found = property(object, key);
-  if (found) found.value = value;
-  else object.properties.push({type: "Property", key: literal(key), value, kind: "init", method: false, shorthand: false, computed: false});
-}
-
-export function transformDns(fn, manifest) {
-  const result = clone(fn), dns = objectVariable(result, "dns"), hosts = objectVariable(result, "hosts");
-  for (const [key, value] of Object.entries(manifest.dns_overrides)) put(dns, key, literal(value));
-  const policy = property(dns, "nameserver-policy");
-  if (policy?.value.type !== "ObjectExpression") throw new Error("Expected upstream nameserver policy object");
-  for (const [key, value] of Object.entries(manifest.dns_policy_overrides)) put(policy.value, key, literal(value));
-  hosts.properties = hosts.properties.filter(item => !manifest.excluded_hosts.includes(keyOf(item)));
-  for (const [key, value] of Object.entries(manifest.host_overrides)) put(hosts, key, literal(value));
-  result.body.body = result.body.body.filter(statement => {
-    if (statement.type !== "VariableDeclaration" || statement.declarations.length !== 1) return true;
-    const item = statement.declarations[0];
-    return item.id.name !== "minimalModeEnabled" || freeNames({...result, body: {
-      ...result.body, body: result.body.body.filter(value => value !== statement),
-    }}).has("minimalModeEnabled");
-  });
-  return result;
-}
-
-function assignments(main) {
-  const entries = [];
-  for (const statement of main.body.body) {
-    const value = statement.type === "ExpressionStatement" ? statement.expression : null;
-    if (value?.type === "AssignmentExpression" && value.operator === "=" &&
-        value.left.type === "MemberExpression" && keyOf(value.left)) {
-      entries.push({key: keyOf(value.left), value: value.right});
+  for (const name of ["customRuleOrder", "applyCustomRuleOrder"]) {
+    if (declarations.has(name) || ast.body.some(node => node.id?.name === name)) {
+      throw new Error("Customization binding conflicts with upstream: " + name);
     }
   }
-  return entries;
-}
-
-export function extractModel(source) {
-  const ast = parseScript(source), index = indexDeclarations(ast);
-  const context = vm.createContext({});
-  new vm.Script(source).runInContext(context, {timeout: 3000});
-  const evaluate = node => new vm.Script("(" + generate(node) + ")").runInContext(context, {timeout: 3000});
-  const read = name => {
-    if (!index.has(name)) throw new Error("Missing upstream declaration: " + name);
-    return vm.runInContext(name, context, {timeout: 3000});
+  const binding = (name, type) => {
+    const node = declarations.get(name);
+    if (node?.type !== type) throw new Error("Upstream binding changed: " + name);
+    return node;
   };
-  const main = index.get("main")?.node;
-  if (main?.type !== "FunctionDeclaration") throw new Error("Missing upstream main function");
-  const ruleExpression = assignments(main).find(entry => entry.key === "rules")?.value;
-  if (ruleExpression?.type !== "ArrayExpression") throw new Error("Expected upstream main rule array");
-  const services = JSON.parse(JSON.stringify(read("serviceConfigs")));
-  const regions = read("regionDefinitions"), rates = read("rateRegionDefinitions");
-  const icons = {};
-  for (const item of [...services, ...regions, ...rates]) if (item.icon !== undefined) icons[item.name] = item.icon;
-  // Generated group names/icons are read from their defining syntax, independent of sample nodes.
-  walk(ast, node => {
-    const groupCall = node.type === "CallExpression" && node.callee.type === "Identifier" &&
-      node.callee.name === "createRegionGroup";
-    const name = groupCall ? node.arguments[0] : node.type === "ObjectExpression" ? property(node, "name")?.value : null;
-    const icon = groupCall ? node.arguments[1] : node.type === "ObjectExpression" ? property(node, "icon")?.value : null;
-    if (name && icon) {
-      try { const key = evaluate(name), value = evaluate(icon); if (typeof key === "string") icons[key] = value; } catch {}
+  const options = binding("ruleOptionsEnable", "ObjectExpression");
+  const providers = binding("baseRuleProviders", "ObjectExpression");
+  const services = binding("serviceConfigs", "ArrayExpression");
+  const existingServices = new Set(services.elements
+    .filter(node => node.type === "ObjectExpression")
+    .map(node => node.properties.find(item => item.type === "Property" && keyOf(item) === "name")?.value.value));
+  const addProperty = (object, name, value) => {
+    if (object.properties.some(item => item.type === "Property" && keyOf(item) === name)) {
+      throw new Error("Upstream already defines customization: " + name);
     }
-  });
-  return {
-    ast, index, evaluate, main, services, icons,
-    baseRuleProviders: JSON.parse(JSON.stringify(read("baseRuleProviders"))),
-    ruleSetBaseUrl: read("ruleSetBaseUrl"),
-    nativeOptions: JSON.parse(JSON.stringify(read("ruleOptionsEnable"))),
-  };
-}
-
-export function retargetDnsProxySuffix(value, aliases) {
-  if (typeof value !== "string") return value;
-  const hash = value.lastIndexOf("#");
-  if (hash < 0) return value;
-  const suffix = value.slice(hash + 1);
-  const separator = suffix.indexOf("&");
-  const name = separator < 0 ? suffix : suffix.slice(0, separator);
-  if (name === "DIRECT" || !Object.hasOwn(aliases, name)) return value;
-  return value.slice(0, hash + 1) + aliases[name] +
-    (separator < 0 ? "" : suffix.slice(separator));
-}
-
-export function compileScript(model, manifest, plan, runtime) {
-  if (manifest.preserve_original_proxy_names !== true ||
-      manifest.proxy_name_deduplication !== "exact-name-first") {
-    throw new Error("Original proxy names and exact-name-first deduplication must be preserved");
-  }
-  if (manifest.policy_group_type !== "select") throw new Error("Policy groups must use manual select");
-  const body = clone(model.ast).body;
-  const replaceDeclaration = (name, replacement) => {
-    const position = body.findIndex(node =>
-      node.type === "FunctionDeclaration" ? node.id?.name === name :
-      node.type === "VariableDeclaration" && node.declarations.some(item => item.id.name === name));
-    if (position < 0) throw new Error("Missing upstream runtime declaration: " + name);
-    body[position] = replacement;
-  };
-  const setValue = (name, value) =>
-    replaceDeclaration(name, parseScript("const " + name + " = " + JSON.stringify(value) + ";").body[0]);
-  const options = {...model.nativeOptions, ...manifest.node_options};
-  for (const name of manifest.excluded_services) options[name] = false;
-  for (const name of Object.keys(manifest.additional_services)) {
-    if (!Object.hasOwn(options, name)) options[name] = true;
-  }
-  // Manual groups are an explicit customization, even when changed through the client UI.
-  options.自动选择 = false;
-  options.负载均衡 = false;
-  options.生成地区自动选择组 = false;
-  setValue("ruleOptionsEnable", options);
-  setValue("directProxies", manifest.direct_proxies);
-  const baseProviders = {};
-  for (const name of Object.keys(model.baseRuleProviders)) {
-    if (manifest.excluded_base_rule_providers.includes(name)) continue;
-    const outputName = manifest.base_rule_provider_replacements[name]?.name || name;
-    baseProviders[outputName] = plan.providers[outputName];
-  }
-  Object.assign(baseProviders, manifest.additional_rule_providers);
-  setValue("baseRuleProviders", baseProviders);
-  const services = model.services
-    .filter(service => !manifest.excluded_services.includes(service.name) &&
-      !["自动选择", "负载均衡"].includes(service.name))
-    .map(service => ({...service, ...(service.providers && {
-      providers: Object.fromEntries(Object.keys(service.providers).map(name => [name, plan.providers[name]])),
-    })}));
-  const selectBase = JSON.parse(JSON.stringify(model.evaluate(expression("selectBaseOption"))));
-  for (const [name, value] of Object.entries(manifest.additional_services)) {
-    services.push({...value, name, baseOption: selectBase,
-      providers: Object.fromEntries(Object.keys(value.providers || {}).map(key => [key, plan.providers[key]]))});
-  }
-  setValue("serviceConfigs", services);
-  replaceDeclaration("normalizeProxyName",
-    parseScript("function normalizeProxyName(proxy) { return proxy; }").body[0]);
-  // Keep the upstream custom-node workflow, applying the same original-name deduplication policy.
-  const customize = clone(model.index.get("buildCustomizeGroups")?.node);
-  if (!customize) throw new Error("Missing upstream custom-node workflow");
-  let collisionRules = 0;
-  walk(customize, node => {
-    if (node.type !== "BlockStatement") return;
-    node.body = node.body.map(statement => {
-      if (statement.type !== "WhileStatement") return statement;
-      if (!freeNames(statement.test).has("usedNames")) return statement;
-      collisionRules++;
-      return {type: "IfStatement", test: statement.test,
-        consequent: {type: "ContinueStatement", label: null}, alternate: null};
+    object.properties.push({
+      type: "Property", key: literal(name), value, kind: "init",
+      method: false, shorthand: false, computed: false,
     });
-  });
-  if (collisionRules !== 1) throw new Error("Upstream custom-node collision contract changed");
-  replaceDeclaration("buildCustomizeGroups", customize);
-  replaceDeclaration("buildDnsAndHostsConfig",
-    transformDns(model.index.get("buildDnsAndHostsConfig").node, manifest));
-  const mainIndex = body.findIndex(node => node.type === "FunctionDeclaration" && node.id.name === "main");
-  if (mainIndex < 0) throw new Error("Missing upstream main");
-  body[mainIndex].id.name = "upstreamMain";
-  // Insert only the retained additional reject rules. Upstream owns the complete
-  // rule expression, including every domain/IP phase and its original order.
-  const nativeRules = assignments(body[mainIndex]).find(entry => entry.key === "rules").value;
-  const serviceIndex = nativeRules.elements.findIndex(node => node.type === "SpreadElement" &&
-    node.argument.type === "Identifier" && node.argument.name === "functionalRules");
-  if (serviceIndex < 0) throw new Error("Missing upstream service-rule insertion point");
-  nativeRules.elements.splice(serviceIndex, 0, {
-    type: "SpreadElement", argument: expression("customizationPolicy.additionalRules"),
-  });
-  const icons = {};
-  for (const [name, source] of Object.entries(manifest.group_icon_sources)) {
-    if (source === null) icons[name] = null;
-    else {
-      if (model.icons[source] === undefined) throw new Error("Missing upstream group icon: " + source);
-      icons[name] = model.icons[source];
-    }
-  }
-  const policy = {
-    groupType: manifest.policy_group_type,
-    groupFields: manifest.policy_group_overrides,
-    omittedGroupFields: manifest.omitted_policy_group_fields,
-    groupCandidates: manifest.policy_group_candidates,
-    groupOrder: manifest.policy_group_order,
-    groupIcons: icons,
-    aliases: manifest.policy_aliases,
-    servicePlans: plan.servicePlans,
-    serviceTargets: Object.fromEntries(plan.servicePlans.map(service => [service.name, service.target])),
-    providerReplacements: Object.fromEntries(Object.entries(manifest.base_rule_provider_replacements)
-      .map(([name, replacement]) => [name, replacement.name])),
-    excludedRules: manifest.excluded_rules,
-    additionalRules: manifest.additional_rules,
-    ruleOrderOverrides: manifest.rule_order_overrides || {},
-    globalOverrides: manifest.global_overrides,
-    omittedGlobalFields: manifest.omitted_global_fields,
   };
-  for (const declaration of body) walk(declaration, node => {
-    if (node.type !== "Literal" || typeof node.value !== "string") return;
-    const value = retargetDnsProxySuffix(node.value, manifest.policy_aliases);
-    if (value !== node.value) {
-      node.value = value;
-      node.raw = JSON.stringify(value);
+  const providerNode = provider => {
+    const {upstream_asset, ...definition} = provider;
+    const node = literal(definition);
+    if (upstream_asset !== undefined) {
+      if (!/^geosite\/[a-z0-9@!._-]+\.mrs$/.test(upstream_asset)) {
+        throw new Error("Invalid inherited Bett asset: " + upstream_asset);
+      }
+      addProperty(node, "url", {
+        type: "BinaryExpression", operator: "+",
+        left: {type: "Identifier", name: "ruleSetBaseUrl"}, right: literal(upstream_asset),
+      });
     }
-  });
-  const header = "/**\n * Mihomo single-subscription override; upstream author: AIsouler.\n" +
-    " * Source: https://github.com/AIsouler/MyClash\n" +
-    " * Full upstream runtime with explicit customizations. MIT license retained.\n */\n";
-  for (const name of ["FLAGS", "BUILTIN_ACTIONS", "customizationPolicy"]) {
-    if (model.index.has(name)) throw new Error("Customization binding conflicts with upstream: " + name);
+    return node;
+  };
+  for (const [name, definition] of Object.entries(manifest.additional_rule_providers)) {
+    addProperty(providers, name, providerNode(definition));
   }
-  const program = {type: "Program", sourceType: "script", body: [
-    ...body,
-    ...parseScript("const FLAGS = new Set(" + JSON.stringify([...FLAGS]) + ");\n" +
-      "const BUILTIN_ACTIONS = new Set(" + JSON.stringify([...BUILTIN_ACTIONS]) + ");").body,
-    ...[splitRule, policyIndex, rewriteRule].flatMap(fn => {
-      if (model.index.has(fn.name)) throw new Error("Customization helper conflicts with upstream: " + fn.name);
-      return parseScript(fn.toString()).body;
-    }),
-    parseScript("const customizationPolicy = " + JSON.stringify(policy) + ";").body[0],
-    ...parseScript(runtime).body,
-  ]};
-  const script = header + generate(program, {indent: "  "}).trimEnd() + "\n";
-  return script;
+  for (const [name, service] of Object.entries(manifest.additional_services)) {
+    if (existingServices.has(name)) throw new Error("Upstream already defines service: " + name);
+    addProperty(options, name, literal(true));
+    const node = literal({name, ...service});
+    addProperty(node, "baseOption", {type: "Identifier", name: "selectBaseOption"});
+    const providerObject = node.properties.find(item => keyOf(item) === "providers").value;
+    providerObject.properties = [];
+    for (const [key, definition] of Object.entries(service.providers)) {
+      addProperty(providerObject, key, providerNode(definition));
+    }
+    services.elements.push(node);
+  }
+  const main = ast.body.find(node => node.type === "FunctionDeclaration" && node.id.name === "main");
+  if (!main) throw new Error("Missing upstream main");
+  const rulesStatement = main.body.body.find(node => {
+    const value = node.type === "ExpressionStatement" && node.expression;
+    return value?.type === "AssignmentExpression" &&
+      value.left.type === "MemberExpression" &&
+      value.left.object.name === "newConfig" &&
+      (value.left.computed ? value.left.property.value : value.left.property.name) === "rules";
+  });
+  const rules = rulesStatement?.expression.right;
+  if (rules?.type !== "ArrayExpression") throw new Error("Upstream rule construction changed");
+  const serviceIndex = rules.elements.findIndex(node => node.type === "SpreadElement" &&
+    node.argument.type === "Identifier" && node.argument.name === "functionalRules");
+  if (serviceIndex < 0) throw new Error("Missing functional-rule stage");
+  rules.elements.splice(serviceIndex, 0, ...manifest.additional_rules.map(literal));
+  const returns = main.body.body.filter(node => node.type === "ReturnStatement" && node.argument?.name === "newConfig");
+  if (returns.length !== 1) throw new Error("Upstream main return changed");
+  const edits = [options, providers, services, rules].map(node => ({
+    start: node.start, end: node.end, text: generate(node).trimEnd(),
+  }));
+  edits.push({start: returns[0].start, end: returns[0].start,
+    text: "applyCustomRuleOrder(newConfig);\n  "});
+  let output = source;
+  for (const edit of edits.sort((a, b) => b.start - a.start)) {
+    output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
+  }
+  return output.trimEnd() + "\n\n// Only the approved additional domain-rule placements are applied.\n" +
+    "const customRuleOrder = " + JSON.stringify(manifest.rule_order_overrides, null, 2) + ";\n" +
+    runtime.trimEnd() + "\n";
 }

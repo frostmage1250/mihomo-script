@@ -1,124 +1,12 @@
 {
-  "schema_version": 2,
-  "policy_group_type": "select",
-  "preserve_original_proxy_names": true,
+  "schema_version": 3,
   "upstream": {
     "repository": "AIsouler/MyClash",
     "branch": "main",
     "path": "Script/mihomoScript.js"
   },
   "output": "mihomoScript.js",
-  "service_provider_url_overrides": {},
-  "base_rule_provider_replacements": {
-    "games_cn": {
-      "name": "steam_cn",
-      "from": "category-games@cn",
-      "to": "steam@cn"
-    }
-  },
-  "group_icon_sources": {
-    "Proxy": "默认代理",
-    "订阅": "手动选择",
-    "Direct": "直连",
-    "GitHub": "GitHub",
-    "AI": "AI",
-    "Google": "Google",
-    "YouTube": "YouTube",
-    "Telegram": "Telegram",
-    "PikPak": "PikPak",
-    "EHentai": "EHentai",
-    "香港": "香港",
-    "台湾": "台湾",
-    "新加坡": "新加坡",
-    "日本": "日本",
-    "美国": "美国",
-    "其他节点": "其他节点",
-    "低倍率节点": "低倍率节点",
-    "Final": "漏网之鱼",
-    "Claude": null,
-    "媒体": null,
-    "porn": null
-  },
-  "excluded_services": [
-    "FCM",
-    "Line",
-    "Netflix",
-    "Emby",
-    "Spotify",
-    "Crypto",
-    "PayPal",
-    "Patreon",
-    "AdBlock"
-  ],
-  "excluded_base_rule_providers": [
-    "epicgames"
-  ],
-  "base_rule_provider_url_overrides": {
-    "geolocation-cn": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs"
-  },
   "runtime": "custom/runtime.js",
-  "node_options": {
-    "过滤低倍率节点": false,
-    "过滤非地区节点": true,
-    "FCM": false
-  },
-  "direct_proxies": [
-    {
-      "name": "IPv4优先",
-      "type": "direct",
-      "ip-version": "ipv4-prefer"
-    },
-    {
-      "name": "IPv6优先",
-      "type": "direct",
-      "ip-version": "ipv6-prefer"
-    }
-  ],
-  "global_overrides": {
-    "allow-lan": false,
-    "log-level": "warning"
-  },
-  "omitted_global_fields": [
-    "bind-address",
-    "ntp",
-    "tun.auto-redirect"
-  ],
-  "dns_overrides": {
-    "direct-nameserver": [
-      "system"
-    ]
-  },
-  "dns_policy_overrides": {
-    "rule-set:cn": [
-      "system"
-    ]
-  },
-  "host_overrides": {
-    "services.googleapis.cn": "services.googleapis.com"
-  },
-  "excluded_hosts": [
-    "+.mcdn.bilivideo.com",
-    "+.mcdn.bilivideo.cn",
-    "+.edge.mountaintoys.cn",
-    "+.h2.smtcdns.net"
-  ],
-  "policy_aliases": {
-    "直连": "Direct",
-    "DIRECT": "Direct",
-    "默认代理": "Proxy",
-    "漏网之鱼": "Final",
-    "手动选择": "订阅"
-  },
-  "excluded_rules": [
-    {
-      "type": "DOMAIN",
-      "value": "fsend.cn"
-    },
-    {
-      "type": "RULE-SET",
-      "value": "epicgames"
-    }
-  ],
   "additional_services": {
     "AppleTV": {
       "providers": {
@@ -193,140 +81,15 @@
       "path": "./ruleset/mcdn-block.mrs"
     }
   },
-  "omitted_policy_group_fields": [
-    "timeout",
-    "lazy",
-    "max-failed-times",
-    "default-selected"
-  ],
-  "policy_group_overrides": {
-    "interval": 0
-  },
-  "proxy_name_deduplication": "exact-name-first",
-  "policy_group_candidates": {
-    "Proxy": [
-      "订阅",
-      "$regions",
-      "$custom_groups",
-      "$nodes"
-    ],
-    "订阅": [
-      "$nodes"
-    ],
-    "Direct": [
-      "DIRECT",
-      "$direct_proxies"
-    ],
-    "GitHub": [
-      "Proxy",
-      "订阅",
-      "AI"
-    ],
-    "Claude": [
-      "Proxy",
-      "订阅",
-      "日本",
-      "台湾",
-      "其他节点"
-    ],
-    "AI": [
-      "Proxy",
-      "订阅",
-      "日本",
-      "台湾",
-      "其他节点"
-    ],
-    "porn": [
-      "Proxy",
-      "新加坡",
-      "低倍率节点",
-      "美国"
-    ],
-    "Google": [
-      "Proxy",
-      "订阅"
-    ],
-    "媒体": [
-      "Proxy",
-      "低倍率节点",
-      "香港",
-      "美国"
-    ],
-    "YouTube": [
-      "Proxy",
-      "香港",
-      "低倍率节点"
-    ],
-    "Telegram": [
-      "Proxy",
-      "低倍率节点",
-      "香港"
-    ],
-    "PikPak": [
-      "Proxy",
-      "Direct",
-      "低倍率节点",
-      "香港"
-    ],
-    "EHentai": [
-      "Proxy",
-      "美国",
-      "新加坡",
-      "香港"
-    ],
-    "Final": [
-      "Proxy",
-      "Direct"
-    ]
-  },
-  "policy_group_order": [
-    "GLOBAL",
-    "Proxy",
-    "订阅",
-    "Direct",
-    "GitHub",
-    "Claude",
-    "AI",
-    "porn",
-    "Google",
-    "媒体",
-    "YouTube",
-    "Telegram",
-    "PikPak",
-    "EHentai",
-    "$regions",
-    "$remaining",
-    "Final"
-  ],
-  "service_targets": {
-    "Claude": "Claude",
-    "AI": "AI",
-    "GitHub": "GitHub",
-    "Telegram": "Telegram",
-    "AppleTV": "媒体",
-    "Twitter": "媒体",
-    "TikTok": "媒体",
-    "YouTube": "YouTube",
-    "Meta": "媒体",
-    "Steam": "Proxy",
-    "PikPak": "PikPak",
-    "EHentai": "EHentai",
-    "porn": "porn",
-    "Google": "Google",
-    "Apple": "Proxy",
-    "Microsoft": "Proxy",
-    "Apple Podcasts": "媒体"
-  },
-  "default_service_target": "Proxy",
   "additional_rules": [
     "RULE-SET,mcdn屏蔽,REJECT"
   ],
   "rule_order_overrides": {
     "AppleTV": {
-      "before": "Apple"
+      "before_provider": "apple_cn"
     },
     "Apple Podcasts": {
-      "before": "Apple"
+      "before_provider": "apple_cn"
     },
     "Claude": {
       "before": "AI"
