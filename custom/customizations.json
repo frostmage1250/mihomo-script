@@ -98,5 +98,18 @@
       "after": "EHentai"
     }
   },
-  "disable_automatic_testing": true
+  "option_defaults": {
+    "自动选择": false,
+    "负载均衡": false,
+    "生成地区自动选择组": false
+  },
+  "omitted_group_testing_fields": [
+    "url",
+    "interval",
+    "timeout",
+    "lazy",
+    "max-failed-times",
+    "tolerance",
+    "expected-status"
+  ]
 }

@@ -15,7 +15,7 @@ export function compileScript(source, manifest, runtime) {
       for (const item of statement.declarations) declarations.set(item.id.name, item.init);
     }
   }
-  for (const name of ["customRuleOrder", "applyCustomRuleOrder", "automaticTestingDisabled", "applyAutomaticTestingPolicy"]) {
+  for (const name of ["customRuleOrder", "applyCustomRuleOrder", "omittedGroupTestingFields", "removeGroupTestingFields"]) {
     if (declarations.has(name) || ast.body.some(node => node.id?.name === name)) {
       throw new Error("Customization binding conflicts with upstream: " + name);
     }
@@ -28,15 +28,14 @@ export function compileScript(source, manifest, runtime) {
   const options = binding("ruleOptionsEnable", "ObjectExpression");
   const providers = binding("baseRuleProviders", "ObjectExpression");
   const services = binding("serviceConfigs", "ArrayExpression");
+  for (const [name, value] of Object.entries(manifest.option_defaults || {})) {
+    const option = options.properties.find(item => item.type === "Property" && keyOf(item) === name);
+    if (!option) throw new Error("Missing upstream option: " + name);
+    option.value = literal(value);
+  }
+  const testingFields = new Set(manifest.omitted_group_testing_fields || []);
   const testingNodes = [];
-  if (manifest.disable_automatic_testing === true) {
-    const disabledOptions = new Set(["自动选择", "负载均衡", "生成地区自动选择组"]);
-    const testingFields = new Set([
-      "url", "interval", "timeout", "lazy", "max-failed-times",
-      "tolerance", "expected-status", "strategy", "hash-key", "health-check",
-    ]);
-    options.properties = options.properties.filter(item =>
-      item.type !== "Property" || !disabledOptions.has(keyOf(item)));
+  if (testingFields.size > 0) {
     for (const name of ["groupBaseOption", "urlTestBaseOption", "loadBalanceBaseOption"]) {
       const node = binding(name, "ObjectExpression");
       node.properties = node.properties.filter(item =>
@@ -105,18 +104,14 @@ export function compileScript(source, manifest, runtime) {
   const edits = [options, providers, services, rules, ...testingNodes].map(node => ({
     start: node.start, end: node.end, text: generate(node).trimEnd(),
   }));
-  if (manifest.disable_automatic_testing === true) {
-    edits.push({start: main.body.start + 1, end: main.body.start + 1,
-      text: "\n  applyAutomaticTestingPolicy();"});
-  }
   edits.push({start: returns[0].start, end: returns[0].start,
-    text: "applyCustomRuleOrder(newConfig);\n  applyAutomaticTestingPolicy(newConfig);\n  "});
+    text: "applyCustomRuleOrder(newConfig);\n  removeGroupTestingFields(newConfig);\n  "});
   let output = source;
   for (const edit of edits.sort((a, b) => b.start - a.start)) {
     output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
   }
   return output.trimEnd() + "\n\n// Only the approved additional domain-rule placements are applied.\n" +
     "const customRuleOrder = " + JSON.stringify(manifest.rule_order_overrides, null, 2) + ";\n" +
-    "const automaticTestingDisabled = " + JSON.stringify(manifest.disable_automatic_testing === true) + ";\n" +
+    "const omittedGroupTestingFields = " + JSON.stringify(manifest.omitted_group_testing_fields || []) + ";\n" +
     runtime.trimEnd() + "\n";
 }

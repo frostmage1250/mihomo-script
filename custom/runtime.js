@@ -26,21 +26,9 @@ function applyCustomRuleOrder(config) {
   }
 }
 
-function applyAutomaticTestingPolicy(config) {
-  if (!automaticTestingDisabled) return;
-  // Bettbox applies saved switches before main(); remove stale enabled values too.
-  for (const name of ["自动选择", "负载均衡", "生成地区自动选择组"]) {
-    delete ruleOptionsEnable[name];
-  }
-  if (!config) return;
+function removeGroupTestingFields(config) {
   for (const group of config["proxy-groups"] || []) {
-    if (["url-test", "fallback", "load-balance", "smart"].includes(group.type)) {
-      throw new Error("Automatic-testing group is disabled: " + group.name);
-    }
-    for (const field of [
-      "url", "interval", "timeout", "lazy", "max-failed-times",
-      "tolerance", "expected-status", "strategy", "hash-key", "health-check",
-    ]) {
+    for (const field of omittedGroupTestingFields) {
       delete group[field];
     }
   }
