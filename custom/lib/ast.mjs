@@ -15,7 +15,7 @@ export function compileScript(source, manifest, runtime) {
       for (const item of statement.declarations) declarations.set(item.id.name, item.init);
     }
   }
-  for (const name of ["customRuleOrder", "applyCustomRuleOrder"]) {
+  for (const name of ["customRuleOrder", "applyCustomRuleOrder", "automaticTestingDisabled", "applyAutomaticTestingPolicy"]) {
     if (declarations.has(name) || ast.body.some(node => node.id?.name === name)) {
       throw new Error("Customization binding conflicts with upstream: " + name);
     }
@@ -28,6 +28,22 @@ export function compileScript(source, manifest, runtime) {
   const options = binding("ruleOptionsEnable", "ObjectExpression");
   const providers = binding("baseRuleProviders", "ObjectExpression");
   const services = binding("serviceConfigs", "ArrayExpression");
+  const testingNodes = [];
+  if (manifest.disable_automatic_testing === true) {
+    const disabledOptions = new Set(["自动选择", "负载均衡", "生成地区自动选择组"]);
+    const testingFields = new Set([
+      "url", "interval", "timeout", "lazy", "max-failed-times",
+      "tolerance", "expected-status", "strategy", "hash-key", "health-check",
+    ]);
+    options.properties = options.properties.filter(item =>
+      item.type !== "Property" || !disabledOptions.has(keyOf(item)));
+    for (const name of ["groupBaseOption", "urlTestBaseOption", "loadBalanceBaseOption"]) {
+      const node = binding(name, "ObjectExpression");
+      node.properties = node.properties.filter(item =>
+        item.type !== "Property" || !testingFields.has(keyOf(item)));
+      testingNodes.push(node);
+    }
+  }
   const existingServices = new Set(services.elements
     .filter(node => node.type === "ObjectExpression")
     .map(node => node.properties.find(item => item.type === "Property" && keyOf(item) === "name")?.value.value));
@@ -86,16 +102,21 @@ export function compileScript(source, manifest, runtime) {
   rules.elements.splice(serviceIndex, 0, ...manifest.additional_rules.map(literal));
   const returns = main.body.body.filter(node => node.type === "ReturnStatement" && node.argument?.name === "newConfig");
   if (returns.length !== 1) throw new Error("Upstream main return changed");
-  const edits = [options, providers, services, rules].map(node => ({
+  const edits = [options, providers, services, rules, ...testingNodes].map(node => ({
     start: node.start, end: node.end, text: generate(node).trimEnd(),
   }));
+  if (manifest.disable_automatic_testing === true) {
+    edits.push({start: main.body.start + 1, end: main.body.start + 1,
+      text: "\n  applyAutomaticTestingPolicy();"});
+  }
   edits.push({start: returns[0].start, end: returns[0].start,
-    text: "applyCustomRuleOrder(newConfig);\n  "});
+    text: "applyCustomRuleOrder(newConfig);\n  applyAutomaticTestingPolicy(newConfig);\n  "});
   let output = source;
   for (const edit of edits.sort((a, b) => b.start - a.start)) {
     output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
   }
   return output.trimEnd() + "\n\n// Only the approved additional domain-rule placements are applied.\n" +
     "const customRuleOrder = " + JSON.stringify(manifest.rule_order_overrides, null, 2) + ";\n" +
+    "const automaticTestingDisabled = " + JSON.stringify(manifest.disable_automatic_testing === true) + ";\n" +
     runtime.trimEnd() + "\n";
 }

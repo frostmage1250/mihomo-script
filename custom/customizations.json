@@ -97,5 +97,6 @@
     "porn": {
       "after": "EHentai"
     }
-  }
+  },
+  "disable_automatic_testing": true
 }

@@ -14,9 +14,21 @@ There is no stored upstream mirror, model artifact, local test stage, or build c
 The generator preserves upstream source outside the specific declarations and
 rule insertion points needed by the manifest. It does not rebuild policy groups,
 rename nodes or groups, rewrite service targets, or override DNS, hosts, global
-settings, service switches, ordinary providers, or upstream defaults.
+settings or ordinary providers. The explicit automatic-testing disable policy
+is applied in addition to the retained rule additions and placements.
 
 ## Complete customization list
+
+Automatic testing is disabled explicitly (disable_automatic_testing=true):
+
+- Remove the automatic-selection, load-balance and regional-auto-selection switches.
+- Remove their saved Bettbox values again at the beginning of main, so cached
+  client settings cannot silently restore automatic groups.
+- Remove latency-test URL, interval, timeout, lazy, retry/failure threshold,
+  tolerance, expected-status, strategy/hash-key and health-check group fields.
+- Retain manual UI-triggered latency tests. Rule-provider download intervals
+  are ordinary resource updates and remain unchanged.
+
 
 Five additional providers are retained:
 
@@ -44,7 +56,7 @@ position and flags. Disabled services emit no rules; when a service anchor is
 disabled, its dependent service retains its upstream-generated position.
 
 Everything else follows upstream, including geolocation-cn, games_cn, Epic Games,
-FCM and all ordinary services, group names/types/candidates/order/icons, automatic
-selection and load balance, node naming/deduplication/filtering, direct nodes,
+FCM and all ordinary services, group names/candidates/order/icons (apart from the
+removed automatic groups), node naming/deduplication/filtering, direct nodes,
 DNS, Fake-IP, hosts, and global fields. Apple CN is only one of the earlier direct
 rules: earlier geolocation-cn/private matches retain their upstream priority.
