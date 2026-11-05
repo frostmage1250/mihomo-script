@@ -18,8 +18,6 @@ const Compatible_With_Bettbox = { ruleOptionsEnable: true };
  */
 const ruleOptionsEnable = {
   手动选择: true,
-  自动选择: true,
-  负载均衡: true,
   FCM: true,
   YouTube: true,
   Google: true,
@@ -43,7 +41,6 @@ const ruleOptionsEnable = {
   EHentai: true,
   AdBlock: true,
   极简国内外分流模式: false,
-  生成地区自动选择组: true,
   隐藏地区手动选择组: false,
   生成高低倍率组: true,
   生成家宽节点组: true,
@@ -324,12 +321,7 @@ const baseRuleProviders = {
 
 // 策略组公共配置
 const groupBaseOption = {
-  interval: 600,
-  timeout: 3000,
-  url: 'https://www.apple.com/library/test/success.html',
-  lazy: true,
-  'max-failed-times': 3,
-  'empty-fallback': 'REJECT',
+  'empty-fallback': 'REJECT'
 };
 
 // select策略组通用配置
@@ -342,20 +334,18 @@ const selectBaseOption = {
 const urlTestBaseOption = {
   ...groupBaseOption,
   type: 'url-test',
-  tolerance: 50,
   'exclude-type': 'DIRECT',
   icon: `${iconBaseUrl}Auto.svg`,
-  hidden: true,
+  hidden: true
 };
 
 // load-balance策略组通用配置
 const loadBalanceBaseOption = {
   ...groupBaseOption,
   type: 'load-balance',
-  strategy: 'sticky-sessions',
   'exclude-type': 'DIRECT',
   icon: `${iconBaseUrl}RoundRobin.svg`,
-  hidden: true,
+  hidden: true
 };
 
 // 定义基础策略组
@@ -1894,6 +1884,7 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
  * 主入口：覆写机场订阅配置，生成完整 mihomo 配置
  */
 function main(config) {
+  applyAutomaticTestingPolicy();
   if (config['proxy-providers'] && Object.keys(config['proxy-providers']).length > 0) {
     throw new Error('配置文件中包含 proxy-providers，请使用机场提供的配置文件进行覆写');
   }
@@ -1974,6 +1965,7 @@ function main(config) {
   newConfig['rules'] = [...prefixRules, ...ruleOptionsEnable.屏蔽代理QUIC流量 ? blockForeignQuic : [], "RULE-SET,mcdn屏蔽,REJECT", ...functionalRules, 'RULE-SET,geolocation-!cn,默认代理', ...functionalIpRules, 'RULE-SET,cn_ip,直连', 'RULE-SET,private_ip,直连', `MATCH,${ruleOptionsEnable.极简国内外分流模式 ? '默认代理' : '漏网之鱼'}`];
 
   applyCustomRuleOrder(newConfig);
+  applyAutomaticTestingPolicy(newConfig);
   return newConfig;
 }
 
@@ -1992,6 +1984,7 @@ const customRuleOrder = {
     "after": "EHentai"
   }
 };
+const automaticTestingDisabled = true;
 function applyCustomRuleOrder(config) {
   for (const [name, placement] of Object.entries(customRuleOrder)) {
     if (!ruleOptionsEnable[name]) continue;
@@ -2017,5 +2010,25 @@ function applyCustomRuleOrder(config) {
     }
     remaining.splice(index, 0, ...moving);
     config.rules = remaining;
+  }
+}
+
+function applyAutomaticTestingPolicy(config) {
+  if (!automaticTestingDisabled) return;
+  // Bettbox applies saved switches before main(); remove stale enabled values too.
+  for (const name of ["自动选择", "负载均衡", "生成地区自动选择组"]) {
+    delete ruleOptionsEnable[name];
+  }
+  if (!config) return;
+  for (const group of config["proxy-groups"] || []) {
+    if (["url-test", "fallback", "load-balance", "smart"].includes(group.type)) {
+      throw new Error("Automatic-testing group is disabled: " + group.name);
+    }
+    for (const field of [
+      "url", "interval", "timeout", "lazy", "max-failed-times",
+      "tolerance", "expected-status", "strategy", "hash-key", "health-check",
+    ]) {
+      delete group[field];
+    }
   }
 }
