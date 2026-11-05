@@ -18,6 +18,8 @@ const Compatible_With_Bettbox = { ruleOptionsEnable: true };
  */
 const ruleOptionsEnable = {
   手动选择: true,
+  自动选择: false,
+  负载均衡: false,
   FCM: true,
   YouTube: true,
   Google: true,
@@ -41,6 +43,7 @@ const ruleOptionsEnable = {
   EHentai: true,
   AdBlock: true,
   极简国内外分流模式: false,
+  生成地区自动选择组: false,
   隐藏地区手动选择组: false,
   生成高低倍率组: true,
   生成家宽节点组: true,
@@ -343,6 +346,7 @@ const urlTestBaseOption = {
 const loadBalanceBaseOption = {
   ...groupBaseOption,
   type: 'load-balance',
+  strategy: 'sticky-sessions',
   'exclude-type': 'DIRECT',
   icon: `${iconBaseUrl}RoundRobin.svg`,
   hidden: true
@@ -1884,7 +1888,6 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
  * 主入口：覆写机场订阅配置，生成完整 mihomo 配置
  */
 function main(config) {
-  applyAutomaticTestingPolicy();
   if (config['proxy-providers'] && Object.keys(config['proxy-providers']).length > 0) {
     throw new Error('配置文件中包含 proxy-providers，请使用机场提供的配置文件进行覆写');
   }
@@ -1965,7 +1968,7 @@ function main(config) {
   newConfig['rules'] = [...prefixRules, ...ruleOptionsEnable.屏蔽代理QUIC流量 ? blockForeignQuic : [], "RULE-SET,mcdn屏蔽,REJECT", ...functionalRules, 'RULE-SET,geolocation-!cn,默认代理', ...functionalIpRules, 'RULE-SET,cn_ip,直连', 'RULE-SET,private_ip,直连', `MATCH,${ruleOptionsEnable.极简国内外分流模式 ? '默认代理' : '漏网之鱼'}`];
 
   applyCustomRuleOrder(newConfig);
-  applyAutomaticTestingPolicy(newConfig);
+  removeGroupTestingFields(newConfig);
   return newConfig;
 }
 
@@ -1984,7 +1987,7 @@ const customRuleOrder = {
     "after": "EHentai"
   }
 };
-const automaticTestingDisabled = true;
+const omittedGroupTestingFields = ["url","interval","timeout","lazy","max-failed-times","tolerance","expected-status"];
 function applyCustomRuleOrder(config) {
   for (const [name, placement] of Object.entries(customRuleOrder)) {
     if (!ruleOptionsEnable[name]) continue;
@@ -2013,21 +2016,9 @@ function applyCustomRuleOrder(config) {
   }
 }
 
-function applyAutomaticTestingPolicy(config) {
-  if (!automaticTestingDisabled) return;
-  // Bettbox applies saved switches before main(); remove stale enabled values too.
-  for (const name of ["自动选择", "负载均衡", "生成地区自动选择组"]) {
-    delete ruleOptionsEnable[name];
-  }
-  if (!config) return;
+function removeGroupTestingFields(config) {
   for (const group of config["proxy-groups"] || []) {
-    if (["url-test", "fallback", "load-balance", "smart"].includes(group.type)) {
-      throw new Error("Automatic-testing group is disabled: " + group.name);
-    }
-    for (const field of [
-      "url", "interval", "timeout", "lazy", "max-failed-times",
-      "tolerance", "expected-status", "strategy", "hash-key", "health-check",
-    ]) {
+    for (const field of omittedGroupTestingFields) {
       delete group[field];
     }
   }
