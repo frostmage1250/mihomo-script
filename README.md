@@ -68,9 +68,16 @@ service is disabled or absent, the additional rules retain their generated posit
 The retained MCDN reject rule is
 inserted immediately before the native functional-rule spread without reordering
 any upstream rule. The QUIC switch and its default come
-directly from upstream `ruleOptionsEnable.屏蔽国外QUIC`. Setting it to `false`
-removes the upstream QUIC reject rules and `cn_additional`; setting it to `true`
-restores both. The reject expression and provider definition follow upstream.
+directly from upstream `ruleOptionsEnable.屏蔽代理QUIC流量` (default `false`).
+When enabled, the upstream UDP 443 reject expression excludes destinations
+matching either `cn` or `cn_ip` (`no-resolve`). Disabling it omits the reject
+rule. The retired `cn_additional` provider is not generated.
+The upstream option names `极简国内外分流模式` and `生成高低倍率组` are retained
+with their upstream defaults. Domain-policy, Fake-IP-filter, and hosts matching
+use the complete upstream indexed implementations; the explicit system DNS and
+hosts customizations still apply. Upstream conditional `default-selected` and
+`icon` emission is retained before the policy removes `default-selected` and
+applies the explicit group icon choices.
 Built-in service rule actions stay intact while group targets are mapped.
 Upstream names, ordinary provider fields, icons, and the complete region list
 follow upstream. Low-rate and high-rate group generation, high-rate filtering,
@@ -90,8 +97,8 @@ The upstream conditional FCM filter is preserved and follows that service switch
 
 ## Rule data provenance
 
-Ordinary provider data comes from appshubcc/bett-rules on meta. The QUIC-specific
-`cn_additional` provider retains its complete upstream definition and source URL.
+Ordinary provider data comes from appshubcc/bett-rules on meta. The retired
+`cn_additional` provider is not retained.
 The four reviewed
 converter providers are Claude, geolocation-cn, porn, and MCDN.
 AI follows the upstream Bett MRS URL and bundle path.

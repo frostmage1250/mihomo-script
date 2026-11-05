@@ -32,16 +32,16 @@ const ruleOptionsEnable = {
   "Patreon": false,
   "EHentai": true,
   "AdBlock": false,
-  "极简模式": false,
+  "极简国内外分流模式": false,
   "生成地区自动选择组": false,
   "隐藏地区手动选择组": false,
-  "生成倍率组": true,
+  "生成高低倍率组": true,
   "生成家宽节点组": true,
   "分流组添加所有节点": false,
   "过滤低倍率节点": false,
   "过滤高倍率节点": false,
   "过滤非地区节点": true,
-  "屏蔽国外QUIC": false,
+  "屏蔽代理QUIC流量": false,
   "代理IPV4优先": false,
   "代理IPV6优先": false,
   "链式代理": false,
@@ -910,7 +910,7 @@ function createRegionGroup(name, icon, proxies) {
   }];
 }
 function buildRegionGroups(filteredProxies, customProxies) {
-  const generateRateGroupEnabled = ruleOptionsEnable.生成倍率组;
+  const generateRateGroupEnabled = ruleOptionsEnable.生成高低倍率组;
   const generateHomeGroupEnabled = ruleOptionsEnable.生成家宽节点组;
   const regionGroups = Object.fromEntries(allRegionDefinitions.map(({name}) => [name, []]));
   const otherProxies = [];
@@ -976,7 +976,7 @@ function buildCustomizeGroups(filteredProxies, customizeList = customizeProxies)
   };
 }
 function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customizeInfo) {
-  const minimalModeEnabled = ruleOptionsEnable.极简模式;
+  const minimalModeEnabled = ruleOptionsEnable.极简国内外分流模式;
   const addAllNodesToServiceGroupsEnabled = ruleOptionsEnable.分流组添加所有节点;
   const chainEnabled = ruleOptionsEnable.链式代理;
   const hideManualSelectGroupEnabled = ruleOptionsEnable.隐藏地区手动选择组;
@@ -1061,14 +1061,13 @@ function buildFunctionalGroups(filteredProxies, generatedRegionGroups, customize
     } else {
       groupProxies = !addAllNodesToServiceGroupsEnabled ? ['默认代理', ...customGroupNames, ...baseGroupNames, ...groupNamesOfSelect, ...svc.direct ? ['直连'] : []] : ['默认代理', ...customGroupNames, ...baseGroupNames, ...groupNamesOfSelect, ...allProxiesNames, ...svc.direct ? ['直连'] : []];
     }
+    const selected = svc.defaultSelected !== undefined && groupProxies.includes(svc.defaultSelected) ? svc.defaultSelected : undefined;
     functionalGroups.push({
       ...svc.baseOption,
       name: svc.name,
-      icon: svc.icon,
+      ...(svc.icon && { icon: svc.icon }),
       proxies: groupProxies,
-      ...svc.defaultSelected !== undefined && ({
-        'default-selected': svc.defaultSelected
-      })
+      ...(selected !== undefined && { 'default-selected': selected })
     });
   }
   functionalGroups.push({
@@ -1132,6 +1131,108 @@ function matchDomainPattern(pattern, domains) {
     return patternParts.length === domainParts.length && patternParts.every((part, index) => part === '*' || part === domainParts[index]);
   });
 }
+/**
+ * 预编译节点域名集合，返回「规则模式 → 是否命中」的匹配函数。
+ * 精确 / `+.` / `.` 三类模式查预建集合；通配模式按「段数 + 通配位之后的固定后缀」分组后逐段比对，
+ * 避免每个模式都遍历一遍整个域名集合（节点多时由 O(模式 × 域名) 降为近似 O(模式)）
+ */
+function createDomainMatcher(domains) {
+  const exact = new Set();
+  const suffixes = new Set();
+  const properSuffixes = new Set();
+  const splitDomains = [];
+
+  for (const raw of domains) {
+    const domain = raw.toLowerCase();
+    if (exact.has(domain)) continue;
+    exact.add(domain);
+    const parts = domain.split('.');
+    splitDomains.push(parts);
+    suffixes.add(domain);
+    for (let i = 1; i < parts.length; i++) {
+      const suffix = parts.slice(i).join('.');
+      suffixes.add(suffix);
+      properSuffixes.add(suffix);
+    }
+  }
+
+  let wildcardIndex = null;
+  const candidatesOf = (key) => {
+    if (!wildcardIndex) {
+      wildcardIndex = new Map();
+      for (const parts of splitDomains) {
+        for (let i = 0; i <= parts.length; i++) {
+          const indexKey = `${parts.length}:${parts.slice(i).join('.')}`;
+          const list = wildcardIndex.get(indexKey);
+          if (list) list.push(parts);
+          else wildcardIndex.set(indexKey, [parts]);
+        }
+      }
+    }
+    return wildcardIndex.get(key) || [];
+  };
+
+  return (rawPattern) => {
+    const pattern = String(rawPattern).toLowerCase();
+    if (pattern.startsWith('+.')) return suffixes.has(pattern.slice(2));
+    if (pattern.startsWith('.')) return properSuffixes.has(pattern.slice(1));
+    if (!pattern.includes('*')) return exact.has(pattern);
+
+    const patternParts = pattern.split('.');
+    const key = `${patternParts.length}:${patternParts.slice(patternParts.lastIndexOf('*') + 1).join('.')}`;
+    return candidatesOf(key).some((parts) =>
+      patternParts.every((part, index) => part === '*' || part === parts[index]),
+    );
+  };
+}
+
+/**
+ * 预编译 hosts 条目，返回「域名 → 命中条目」的查找函数。
+ * 精确 / `+.` / `.` 三类按模式建索引，通配模式保底逐个比对；
+ * 同类型命中时取 hosts 中靠前者，与「按优先级排序后线性查找」的结果保持一致。
+ * 入参需已按 hostSpecificity 降序排列（同一键只保留最先出现的一条）
+ */
+function createHostFinder(hostEntries) {
+  const exact = new Map();
+  const plus = new Map();
+  const dot = new Map();
+  const wildcards = [];
+
+  hostEntries.forEach((entry, index) => {
+    const pattern = entry[0].toLowerCase();
+    const level = hostSpecificity(pattern);
+    if (level === 0) {
+      wildcards.push(entry);
+      return;
+    }
+    const [map, key] =
+      level === 3 ? [exact, pattern] : level === 2 ? [plus, pattern.slice(2)] : [dot, pattern.slice(1)];
+    if (!map.has(key)) map.set(key, { entry, index });
+  });
+
+  const firstOf = (map, keys) => {
+    let found = null;
+    for (const key of keys) {
+      const item = map.get(key);
+      if (item && (!found || item.index < found.index)) found = item;
+    }
+    return found?.entry;
+  };
+
+  return (domain) => {
+    const exactEntry = exact.get(domain)?.entry;
+    if (exactEntry) return exactEntry;
+
+    const parts = domain.split('.');
+    const suffixes = parts.map((_, i) => parts.slice(i).join('.'));
+    return (
+      firstOf(plus, suffixes) ??
+      firstOf(dot, suffixes.slice(1)) ??
+      wildcards.find(([pattern]) => matchDomainPattern(pattern, domain))
+    );
+  };
+}
+
 function applyHostsToProxies(proxies, hosts) {
   if (!hosts || typeof hosts !== 'object') return proxies;
   const hostEntries = Object.entries(hosts).filter(([, value]) => typeof value === 'string' && value.length > 0 || Array.isArray(value) && value.length > 0).sort((a, b) => hostSpecificity(b[0]) - hostSpecificity(a[0]));
@@ -1140,6 +1241,7 @@ function applyHostsToProxies(proxies, hosts) {
     if (Array.isArray(value)) value = value.find(v => typeof v === 'string' && v.length > 0);
     return typeof value === 'string' && value.length > 0 ? value : null;
   };
+  const findHost = createHostFinder(hostEntries);
   const resolveCache = new Map();
   const resolve = server => {
     const cached = resolveCache.get(server);
@@ -1149,7 +1251,7 @@ function applyHostsToProxies(proxies, hosts) {
     let result = server;
     while (!seen.has(current)) {
       seen.add(current);
-      const entry = hostEntries.find(([pattern]) => matchDomainPattern(pattern, current));
+      const entry = findHost(current);
       const target = entry && targetOf(entry[1]);
       if (!target) break;
       result = target;
@@ -1225,13 +1327,14 @@ function simplifyDomainPolicy(policy) {
   return result;
 }
 function buildDnsAndHostsConfig(config, filteredProxies) {
-  const minimalModeEnabled = ruleOptionsEnable.极简模式;
+  const minimalModeEnabled = ruleOptionsEnable.极简国内外分流模式;
   const originalDnsConfig = config.dns || ({});
   const proxyServerNameservers = originalDnsConfig['proxy-server-nameserver'] || [];
   const listenValue = originalDnsConfig['listen'];
   const shouldRewriteByHosts = proxyServerNameservers.length === 1 && typeof listenValue === 'string' && listenValue.length > 0 && (proxyServerNameservers.some(dns => String(dns).toLowerCase().includes(listenValue.toLowerCase())) || listenValue.includes('0.0.0.0') && proxyServerNameservers.some(dns => String(dns).toLowerCase().includes('127.0.0.1')));
   const mappedProxies = shouldRewriteByHosts ? applyHostsToProxies(filteredProxies, config.hosts) : filteredProxies;
   const proxyDomains = new Set(mappedProxies.filter(proxy => typeof proxy.server === 'string').map(proxy => proxy.server.toLowerCase()).filter(server => !isIpAddress(server)));
+  const matchProxyDomain = createDomainMatcher(proxyDomains);
   const privateProxyServerNameservers = shouldRewriteByHosts ? [] : proxyServerNameservers;
   const isCommonDns = dns => {
     const value = String(dns).trim().toLowerCase();
@@ -1244,7 +1347,7 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
     ...originalDnsConfig['nameserver-policy'],
     ...originalDnsConfig['proxy-server-nameserver-policy']
   })) {
-    if (!matchDomainPattern(domain, proxyDomains)) continue;
+    if (!matchProxyDomain(domain)) continue;
     const stripedDns = Array.isArray(dns) ? dns.map(stripDnsSuffix).filter(d => d.length > 0) : stripDnsSuffix(dns);
     if (Array.isArray(stripedDns) && stripedDns.length === 0) continue;
     matchedProxyPolicy[domain] = stripedDns;
@@ -1257,10 +1360,7 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
   const matchedPolicyDomains = Object.keys(matchedProxyPolicy);
   const proxyServerPolicy = proxyDomains.size === matchedPolicyDomains.length && matchedPolicyDomains.every(domain => proxyDomains.has(domain.toLowerCase())) ? simplifyDomainPolicy(matchedProxyPolicy) : matchedProxyPolicy;
   const originalFakeIpFilter = originalDnsConfig['fake-ip-filter'] || [];
-  const proxyFakeIpFilter = originalFakeIpFilter.filter(pattern => {
-    const p = String(pattern);
-    return matchDomainPattern(p, proxyDomains);
-  });
+  const proxyFakeIpFilter = originalFakeIpFilter.filter(pattern => matchProxyDomain(pattern));
   const dns = {
     enable: true,
     ipv6: true,
@@ -1304,7 +1404,7 @@ function upstreamMain(config) {
   const newConfig = {};
   const filteredProxies = filterAndNormalizeProxies(config);
   const {customProxies, customProxyNames, customGroup} = buildCustomizeGroups(filteredProxies);
-  const generatedRegionGroups = ruleOptionsEnable.极简模式 ? [] : buildRegionGroups(filteredProxies, customProxies);
+  const generatedRegionGroups = ruleOptionsEnable.极简国内外分流模式 ? [] : buildRegionGroups(filteredProxies, customProxies);
   const {globalGroup, functionalGroups, functionalRules, functionalIpRules, finalRuleProviders, chainGroup, directGroup} = buildFunctionalGroups(filteredProxies, generatedRegionGroups, {
     customProxyNames,
     customGroup
@@ -1348,7 +1448,7 @@ function upstreamMain(config) {
   newConfig['proxies'] = [...mappedProxies, ...customProxies, ...directProxies];
   newConfig['proxy-groups'] = [globalGroup, ...functionalGroups, ...customGroup ? [customGroup] : [], ...chainGroup ? [chainGroup] : [], directGroup, ...generatedRegionGroups];
   newConfig['rule-providers'] = finalRuleProviders;
-  newConfig['rules'] = [...prefixRules, ...ruleOptionsEnable.屏蔽国外QUIC ? blockForeignQuic : [], ...customizationPolicy.additionalRules, ...functionalRules, 'RULE-SET,geolocation-!cn,默认代理', ...functionalIpRules, 'RULE-SET,cn_ip,直连', 'RULE-SET,private_ip,直连', `MATCH,${ruleOptionsEnable.极简模式 ? '默认代理' : '漏网之鱼'}`];
+  newConfig['rules'] = [...prefixRules, ...ruleOptionsEnable.屏蔽代理QUIC流量 ? blockForeignQuic : [], ...customizationPolicy.additionalRules, ...functionalRules, 'RULE-SET,geolocation-!cn,默认代理', ...functionalIpRules, 'RULE-SET,cn_ip,直连', 'RULE-SET,private_ip,直连', `MATCH,${ruleOptionsEnable.极简国内外分流模式 ? '默认代理' : '漏网之鱼'}`];
   return newConfig;
 }
 const FLAGS = new Set(["no-resolve", "src", "dst", "extended-matching"]);
