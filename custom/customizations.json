@@ -8,11 +8,7 @@
     "path": "Script/mihomoScript.js"
   },
   "output": "mihomoScript.js",
-  "service_provider_url_overrides": {
-    "AI": {
-      "ai": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/ai.mrs"
-    }
-  },
+  "service_provider_url_overrides": {},
   "base_rule_provider_replacements": {
     "games_cn": {
       "name": "steam_cn",

@@ -381,8 +381,9 @@ const serviceConfigs = [{
       "format": "mrs",
       "interval": 86400,
       "behavior": "domain",
-      "url": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/ai.mrs",
-      "path": "./ruleset/ai.mrs"
+      "url": "https://cdn.jsdmirror.com/gh/appshubcc/bett-rules@meta/geo/geosite/category-ai-!cn.mrs",
+      "path": "./ruleset/ai.mrs",
+      "path-in-bundle": "geo/geosite/category-ai-!cn.mrs"
     }
   },
   "icon": "https://cdn.jsdmirror.com/gh/AIsouler/MyClash@main/Icons/svg/OpenAI.svg",

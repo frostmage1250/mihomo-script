@@ -44,8 +44,8 @@ collisions between subscription and custom nodes. This is recorded as
 proxy_name_deduplication=exact-name-first. Temporary name cleanup for matching
 does not change the emitted node names.
 
-The AI, geolocation-cn, Claude, porn, and MCDN converter sources
-remain explicit. AI retains Bett's base rules with the converter's supplements.
+The geolocation-cn, Claude, porn, and MCDN converter sources remain explicit.
+AI directly uses upstream Bett's category-ai-!cn.mrs without converter supplements.
 AppleTV remains an additional Bett definition with its source URL declared in
 the customization policy. Twitch's standalone rules and provider are removed.
 
@@ -92,8 +92,9 @@ The upstream conditional FCM filter is preserved and follows that service switch
 
 Ordinary provider data comes from appshubcc/bett-rules on meta. The QUIC-specific
 `cn_additional` provider retains its complete upstream definition and source URL.
-The five reviewed
-converter providers are AI, Claude, geolocation-cn, porn, and MCDN.
+The four reviewed
+converter providers are Claude, geolocation-cn, porn, and MCDN.
+AI follows the upstream Bett MRS URL and bundle path.
 Bettbox is the execution/compatibility client, while the script's upstream source
 is AIsouler/MyClash. Provider customizations follow this boundary.
 
