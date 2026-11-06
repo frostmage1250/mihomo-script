@@ -1856,19 +1856,11 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
   };
 
   const hosts = {
-    'doh.pub': ['1.12.12.12', '120.53.53.53'],
-    'cloudflare-dns.com': ['1.1.1.1', '1.0.0.1'],
-    'dns.google': ['8.8.8.8', '8.8.4.4'],
-
-    // 解决谷歌商店无法下载的问题
-    'services.googleapis.cn': 'services.googleapis.com',
-
-    // 屏蔽哔哩哔哩PCDN，解决访问视频/直播卡顿问题
-    '+.mcdn.bilivideo.com': ['0.0.0.0'],
-    '+.mcdn.bilivideo.cn': ['0.0.0.0'],
-    '+.edge.mountaintoys.cn': ['0.0.0.0'],
-    '+.h2.smtcdns.net': ['0.0.0.0'],
-  };
+  'doh.pub': ['1.12.12.12', '120.53.53.53'],
+  'cloudflare-dns.com': ['1.1.1.1', '1.0.0.1'],
+  'dns.google': ['8.8.8.8', '8.8.4.4'],
+  'services.googleapis.cn': 'services.googleapis.com'
+};
 
   return { dns, hosts, proxies: mappedProxies };
 }
