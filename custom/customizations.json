@@ -111,5 +111,15 @@
     "max-failed-times",
     "tolerance",
     "expected-status"
-  ]
+  ],
+  "dns_overrides": {
+    "direct-nameserver": [
+      "system"
+    ],
+    "nameserver-policy": {
+      "rule-set:cn": [
+        "system"
+      ]
+    }
+  }
 }

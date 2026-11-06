@@ -25,6 +25,35 @@ export function compileScript(source, manifest, runtime) {
     if (node?.type !== type) throw new Error("Upstream binding changed: " + name);
     return node;
   };
+  const dnsEdits = [];
+  if (manifest.dns_overrides) {
+    const dnsBuilder = ast.body.find(node =>
+      node.type === "FunctionDeclaration" && node.id.name === "buildDnsAndHostsConfig");
+    const dns = dnsBuilder?.body.body
+      .filter(node => node.type === "VariableDeclaration")
+      .flatMap(node => node.declarations)
+      .find(node => node.id.name === "dns")?.init;
+    if (dns?.type !== "ObjectExpression") throw new Error("Upstream DNS construction changed");
+    const property = (object, name) => {
+      const item = object.properties.find(node => node.type === "Property" && keyOf(node) === name);
+      if (!item) throw new Error("Missing upstream DNS field: " + name);
+      return item.value;
+    };
+    const replaceValue = (node, value) => dnsEdits.push({
+      start: node.start, end: node.end, text: JSON.stringify(value),
+    });
+    for (const [name, value] of Object.entries(manifest.dns_overrides)) {
+      if (name === "nameserver-policy") {
+        const policy = property(dns, name);
+        if (policy.type !== "ObjectExpression") throw new Error("Upstream DNS policy changed");
+        for (const [domain, servers] of Object.entries(value)) {
+          replaceValue(property(policy, domain), servers);
+        }
+      } else {
+        replaceValue(property(dns, name), value);
+      }
+    }
+  }
   const options = binding("ruleOptionsEnable", "ObjectExpression");
   const providers = binding("baseRuleProviders", "ObjectExpression");
   const services = binding("serviceConfigs", "ArrayExpression");
@@ -104,6 +133,7 @@ export function compileScript(source, manifest, runtime) {
   const edits = [options, providers, services, rules, ...testingNodes].map(node => ({
     start: node.start, end: node.end, text: generate(node).trimEnd(),
   }));
+  edits.push(...dnsEdits);
   edits.push({start: returns[0].start, end: returns[0].start,
     text: "applyCustomRuleOrder(newConfig);\n  removeGroupTestingFields(newConfig);\n  "});
   let output = source;
