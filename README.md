@@ -13,9 +13,9 @@ There is no stored upstream mirror, model artifact, local test stage, or build c
 
 The generator preserves upstream source outside the specific declarations and
 rule insertion points needed by the manifest. It does not rebuild policy groups,
-rename nodes or groups, rewrite service targets, or override hosts, global
-settings or ordinary providers. The explicit option defaults, group testing-field cleanup
-and two DNS overrides below are applied in addition to the retained rule additions and placements.
+rename nodes or groups, rewrite service targets, or override global
+settings or ordinary providers. Hosts changes are limited to the MCDN exclusions below. The explicit option defaults, group testing-field cleanup
+and two DNS overrides plus the hosts exclusions below are applied in addition to the retained rule additions and placements.
 
 ## Complete customization list
 
@@ -29,6 +29,19 @@ if the upstream DNS construction or target fields change. The existing
 `direct-nameserver-follow-policy` behavior and all other DNS fields follow
 upstream, including the private-domain and Douyin policies, node-domain DNS,
 bootstrap DNS and default nameservers.
+
+MCDN hosts exclusions are fixed by `hosts_exclude_suffixes` in the manifest.
+Remove source hosts mappings for these suffixes and their subdomains on every
+generation, including exact, `+.`, `.` and wildcard forms:
+
+- `mcdn.bilivideo.com` and `*.mcdn.bilivideo.com`
+- `mcdn.bilivideo.cn` and `*.mcdn.bilivideo.cn`
+- `edge.mountaintoys.cn` and `*.edge.mountaintoys.cn`
+- `h2.smtcdns.net` and `*.h2.smtcdns.net`
+
+The upstream currently expresses these eight apex/subdomain scopes as four
+`+.` mappings to `0.0.0.0`. Remove those hosts mappings; retain the separate
+`RULE-SET,mcdn屏蔽,REJECT` blocking rule. All other hosts follow upstream.
 
 Automatic-selection, load-balance and regional-auto-selection groups retain
 their complete upstream implementations and Bettbox switches, defaulting to
@@ -69,5 +82,5 @@ disabled, its dependent service retains its upstream-generated position.
 
 Everything else follows upstream, including geolocation-cn, games_cn, Epic Games,
 FCM and all ordinary services, group names/types/candidates/order/icons, node naming/deduplication/filtering, direct nodes,
-DNS apart from the two explicit overrides above, Fake-IP, hosts, and global fields. Apple CN is only one of the earlier direct
+DNS apart from the two explicit overrides above, Fake-IP, hosts apart from the explicit MCDN exclusions above, and global fields. Apple CN is only one of the earlier direct
 rules: earlier geolocation-cn/private matches retain their upstream priority.

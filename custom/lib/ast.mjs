@@ -54,6 +54,27 @@ export function compileScript(source, manifest, runtime) {
       }
     }
   }
+  if (manifest.hosts_exclude_suffixes?.length) {
+    const dnsBuilder = ast.body.find(node =>
+      node.type === "FunctionDeclaration" && node.id.name === "buildDnsAndHostsConfig");
+    const hosts = dnsBuilder?.body.body
+      .filter(node => node.type === "VariableDeclaration")
+      .flatMap(node => node.declarations)
+      .find(node => node.id.name === "hosts")?.init;
+    if (hosts?.type !== "ObjectExpression") throw new Error("Upstream hosts construction changed");
+    const suffixes = manifest.hosts_exclude_suffixes;
+    if (suffixes.some(value => typeof value !== "string" || !/^[a-z0-9.-]+$/.test(value))) {
+      throw new Error("Invalid hosts exclusion suffix");
+    }
+    hosts.properties = hosts.properties.filter(item => {
+      if (item.type !== "Property" || item.computed) {
+        throw new Error("Unsupported upstream hosts property");
+      }
+      const hostname = String(keyOf(item)).replace(/^[*+.]+/, "").toLowerCase();
+      return !suffixes.some(suffix => hostname === suffix || hostname.endsWith("." + suffix));
+    });
+    dnsEdits.push({start: hosts.start, end: hosts.end, text: generate(hosts).trimEnd()});
+  }
   const options = binding("ruleOptionsEnable", "ObjectExpression");
   const providers = binding("baseRuleProviders", "ObjectExpression");
   const services = binding("serviceConfigs", "ArrayExpression");
