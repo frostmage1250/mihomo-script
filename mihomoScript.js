@@ -1858,9 +1858,9 @@ function buildDnsAndHostsConfig(config, filteredProxies) {
     'nameserver-policy': {
       'rule-set:private': 'system',
       'rule-set:douyin': ['180.184.1.1', '180.184.2.2'],
-      'rule-set:cn': chinaDNS,
+      'rule-set:cn': ["system"],
     },
-    'direct-nameserver': chinaDNS,
+    'direct-nameserver': ["system"],
     'direct-nameserver-follow-policy': true,
   };
 
