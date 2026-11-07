@@ -274,10 +274,12 @@ const baseRuleProviders = {
     'path-in-bundle': 'geo/geosite/microsoft@cn.mrs'
   },
   'geolocation-cn': {
-    ...ruleProviderCommonDomain,
-    url: `${ruleSetBaseUrl}geosite/geolocation-cn.mrs`,
-    path: './ruleset/geolocation-cn.mrs',
-    'path-in-bundle': 'geo/geosite/geolocation-cn.mrs'
+    "type": "http",
+    "format": "mrs",
+    "interval": 86400,
+    "behavior": "domain",
+    "url": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs",
+    "path": "./ruleset/geolocation-cn-v2fly.mrs"
   },
   cn_ip: {
     ...ruleProviderCommonIpcidr,
