@@ -127,5 +127,15 @@
     "mcdn.bilivideo.cn",
     "edge.mountaintoys.cn",
     "h2.smtcdns.net"
-  ]
+  ],
+  "rule_provider_overrides": {
+    "geolocation-cn": {
+      "type": "http",
+      "format": "mrs",
+      "interval": 86400,
+      "behavior": "domain",
+      "url": "https://raw.githubusercontent.com/frostmage1250/proxy-rules-converter/main/dist/mihomo/geolocation-cn.mrs",
+      "path": "./ruleset/geolocation-cn-v2fly.mrs"
+    }
+  }
 }

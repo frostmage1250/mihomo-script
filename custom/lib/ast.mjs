@@ -119,6 +119,12 @@ export function compileScript(source, manifest, runtime) {
     }
     return node;
   };
+  for (const [name, definition] of Object.entries(manifest.rule_provider_overrides || {})) {
+    const provider = providers.properties.find(item =>
+      item.type === "Property" && keyOf(item) === name);
+    if (!provider) throw new Error("Missing upstream provider: " + name);
+    provider.value = providerNode(definition);
+  }
   for (const [name, definition] of Object.entries(manifest.additional_rule_providers)) {
     addProperty(providers, name, providerNode(definition));
   }
